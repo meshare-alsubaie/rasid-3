@@ -1,0 +1,221 @@
+# صحة المصادر عند البذر
+
+- الجهات: 127، القنوات المجرّبة: 463، المقروءة: 356، الفاشلة: 107
+- جهات بلا أي قناة مقروءة (25): الشركة السعودية لتقنية المعلومات، وزارة العدل، سمة، البنك الأهلي السعودي، تقنية، ثقة للخدمات التجارية، ماكنزي وشركاه، أمانة محافظة الطائف، البحري، دراية المالية، فالكم المالية، الهيئة العامة للمنافسة، كسب المالية، تجمع مكة المكرمة الصحي، وزارة الثقافة، المركز الوطني للوثائق والمحفوظات، المركز الوطني للتنافسية، صندوق التنمية العقارية، الهلال الأحمر السعودي، الهيئة السعودية للسياحة، المؤسسة العامة لتحلية المياه المالحة، يونيليفر، تحاكم، مدينة الملك عبدالعزيز للعلوم والتقنية، طيران أديل
+
+## القنوات الفاشلة
+
+- ncac: https://ncac.edu.sa
+  - [الجالب][https://ncac.edu.sa] فشل: تعذّر الاتصال (ConnectTimeout)
+- pif: https://careers.pif.gov.sa/
+  - [الجالب][https://careers.pif.gov.sa/] فشل: تعذّر الاتصال (ConnectError)
+- sdaia: https://athkax.sdaia.gov.sa/coop
+  - [الجالب][https://athkax.sdaia.gov.sa/coop] فشل: المحتوى فارغ (ربما تغيّر تصميم الصفحة)
+- site: https://site.sa/
+  - [الجالب][https://site.sa/] فشل: المحتوى فارغ (ربما تغيّر تصميم الصفحة)
+- alinma: https://career.alinma.com/
+  - [الجالب][https://career.alinma.com/] فشل: المحتوى فارغ (ربما تغيّر تصميم الصفحة)
+- cma: https://careers.cma.gov.sa/ar/page/coop-program/
+  - [الجالب][https://careers.cma.gov.sa/ar/page/coop-program/] فشل: تعذّر الاتصال (ConnectTimeout)
+- cma: https://careers.cma.gov.sa/en/page/coop-program/
+  - [الجالب][https://careers.cma.gov.sa/en/page/coop-program/] فشل: تعذّر الاتصال (ConnectTimeout)
+- cma: https://careers.cma.gov.sa/ar/saudi-arabia/jobs/%D8%A8%D8%B1%D9%86%D8%A7%D9%85%D8%AC-%D8%A7%D9%84%D8%AA%D8%AF%D8%B1%D9%8A%D8%A8-%D8%A7%D9%84%D8%AA%D8%B9%D8%A7%D9%88%D9%86%D9%8A-%D9%84%D9%84%D9%81%D8%B5%D9%84-%D8%A7%D9%84%D8%AF%D8%B1%D8%A7%D8%B3%D9%8A-%D8%A7%D9%84%D8%B5%D9%8A%D9%81%D9%8A-2025%D9%85-1100087033/
+  - [الجالب][https://careers.cma.gov.sa/ar/saudi-arabia/jobs/%D8%A8%D8%B1%D9%86%D8%A7%D9%85%D8%AC-%D8%A7%D9%84%D8%AA%D8%AF%D8%B1%D9%8A%D8%A8-%D8%A7%D9%84%D8%AA%D8%B9%D8%A7%D9%88%D9%86%D9%8A-%D9%84%D9%84%D9%81%D8%B5%D9%84-%D8%A7%D9%84%D8%AF%D8%B1%D8%A7%D8%B3%D9%8A-%D8%A7%D9%84%D8%B5%D9%8A%D9%81%D9%8A-2025%D9%85-1100087033/] فشل: تعذّر الاتصال (ConnectTimeout)
+- cma: https://careers.cma.gov.sa/
+  - [الجالب][https://careers.cma.gov.sa/] فشل: تعذّر الاتصال (ConnectTimeout)
+- dga: https://dgacareer.talentera.com/ar/page/coop-program/
+  - [الجالب][https://dgacareer.talentera.com/ar/page/coop-program/] فشل: تعذّر الاتصال (ConnectTimeout)
+- maaden: https://careers.maaden.com/gb/en/cookiesettings
+  - [الجالب][https://careers.maaden.com/gb/en/cookiesettings] فشل: المحتوى فارغ (ربما تغيّر تصميم الصفحة)
+- maaden: https://careers.maaden.com/gb/en/job/8521/Supervisor-Mining
+  - [الجالب][https://careers.maaden.com/gb/en/job/8521/Supervisor-Mining] فشل: رد الموقع برمز 410
+- mcit: https://careers.mcit.gov.sa/
+  - [الجالب][https://careers.mcit.gov.sa/] فشل: تعذّر الاتصال (ConnectError)
+- mobily: https://careers.mobily.com.sa/ar/sites/opportunities/pages/Coop
+  - [الجالب][https://careers.mobily.com.sa/ar/sites/opportunities/pages/Coop] فشل: المحتوى فارغ (ربما تغيّر تصميم الصفحة)
+- mobily: https://careers.mobily.com.sa
+  - [الجالب][https://careers.mobily.com.sa] فشل: المحتوى فارغ (ربما تغيّر تصميم الصفحة)
+- moj: https://training.moj.gov.sa/
+  - [الجالب][https://training.moj.gov.sa/] فشل: المحتوى فارغ (ربما تغيّر تصميم الصفحة)
+- simah: https://www.simah.com/en/personal/pages/default.aspx
+  - [الجالب][https://www.simah.com/en/personal/pages/default.aspx] فشل: رد الموقع برمز 403
+- snb: https://www.alahli.com/en/pages/about-us/careers/snb-cooperative-training-program
+  - [الجالب][https://www.alahli.com/en/pages/about-us/careers/snb-cooperative-training-program] فشل: تعذّر الاتصال (ConnectError)
+- snb: https://www.alahli.com/en/pages/personal-banking
+  - [الجالب][https://www.alahli.com/en/pages/personal-banking] فشل: تعذّر الاتصال (ConnectError)
+- snb: https://www.alahli.com/ar/pages/about-us/careers
+  - [الجالب][https://www.alahli.com/ar/pages/about-us/careers] فشل: تعذّر الاتصال (ConnectError)
+- snb: https://www.alahli.com/ar/pages/about-us/careers/culture
+  - [الجالب][https://www.alahli.com/ar/pages/about-us/careers/culture] فشل: تعذّر الاتصال (ConnectError)
+- snb: https://www.alahli.com/ar/pages/about-us/careers/snb-cooperative-training-program
+  - [الجالب][https://www.alahli.com/ar/pages/about-us/careers/snb-cooperative-training-program] فشل: تعذّر الاتصال (ConnectError)
+- tadawul: https://www.saudiexchange.sa/wps/portal/saudiexchange/newsandreports/issuer-news?locale=ar
+  - [الجالب][https://www.saudiexchange.sa/wps/portal/saudiexchange/newsandreports/issuer-news?locale=ar] فشل: رد الموقع برمز 403
+- tadawul: https://www.saudiexchange.sa/wps/portal/saudiexchange/about-saudi-exchange/aboutus/careers?locale=ar
+  - [الجالب][https://www.saudiexchange.sa/wps/portal/saudiexchange/about-saudi-exchange/aboutus/careers?locale=ar] فشل: رد الموقع برمز 403
+- tadawul: https://www.saudiexchange.sa/wps/portal/saudiexchange/newsandreports/issuer-financial-calendars?locale=ar
+  - [الجالب][https://www.saudiexchange.sa/wps/portal/saudiexchange/newsandreports/issuer-financial-calendars?locale=ar] فشل: رد الموقع برمز 403
+- tadawul: https://www.saudiexchange.sa/wps/portal/saudiexchange/newsandreports/issuer-news/issuer-announcements?locale=ar
+  - [الجالب][https://www.saudiexchange.sa/wps/portal/saudiexchange/newsandreports/issuer-news/issuer-announcements?locale=ar] فشل: رد الموقع برمز 403
+- tadawul: https://www.saudiexchange.sa/wps/portal/saudiexchange/newsandreports/issuer-financial-calendars/dividends?locale=ar
+  - [الجالب][https://www.saudiexchange.sa/wps/portal/saudiexchange/newsandreports/issuer-financial-calendars/dividends?locale=ar] فشل: رد الموقع برمز 403
+- takamol: https://join.takamol.com.sa
+  - [الجالب][https://join.takamol.com.sa] فشل: تعذّر الاتصال (ConnectError)
+- takamol: https://join.takamol.com.sa/?page_id=4
+  - [الجالب][https://join.takamol.com.sa/?page_id=4] فشل: تعذّر الاتصال (ConnectError)
+- takamol: https://api.takamolholding.com/uploads/Are_We_Losing_Our_Jobs_to_AI_2023_92d4143155.pdf
+  - [الجالب][https://api.takamolholding.com/uploads/Are_We_Losing_Our_Jobs_to_AI_2023_92d4143155.pdf] فشل: المحتوى فارغ (ربما تغيّر تصميم الصفحة)
+- takamol: https://api.takamolholding.com/uploads/Future_of_the_Saudi_Job_Market_2023_c086abd48a.pdf
+  - [الجالب][https://api.takamolholding.com/uploads/Future_of_the_Saudi_Job_Market_2023_c086abd48a.pdf] فشل: المحتوى فارغ (ربما تغيّر تصميم الصفحة)
+- taqnia: https://taqnia.com/en/
+  - [الجالب][https://taqnia.com/en/] فشل: رد الموقع برمز 404
+- tetco: http://127.0.1.1/ar/careers
+  - [الجالب][http://127.0.1.1/ar/careers] فشل: تعذّر الاتصال (ConnectError)
+- thiqah: https://thiqah.sa/
+  - [الجالب][https://thiqah.sa/] فشل: تعذّر الاتصال (ConnectError)
+- thiqah: https://www.thiqah.sa/
+  - [الجالب][https://www.thiqah.sa/] فشل: تعذّر الاتصال (ConnectError)
+- thiqah: https://www.thiqah.sa/careers/
+  - [الجالب][https://www.thiqah.sa/careers/] فشل: تعذّر الاتصال (ConnectError)
+- thiqah: https://www.thiqah.sa/en/careers/
+  - [الجالب][https://www.thiqah.sa/en/careers/] فشل: تعذّر الاتصال (ConnectError)
+- thiqah: https://www.thiqah.sa/news-events/
+  - [الجالب][https://www.thiqah.sa/news-events/] فشل: تعذّر الاتصال (ConnectError)
+- thiqah: https://www.thiqah.sa/en/news-events/
+  - [الجالب][https://www.thiqah.sa/en/news-events/] فشل: تعذّر الاتصال (ConnectError)
+- devoteam_sa: https://me.devoteam.com/jobs/
+  - [الجالب][https://me.devoteam.com/jobs/] فشل: تعذّر الاتصال (ConnectError)
+- fakeeh: https://careers.fakeeh.care/
+  - [الجالب][https://careers.fakeeh.care/] فشل: تعذّر الاتصال (ConnectError)
+- masterworks: https://career.master-works.sa/ar
+  - [الجالب][https://career.master-works.sa/ar] فشل: تعذّر الاتصال (ConnectError)
+- mckinsey_sa: https://www.mckinsey.com/careers/home
+  - [الجالب][https://www.mckinsey.com/careers/home] فشل: تعذّر الاتصال (RemoteProtocolError)
+- mckinsey_sa: https://www.mckinsey.com/careers/interviewing
+  - [الجالب][https://www.mckinsey.com/careers/interviewing] فشل: تعذّر الاتصال (ReadTimeout)
+- mckinsey_sa: https://www.mckinsey.com/middle-east/ar/riyadh
+  - [الجالب][https://www.mckinsey.com/middle-east/ar/riyadh] فشل: تعذّر الاتصال (ReadTimeout)
+- mckinsey_sa: https://www.mckinsey.com/careers/mckinsey-digital-assessment
+  - [الجالب][https://www.mckinsey.com/careers/mckinsey-digital-assessment] فشل: تعذّر الاتصال (RemoteProtocolError)
+- mckinsey_sa: https://www.mckinsey.com/careers/assessment-integrity-expectations
+  - [الجالب][https://www.mckinsey.com/careers/assessment-integrity-expectations] فشل: تعذّر الاتصال (RemoteProtocolError)
+- mckinsey_sa: http://www.mckinsey.com/careers/search-jobs
+  - [الجالب][http://www.mckinsey.com/careers/search-jobs] فشل: تعذّر الاتصال (ReadTimeout)
+- taif_amanah: https://www.taifcity.gov.sa/#/ar
+  - [الجالب][https://www.taifcity.gov.sa/#/ar] فشل: تعذّر الاتصال (ConnectError)
+- bahri: https://careers.bahri.sa/
+  - [الجالب][https://careers.bahri.sa/] فشل: المحتوى فارغ (ربما تغيّر تصميم الصفحة)
+- derayah: https://www.derayah.com/
+  - [الجالب][https://www.derayah.com/] فشل: المحتوى فارغ (ربما تغيّر تصميم الصفحة)
+- ecza: https://www.ecza.gov.sa/ar/media-center/news-press
+  - [الجالب][https://www.ecza.gov.sa/ar/media-center/news-press] فشل: رد الموقع برمز 404
+- ecza: https://www.ecza.gov.sa/ar/media-center/news-press/alhyyt-tnzm-dwrt-tdrybyt-bnwan-altwyt-bslamt-alghdha
+  - [الجالب][https://www.ecza.gov.sa/ar/media-center/news-press/alhyyt-tnzm-dwrt-tdrybyt-bnwan-altwyt-bslamt-alghdha] فشل: رد الموقع برمز 404
+- etec: https://www.etec.gov.sa/ar/jobs
+  - [الجالب][https://www.etec.gov.sa/ar/jobs] فشل: تعذّر الاتصال (ConnectError)
+- etec: https://www.etec.gov.sa/ar/institutions
+  - [الجالب][https://www.etec.gov.sa/ar/institutions] فشل: تعذّر الاتصال (ConnectError)
+- etec: https://www.etec.gov.sa/ar/centers/nctea
+  - [الجالب][https://www.etec.gov.sa/ar/centers/nctea] فشل: تعذّر الاتصال (ConnectError)
+- etec: https://www.etec.gov.sa/ar/programs/nsqts
+  - [الجالب][https://www.etec.gov.sa/ar/programs/nsqts] فشل: تعذّر الاتصال (ConnectError)
+- etec: https://www.etec.gov.sa/ar/identity-guide
+  - [الجالب][https://www.etec.gov.sa/ar/identity-guide] فشل: تعذّر الاتصال (ConnectError)
+- falcom: https://yaqeen.sa/ar/
+  - [الجالب][https://yaqeen.sa/ar/] فشل: تعذّر الاتصال (ConnectError)
+- falcom: http://www.falcom.com.sa/
+  - [الجالب][http://www.falcom.com.sa/] فشل: تعذّر الاتصال (ConnectTimeout)
+- gac: https://gac.gov.sa/
+  - [الجالب][https://gac.gov.sa/] فشل: تعذّر الاتصال (ConnectError)
+- kasb: http://www.kasbcapital.sa/index.php/ar/
+  - [الجالب][http://www.kasbcapital.sa/index.php/ar/] فشل: رد الموقع برمز 404
+- mawhiba: https://former.mawhiba.org/Ar/e-services/Pages/Internship.aspx
+  - [الجالب][https://former.mawhiba.org/Ar/e-services/Pages/Internship.aspx] فشل: تعذّر الاتصال (ConnectError)
+- mc: https://mc.gov.sa/ar/pages/default.aspx
+  - [الجالب][https://mc.gov.sa/ar/pages/default.aspx] فشل: تعذّر الاتصال (ConnectError)
+- mc: https://mc.gov.sa/ar/mediacenter/News/pages/default.aspx
+  - [الجالب][https://mc.gov.sa/ar/mediacenter/News/pages/default.aspx] فشل: تعذّر الاتصال (ConnectError)
+- mecca_health: https://makkah-careers.health.sa/
+  - [الجالب][https://makkah-careers.health.sa/] فشل: المحتوى فارغ (ربما تغيّر تصميم الصفحة)
+- moc: https://www.moc.gov.sa/ar
+  - [الجالب][https://www.moc.gov.sa/ar] فشل: تعذّر الاتصال (ConnectError)
+- modon: https://modon.gov.sa/
+  - [الجالب][https://modon.gov.sa/] فشل: تعذّر الاتصال (ConnectError)
+- modon: https://modon.gov.sa/ar/MediaCenter/Pages/default.aspx
+  - [الجالب][https://modon.gov.sa/ar/MediaCenter/Pages/default.aspx] فشل: تعذّر الاتصال (ConnectError)
+- modon: https://modon.gov.sa/ar/MediaCenter/modon-news/News/Pages/default.aspx
+  - [الجالب][https://modon.gov.sa/ar/MediaCenter/modon-news/News/Pages/default.aspx] فشل: تعذّر الاتصال (ConnectError)
+- moe: https://www.moe.gov.sa/ar/Pages/default.aspx
+  - [الجالب][https://www.moe.gov.sa/ar/Pages/default.aspx] فشل: المحتوى فارغ (ربما تغيّر تصميم الصفحة)
+- mofa: https://jobs.mofa.gov.sa/
+  - [الجالب][https://jobs.mofa.gov.sa/] فشل: المحتوى فارغ (ربما تغيّر تصميم الصفحة)
+- mot: https://www.mot.gov.sa/ar/Pages/default.aspx
+  - [الجالب][https://www.mot.gov.sa/ar/Pages/default.aspx] فشل: تعذّر الاتصال (RemoteProtocolError)
+- ncar: https://ncar.gov.sa/
+  - [الجالب][https://ncar.gov.sa/] فشل: المحتوى فارغ (ربما تغيّر تصميم الصفحة)
+- ncc: https://www.ncc.gov.sa/ar/Pages/default.aspx
+  - [الجالب][https://www.ncc.gov.sa/ar/Pages/default.aspx] فشل: رد الموقع برمز 404
+- ncc: https://www.ncc.gov.sa/ar/MediaCenter/Pages/default.aspx
+  - [الجالب][https://www.ncc.gov.sa/ar/MediaCenter/Pages/default.aspx] فشل: رد الموقع برمز 404
+- ncc: https://www.ncc.gov.sa/ar/MediaCenter/News/Pages/default.aspx
+  - [الجالب][https://www.ncc.gov.sa/ar/MediaCenter/News/Pages/default.aspx] فشل: رد الموقع برمز 404
+- ncc: https://www.ncc.gov.sa/ar/MediaCenter/News/Pages/News_065.aspx
+  - [الجالب][https://www.ncc.gov.sa/ar/MediaCenter/News/Pages/News_065.aspx] فشل: رد الموقع برمز 404
+- ncc: https://www.ncc.gov.sa/ar/MediaCenter/Events/Pages/default.aspx
+  - [الجالب][https://www.ncc.gov.sa/ar/MediaCenter/Events/Pages/default.aspx] فشل: تعذّر الاتصال (RemoteProtocolError)
+- pension: https://www.pension.gov.sa/
+  - [الجالب][https://www.pension.gov.sa/] فشل: تعذّر الاتصال (ConnectError)
+- rcrc: https://www.rcrc.gov.sa/careers/?lang=ar
+  - [الجالب][https://www.rcrc.gov.sa/careers/?lang=ar] فشل: المحتوى فارغ (ربما تغيّر تصميم الصفحة)
+- redf: https://redf.gov.sa/
+  - [الجالب][https://redf.gov.sa/] فشل: تعذّر الاتصال (RemoteProtocolError)
+- redf: https://redf.gov.sa/ar/careers
+  - [الجالب][https://redf.gov.sa/ar/careers] فشل: تعذّر الاتصال (RemoteProtocolError)
+- sanabil: http://www.sanabil.sa/ar/pages/default.aspx
+  - [الجالب][http://www.sanabil.sa/ar/pages/default.aspx] فشل: تعذّر الاتصال (ConnectError)
+- saudi_exports: https://www.saudiexports.sa/ar/pages/default.aspx
+  - [الجالب][https://www.saudiexports.sa/ar/pages/default.aspx] فشل: تعذّر الاتصال (ConnectError)
+- sfd: https://careers.sfd.gov.sa/
+  - [الجالب][https://careers.sfd.gov.sa/] فشل: المحتوى فارغ (ربما تغيّر تصميم الصفحة)
+- sfda: https://career.sfda.gov.sa/
+  - [الجالب][https://career.sfda.gov.sa/] فشل: تعذّر الاتصال (ConnectError)
+- sfda: https://careers.sfda.gov.sa/ar/
+  - [الجالب][https://careers.sfda.gov.sa/ar/] فشل: رد الموقع برمز 404
+- srca: https://www.srca.org.sa/
+  - [الجالب][https://www.srca.org.sa/] فشل: تعذّر الاتصال (ConnectError)
+- srca: https://www.srca.org.sa/news/
+  - [الجالب][https://www.srca.org.sa/news/] فشل: تعذّر الاتصال (ConnectError)
+- srca: https://www.srca.org.sa/newsletters/
+  - [الجالب][https://www.srca.org.sa/newsletters/] فشل: تعذّر الاتصال (ConnectError)
+- srca: https://www.srca.org.sa/%d8%a7%d9%84%d8%aa%d9%88%d8%b8%d9%8a%d9%81/
+  - [الجالب][https://www.srca.org.sa/%d8%a7%d9%84%d8%aa%d9%88%d8%b8%d9%8a%d9%81/] فشل: تعذّر الاتصال (ConnectError)
+- ssc: https://saudispace.gov.sa/
+  - [الجالب][https://saudispace.gov.sa/] فشل: تعذّر الاتصال (ConnectError)
+- sta: https://sta.gov.sa/
+  - [الجالب][https://sta.gov.sa/] فشل: المحتوى فارغ (ربما تغيّر تصميم الصفحة)
+- swcc: https://www.swcc.gov.sa/Arabic/Pages/Home.aspx
+  - [الجالب][https://www.swcc.gov.sa/Arabic/Pages/Home.aspx] فشل: رد الموقع برمز 403
+- swcc: https://www.swcc.gov.sa/ar/Career
+  - [الجالب][https://www.swcc.gov.sa/ar/Career] فشل: رد الموقع برمز 403
+- tawuniya: https://www.tawuniya.com.sa/about-us/contact-us
+  - [الجالب][https://www.tawuniya.com.sa/about-us/contact-us] فشل: رد الموقع برمز 404
+- unilever_sa: https://www.unilever.com/
+  - [الجالب][https://www.unilever.com/] فشل: رد الموقع برمز 403
+- unilever_sa: https://www.unilever.com/news/
+  - [الجالب][https://www.unilever.com/news/] فشل: رد الموقع برمز 403
+- unilever_sa: https://www.unilever.com/news/news-search/
+  - [الجالب][https://www.unilever.com/news/news-search/] فشل: رد الموقع برمز 403
+- unilever_sa: https://www.unilever.com/news/press-and-media/
+  - [الجالب][https://www.unilever.com/news/press-and-media/] فشل: رد الموقع برمز 403
+- unilever_sa: https://www.unilever.com/working-at-unilever/careers/
+  - [الجالب][https://www.unilever.com/working-at-unilever/careers/] فشل: رد الموقع برمز 403
+- unilever_sa: https://www.unilever.com/investors/regulatory-announcements/
+  - [الجالب][https://www.unilever.com/investors/regulatory-announcements/] فشل: رد الموقع برمز 403
+- tahakom: https://www.tahakom.com/
+  - [الجالب][https://www.tahakom.com/] فشل: المحتوى فارغ (ربما تغيّر تصميم الصفحة)
+- tahakom: https://www.tahakom.com/careers
+  - [الجالب][https://www.tahakom.com/careers] فشل: المحتوى فارغ (ربما تغيّر تصميم الصفحة)
+- kacst: https://kacst.gov.sa/ar/careers
+  - [الجالب][https://kacst.gov.sa/ar/careers] فشل: المحتوى فارغ (ربما تغيّر تصميم الصفحة)
+- flyadeal: https://careers.flyadeal.com/
+  - [الجالب][https://careers.flyadeal.com/] فشل: المحتوى فارغ (ربما تغيّر تصميم الصفحة)

@@ -154,3 +154,15 @@ def test_thinking_text_is_stripped_from_answer():
     from rasid.classify.providers import _extract_json
     assert _extract_json('<thought>أفكر... {"x": 1}</thought>\n```json\n{"kind": "job"}\n```') == {"kind": "job"}
     assert _extract_json("not json") is None
+
+
+def test_budget_survives_between_runs():
+    b = Budget()
+    b.spend(R1, date(2026, 10, 4)); b.spend(R1, date(2026, 10, 4)); b.exhaust(C1, date(2026, 10, 4))
+    b2 = Budget.from_dict(b.to_dict(), today=date(2026, 10, 4))
+    assert b2.used[("reader-a", date(2026, 10, 4))] == 2 and not b2.available(C1, date(2026, 10, 4))
+
+
+def test_old_budget_days_are_dropped():
+    b = Budget(); b.spend(R1, date(2026, 10, 1))
+    assert Budget.from_dict(b.to_dict(), today=date(2026, 10, 4)).to_dict() == {"used": {}, "exhausted": []}

@@ -51,6 +51,24 @@ class Budget:
     def exhaust(self, p: Provider, day: date) -> None:
         self.exhausted.add((p.name, day))
 
+    def to_dict(self) -> dict:
+        return {"used": {f"{n}|{d}": c for (n, d), c in self.used.items()},
+                "exhausted": [f"{n}|{d}" for n, d in sorted(self.exhausted)]}
+
+    @classmethod
+    def from_dict(cls, d: dict, today: date) -> Budget:
+        """يحمّل حصة اليوم فقط؛ الأيام القديمة تُرمى (الحصة تتجدد يومياً)."""
+        b = cls()
+        for k, c in d.get("used", {}).items():
+            n, day = k.rsplit("|", 1)
+            if date.fromisoformat(day) == today:
+                b.used[(n, today)] = c
+        for k in d.get("exhausted", []):
+            n, day = k.rsplit("|", 1)
+            if date.fromisoformat(day) == today:
+                b.exhausted.add((n, today))
+        return b
+
 
 def _first_valid(role: str, text: str, providers: list[Provider], budget: Budget,
                  call: Caller, day: date, errors: list[str]) -> Verdict | None:
