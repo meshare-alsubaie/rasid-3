@@ -1,0 +1,16 @@
+id: aramco-uip-2026
+entity: aramco
+source_url: https://www.aramco.com/ar/careers/for-saudi-applicants/student-opportunities/university-and-vocational-college-internship-programs/university-internship-program
+text_file: ../raw/aramco-uip-ar.txt
+captured_at: 2026-10-04
+expected:
+  kind: university          # تدريب جامعي يشترط أن تطلبه الجامعة قبل التخرج
+  opens: 2026-10-26
+  closes: 2026-11-02
+  training_starts: 2027-01-18
+  stipend: true
+  housing: true
+  medical: true
+  transport: true
+  no_courses_allowed: true  # «لا يسمح بتسجيل مواد دراسية خلال فترة التدريب»
+  apply_url_contains: aramco.com
