@@ -4,6 +4,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -23,6 +24,7 @@ MAX_INPUT = 9000          # حد طول النص المرسل للمصنّف
 SEEN_CAP = 3000           # أقصى بصمات محفوظة لكل قناة
 DEAD_AFTER = timedelta(hours=72)
 DIGEST_HOUR = 7
+FETCH_WORKERS = 8
 
 
 @dataclass
@@ -123,13 +125,17 @@ def _handle(st: State, deps: Deps, now: datetime, entity_id: str, name: str, url
         st.queue.add("re:" + item_id, entity_id, url, text, "إعادة فحص بالنموذج الأساسي", now, recheck_of=r.kind)
 
 
-def _fetch_channel(st: State, deps: Deps, now: datetime, e: Entity, ch: Channel, rep: RunReport) -> None:
+def _safe_fetch(deps: Deps, e: Entity, ch: Channel) -> FetchResult:
+    try:
+        return deps.fetch(ch)
+    except Exception as ex:  # noqa: BLE001 — مصدر واحد لا يسقط الجولة
+        return FetchResult(False, ch.url, error_ar=f"[الجالب][{e.name_ar}][{ch.url}] انهيار: {ex}")
+
+
+def _fetch_channel(st: State, deps: Deps, now: datetime, e: Entity, ch: Channel, rep: RunReport,
+                   res: FetchResult) -> None:
     h = st.health.setdefault(ch.url, {"entity": e.id, "name": e.name_ar, "last_success": None,
                                       "last_error_ar": None, "consecutive_failures": 0, "first_failure": None})
-    try:
-        res = deps.fetch(ch)
-    except Exception as ex:  # noqa: BLE001 — مصدر واحد لا يسقط الجولة
-        res = FetchResult(False, ch.url, error_ar=f"[الجالب][{e.name_ar}][{ch.url}] انهيار: {ex}")
     if not res.ok:
         rep.fetch_fail += 1
         h["consecutive_failures"] += 1
@@ -193,10 +199,12 @@ def saudi_list(st: State) -> list[str]:
 def run_once(now: datetime, entities: list[Entity], st: State, deps: Deps) -> RunReport:
     rep = RunReport()
     names = {e.id: e.name_ar for e in entities}
-    for e in entities:
-        for ch in e.channels:
-            if ch.kind in ("web", "rss"):
-                _fetch_channel(st, deps, now, e, ch, rep)
+    jobs = [(e, ch) for e in entities for ch in e.channels if ch.kind in ("web", "rss")]
+    # الجلب بالتوازي (المواقع المحجوبة بطيئة)، والمعالجة بالترتيب حتى تبقى الحالة متسقة
+    with ThreadPoolExecutor(max_workers=FETCH_WORKERS) as pool:
+        results = list(pool.map(lambda j: _safe_fetch(deps, *j), jobs))
+    for (e, ch), res in zip(jobs, results):
+        _fetch_channel(st, deps, now, e, ch, rep, res)
     for it in st.queue.due(now):
         _handle(st, deps, now, it.entity_id, names.get(it.entity_id, it.entity_id), it.url, it.text,
                 it.id, rep, queued=it)

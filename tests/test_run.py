@@ -214,3 +214,18 @@ def test_health_records_how_source_was_read():
     st = State()
     run_once(T0, [ARAMCO], st, w.deps())
     assert st.health["https://aramco/x"]["via"] == "direct"
+
+
+def test_fetching_is_parallel_so_slow_sites_do_not_add_up():
+    import time
+    w = World()
+    ents = [Entity(f"e{i}", f"جهة {i}", 1, 1, [Channel("web", f"https://s{i}/x")]) for i in range(8)]
+    for i in range(8):
+        w.pages[f"https://s{i}/x"] = ["خبر عام"]
+
+    def slow_fetch(ch):
+        time.sleep(0.5)
+        return World.fetch(w, ch)
+    t0 = time.time()
+    run_once(T0, ents, State(), Deps(slow_fetch, w.classify, w.send))
+    assert time.time() - t0 < 2.0  # ٨ مواقع بطيئة × نصف ثانية = ٤ ثوانٍ لو كانت متتالية
