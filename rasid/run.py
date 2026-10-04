@@ -138,7 +138,8 @@ def _fetch_channel(st: State, deps: Deps, now: datetime, e: Entity, ch: Channel,
         rep.errors.append(res.error_ar or "")
         return
     rep.fetch_ok += 1
-    h.update(last_success=now.isoformat(), consecutive_failures=0, first_failure=None, last_error_ar=None)
+    h.update(last_success=now.isoformat(), consecutive_failures=0, first_failure=None, last_error_ar=None,
+             via=res.via)
     prev = st.seen.get(ch.url, [])
     fresh = new_blocks(set(prev), res)
     if not fresh:
@@ -182,6 +183,11 @@ def _digests(st: State, now: datetime, entities: list[Entity]) -> None:
     st.outbox.enqueue(f"owner-digest:{today}", "owner", "\n".join(owner), now, urgent=True)
     st.meta["last_digest"] = today.isoformat()
     st.meta["new_since_digest"] = []
+
+
+def saudi_list(st: State) -> list[str]:
+    """المصادر التي يجلبها جهاز المؤسس: كل ما فشل من السحابة، وما يُقرأ أصلاً عبر الجهاز."""
+    return sorted(u for u, h in st.health.items() if h["consecutive_failures"] > 0 or h.get("via") == "home")
 
 
 def run_once(now: datetime, entities: list[Entity], st: State, deps: Deps) -> RunReport:

@@ -198,3 +198,19 @@ def test_closed_program_from_queue_is_not_announced_as_new():
     w.verdicts["التعاوني"] = lambda: Verdict("coop", "m", {"closes": Field(date(2025, 7, 12), "q")})
     run_once(T0 + timedelta(hours=3), [ARAMCO], st, w.deps())
     assert not any(c == "group" and "جديد:" in t for c, t in w.sent)
+
+
+def test_saudi_list_has_blocked_and_home_fetched_sources():
+    from rasid.run import saudi_list
+    w = World(); w.broken.add("https://sdaia/x")
+    st = State()
+    run_once(T0, [SDAIA, ARAMCO], st, w.deps())
+    st.health["https://aramco/x"]["via"] = "home"
+    assert set(saudi_list(st)) == {"https://sdaia/x", "https://aramco/x"}
+
+
+def test_health_records_how_source_was_read():
+    w = World()
+    st = State()
+    run_once(T0, [ARAMCO], st, w.deps())
+    assert st.health["https://aramco/x"]["via"] == "direct"

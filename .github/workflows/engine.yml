@@ -21,6 +21,9 @@ jobs:
         run: |
           mkdir -p state
           if git fetch -q origin state; then git archive FETCH_HEAD | tar -x -C state; fi
+          # صندوق جهاز المؤسس (المواقع السعودية المحجوبة عن أمريكا)
+          if git fetch -q origin inbox; then git show FETCH_HEAD:inbox.json > state/inbox.json || true; fi
+          git fetch -q origin state || true
           ls -la state
       - name: جولة
         env:
@@ -40,6 +43,7 @@ jobs:
           RASID_FORBIDDEN: ${{ secrets.RASID_FORBIDDEN }}
         run: |
           test -f state/state.json || exit 0
+          rm -f state/inbox.json
           uv run python -m rasid.privacy_guard --state state/*.json state/*.yaml
           cd state
           if git -C .. cat-file -e FETCH_HEAD:state.json 2>/dev/null; then git -C .. show FETCH_HEAD:state.json > state.prev.json; fi

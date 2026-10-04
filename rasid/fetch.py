@@ -26,6 +26,28 @@ IDENTITIES = [
      "Accept-Language": "ar,en;q=0.8"},
 ]
 TIMEOUT = 30.0
+INBOX_MAX_AGE_H = 12
+# صندوق جهاز المؤسس: نصوص صفحات سعودية جلبها جهازه (المواقع الحكومية ترفض خوادم أمريكا)
+_INBOX: dict[str, dict] = {}
+
+
+def set_inbox(inbox: dict[str, dict]) -> None:
+    _INBOX.clear()
+    _INBOX.update(inbox)
+
+
+def _from_inbox(url: str) -> tuple["FetchResult | None", str]:
+    e = _INBOX.get(url)
+    if not e:
+        return None, "ولم يصل من جهاز المؤسس بعد"
+    age = (riyadh_now() - datetime.fromisoformat(e["fetched_at"])).total_seconds() / 3600
+    if age > INBOX_MAX_AGE_H:
+        return None, f"ونسخة جهاز المؤسس قديمة (منذ {int(age)} ساعة، الجهاز مطفي غالباً)"
+    if not e.get("ok"):
+        return None, f"وجهاز المؤسس فشل أيضاً: {e.get('error_ar', '')}"
+    blocks = [Block(t) for t in e.get("blocks", [])]
+    links = [tuple(x) for x in e.get("links", [])]
+    return FetchResult(True, url, blocks, links, via="home"), ""
 _BOILERPLATE = re.compile(r"موقع حكومي مسجل|جميع الحقوق محفوظة|قد تم حظر هذا المحتوى|الرجاء إعطاء الموافقة")
 _DIGITS = str.maketrans("٠١٢٣٤٥٦٧٨٩۰۱۲۳۴۵۶۷۸۹", "01234567890123456789")
 
@@ -130,9 +152,13 @@ def fetch(channel: Channel, client: httpx.Client) -> FetchResult:
     if resp is not None:
         body, final_url = resp.text, str(resp.url)
     else:
+        home, home_err = _from_inbox(channel.url)
+        if home is not None:
+            return home
         body, final_url, relay_err = _via_relay(client, channel.url)
         if body is None:
-            return FetchResult(False, channel.url, error_ar=f"{where} فشل: {err} {relay_err}".strip())
+            return FetchResult(False, channel.url,
+                               error_ar=f"{where} فشل: {err} {home_err} {relay_err}".strip())
         via = "relay"
     try:
         if channel.kind == "rss":

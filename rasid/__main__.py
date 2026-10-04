@@ -7,6 +7,7 @@
 """
 from __future__ import annotations
 
+import json
 import os
 import sys
 from functools import partial
@@ -18,9 +19,9 @@ from rasid.classify.chain import Budget, classify
 from rasid.classify.providers import call_provider, load_providers
 from rasid.dates import riyadh_now
 from rasid.entities import load_entities_safe
-from rasid.fetch import fetch
+from rasid.fetch import fetch, set_inbox
 from rasid.notify.telegram import send
-from rasid.run import Deps, State, run_once
+from rasid.run import Deps, State, run_once, saudi_list
 
 ROOT = Path(__file__).resolve().parent.parent
 STATE_DIR = ROOT / "state"
@@ -45,6 +46,9 @@ def main() -> int:
     STATE_DIR.mkdir(exist_ok=True)
     state_path = STATE_DIR / "state.json"
     st = State.load(state_path)
+    inbox_path = STATE_DIR / "inbox.json"
+    if inbox_path.exists():
+        set_inbox(json.loads(inbox_path.read_text(encoding="utf-8")))
 
     last_good = STATE_DIR / "entities.last_good.yaml"
     if not last_good.exists():
@@ -75,6 +79,8 @@ def main() -> int:
     rep = run_once(now, entities, st, deps)
     st.meta["budget"] = budget.to_dict()
     st.save(state_path)
+    (STATE_DIR / "saudi_list.json").write_text(json.dumps(saudi_list(st), ensure_ascii=False, indent=0),
+                                               encoding="utf-8")
 
     print(f"[راصد] {now:%Y-%m-%d %H:%M} | مصادر سليمة {rep.fetch_ok} | فاشلة {rep.fetch_fail} | "
           f"جديد {rep.new_items} | أحكام {rep.verdicts} | معلّق {rep.pending} | أُرسل {rep.sent} | "
