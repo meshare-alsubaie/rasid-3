@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import hashlib
+import os
 import re
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass, field
@@ -52,6 +53,7 @@ class FetchResult:
     links: list[tuple[str, str]] = field(default_factory=list)
     error_ar: str | None = None
     fetched_at: datetime = field(default_factory=riyadh_now)
+    via: str = "direct"
 
 
 def _get(client: httpx.Client, url: str) -> tuple[httpx.Response | None, str]:
@@ -105,18 +107,40 @@ def _rss_blocks(xml: str) -> list[Block]:
     return out
 
 
+def _via_relay(client: httpx.Client, url: str) -> tuple[str | None, str, str]:
+    """خادم جدة: للمواقع السعودية التي ترفض خوادم أمريكا. يرجع (النص، الرابط النهائي، سبب الفشل)."""
+    relay = os.environ.get("RASID_RELAY_URL")
+    if not relay:
+        return None, url, ""
+    try:
+        r = client.post(relay, json={"url": url}, timeout=90,
+                        headers={"X-Relay-Token": os.environ.get("RASID_RELAY_TOKEN", "")})
+        data = r.json()
+    except (httpx.HTTPError, ValueError) as e:
+        return None, url, f"وخادم جدة لا يرد ({type(e).__name__})"
+    if r.status_code != 200 or data.get("status") != 200:
+        return None, url, f"وخادم جدة رجع {data.get('status') or r.status_code} {data.get('error', '')}".strip()
+    return data.get("text", ""), data.get("url", url), ""
+
+
 def fetch(channel: Channel, client: httpx.Client) -> FetchResult:
     where = f"[الجالب][{channel.url}]"
     resp, err = _get(client, channel.url)
-    if resp is None:
-        return FetchResult(False, channel.url, error_ar=f"{where} فشل: {err}")
+    via = "direct"
+    if resp is not None:
+        body, final_url = resp.text, str(resp.url)
+    else:
+        body, final_url, relay_err = _via_relay(client, channel.url)
+        if body is None:
+            return FetchResult(False, channel.url, error_ar=f"{where} فشل: {err} {relay_err}".strip())
+        via = "relay"
     try:
         if channel.kind == "rss":
-            blocks, links = _rss_blocks(resp.text), []
+            blocks, links = _rss_blocks(body), []
         else:
-            blocks, links = _html_blocks(resp.text, str(resp.url))
+            blocks, links = _html_blocks(body, final_url)
     except ET.ParseError as e:
         return FetchResult(False, channel.url, error_ar=f"{where} فشل: صيغة الموجز مكسورة ({e})")
     if not blocks:
         return FetchResult(False, channel.url, error_ar=f"{where} فشل: المحتوى فارغ (ربما تغيّر تصميم الصفحة)")
-    return FetchResult(True, channel.url, blocks, links)
+    return FetchResult(True, channel.url, blocks, links, via=via)
