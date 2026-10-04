@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Callable
 
 from rasid.classify.providers import CallResult, Provider
-from rasid.classify.schema import RELEVANT, Verdict, parse_verdict
+from rasid.classify.schema import RELEVANT, Verdict, check_verdict
 from rasid.dates import riyadh_now
 
 SYSTEM_PROMPT = (Path(__file__).parent / "prompt.md").read_text(encoding="utf-8")
@@ -82,9 +82,9 @@ def _first_valid(role: str, text: str, providers: list[Provider], budget: Budget
             if r.error_kind in ("rate_day", "auth"):
                 budget.exhaust(p, day)
             continue
-        v = parse_verdict(r.data, text, p.model)
+        v, why = check_verdict(r.data, text, p.model)
         if v is None:
-            errors.append(f"[المصنّف][{p.name}] جواب مرفوض (شكل خاطئ أو اقتباس مختلق)")
+            errors.append(f"[المصنّف][{p.name}] جواب مرفوض: {why}")
             continue
         return v
     return None

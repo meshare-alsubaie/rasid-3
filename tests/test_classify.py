@@ -166,3 +166,18 @@ def test_budget_survives_between_runs():
 def test_old_budget_days_are_dropped():
     b = Budget(); b.spend(R1, date(2026, 10, 1))
     assert Budget.from_dict(b.to_dict(), today=date(2026, 10, 4)).to_dict() == {"used": {}, "exhausted": []}
+
+
+def test_date_range_with_shared_year_is_accepted():
+    t = "الجهة: nca\n\nالنص:\nانطلاق المرحلة الأولى 1 سبتمبر - 31 أكتوبر 2025"
+    d = {"kind": "grad_program", "training_starts": {"value": "2025-09-01", "quote": "1 سبتمبر - 31 أكتوبر 2025"}}
+    assert parse_verdict(d, t, "m") is not None
+    d["training_starts"]["value"] = "2025-09-02"
+    assert parse_verdict(d, t, "m") is None
+
+
+def test_rejection_reason_is_explained_in_arabic():
+    from rasid.classify.schema import check_verdict
+    d = good(); d["closes"]["quote"] = "حتى نهاية الشهر"
+    v, why = check_verdict(d, TEXT, "m1")
+    assert v is None and "closes" in why and "اقتباس" in why

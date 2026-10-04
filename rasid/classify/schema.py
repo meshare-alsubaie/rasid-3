@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 from datetime import date
 from typing import Any
 
-from hijridate import Hijri
+from hijridate import Gregorian, Hijri
 
 from rasid.dates import parse_dates
 
@@ -58,14 +58,39 @@ def _to_date(v: Any) -> date | None:
         return None
 
 
+_GREG_AR = ["يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو", "يوليو", "أغسطس",
+            "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"]
+_GREG_EN = ["january", "february", "march", "april", "may", "june", "july", "august",
+            "september", "october", "november", "december"]
+
+
+def _date_mentioned(value: date, quote: str) -> bool:
+    """هل التاريخ مذكور في اقتباسه؟ يقبل المدى بسنة مشتركة («1 سبتمبر - 31 أكتوبر 2025»)."""
+    found = [x.date for x in parse_dates(quote)]
+    if not found or value in found:
+        return True
+    q = normalize(quote)
+    tokens = set(q.split())
+    if str(value.day) not in tokens or str(value.year) not in tokens:
+        return False
+    h = Gregorian(value.year, value.month, value.day).to_hijri()
+    names = {normalize(_GREG_AR[value.month - 1]), _GREG_EN[value.month - 1], normalize(h.month_name("ar"))}
+    return any(n in q for n in names) or str(h.day) in tokens and normalize(h.month_name("ar")) in q
+
+
 def parse_verdict(d: Any, input_text: str, model: str) -> Verdict | None:
     """يرجع الحكم إذا كان سليماً تماماً، وإلا None (فيُجرَّب النموذج التالي)."""
+    return check_verdict(d, input_text, model)[0]
+
+
+def check_verdict(d: Any, input_text: str, model: str) -> tuple[Verdict | None, str]:
+    """مثل parse_verdict لكن يرجع سبب الرفض بالعربي حتى يظهر في السجل."""
     if not isinstance(d, dict) or d.get("kind") not in KINDS:
-        return None
+        return None, f"نوع غير معروف: {d.get('kind') if isinstance(d, dict) else type(d).__name__}"
     hay = normalize(input_text)
     kq = d.get("kind_quote")
     if kq and not _quoted(kq, hay):
-        return None
+        return None, "اقتباس النوع غير موجود في النص"
     v = Verdict(kind=d["kind"], model=model, kind_quote=kq)
     for name in DATE_FIELDS | BOOL_FIELDS | TEXT_FIELDS:
         f = d.get(name)
@@ -73,21 +98,20 @@ def parse_verdict(d: Any, input_text: str, model: str) -> Verdict | None:
             continue
         quote, value = f.get("quote"), f["value"]
         if not _quoted(quote, hay):
-            return None
+            return None, f"اقتباس {name} غير موجود في النص: {str(quote)[:80]}"
         if name in DATE_FIELDS:
             value = _to_date(value)
             if value is None:
-                return None
-            in_quote = [x.date for x in parse_dates(quote)]
-            if in_quote and value not in in_quote:
-                return None
+                return None, f"صيغة تاريخ {name} غير صالحة: {f['value']}"
+            if not _date_mentioned(value, quote):
+                return None, f"تاريخ {name}={value} لا يطابق اقتباسه: {quote[:80]}"
         elif name in BOOL_FIELDS and not isinstance(value, bool):
-            return None
+            return None, f"{name} لازم صح أو خطأ"
         v.fields[name] = Field(value, quote)
     for m in d.get("majors") or []:
         if not isinstance(m, dict) or not m.get("name"):
             continue
         if m.get("quote") and not _quoted(m["quote"], hay):
-            return None
+            return None, f"اقتباس التخصص {m['name']} غير موجود في النص"
         v.majors.append({"name": m["name"], "seats": m.get("seats"), "quote": m.get("quote")})
-    return v
+    return v, ""
