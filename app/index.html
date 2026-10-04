@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>راصد</title>
+<meta name="description" content="يرصد إعلانات التدريب التعاوني في السعودية من مصادرها الرسمية">
+<meta name="theme-color" content="#050a17">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<header class="top">
+  <h1 class="brand">راصد<small>التدريب التعاوني، من مصدره</small></h1>
+  <button class="ghost" id="open-settings" aria-haspopup="dialog">ظروفي</button>
+</header>
+<div id="stale" class="stale" hidden role="alert"></div>
+<div id="news" class="news" role="status" hidden></div>
+
+<main>
+  <section aria-labelledby="h-live">
+    <h2 id="h-live">القادم والمفتوح</h2>
+    <div id="live" class="cards"></div>
+  </section>
+  <section aria-labelledby="h-all">
+    <h2 id="h-all">كل الجهات</h2>
+    <input id="search" type="search" placeholder="ابحث عن جهة" aria-label="ابحث عن جهة">
+    <ul id="all" class="list"></ul>
+  </section>
+</main>
+
+<dialog id="entity" aria-labelledby="e-name">
+  <form method="dialog"><button class="close" aria-label="إغلاق">×</button></form>
+  <div id="entity-body"></div>
+</dialog>
+
+<dialog id="settings" aria-labelledby="s-title">
+  <form id="settings-form" method="dialog">
+    <h2 id="s-title">ظروفي</h2>
+    <p class="hint">تُحفظ في جهازك فقط، ولا تُرسل لأي مكان.</p>
+    <label>تخصصي <input name="major" required></label>
+    <fieldset><legend>اهتماماتي</legend>
+      <label><input type="checkbox" name="interests" value="أمن"> الأمن السيبراني</label>
+      <label><input type="checkbox" name="interests" value="ذكاء"> الذكاء الاصطناعي والبيانات</label>
+      <label><input type="checkbox" name="interests" value="برمجة"> البرمجة</label>
+    </fieldset>
+    <label><input type="checkbox" name="hasCourses"> معي مواد مع التدريب التعاوني</label>
+    <label>نبّهني للجهات من
+      <select name="minStars"><option value="1">نجمة فأكثر</option><option value="2">نجمتين فأكثر</option>
+        <option value="3">٣ نجوم فأكثر</option><option value="4">٤ نجوم فأكثر</option><option value="5">٥ نجوم فقط</option></select>
+    </label>
+    <label><input type="checkbox" name="showJobs"> اعرض الوظائف وبرامج ما بعد التخرج</label>
+    <button class="primary" value="save">احفظ</button>
+  </form>
+</dialog>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>

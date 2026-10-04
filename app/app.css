@@ -1,0 +1,57 @@
+/* هيكل التطبيق بألوان الاتجاه المختار (ليلي أزرق بارد). الطبقة الفضائية تُضاف بعد اختيار المؤسس. */
+@import url("https://fonts.googleapis.com/css2?family=Reem+Kufi:wght@500;700&family=Readex+Pro:wght@300;400;600&display=swap");
+:root { --night:#050a17; --deep:#0a1730; --ice:#8fdcff; --frost:#e4f1ff; --mist:#8ea3c4; --open:#5ef2c6;
+  --soon:#ffc46b; --warn:#ff6b7a; --glass:rgba(14,30,58,.6); --line:rgba(143,220,255,.18); }
+* { box-sizing: border-box; }
+html { background: var(--night); }
+body { margin: 0; min-height: 100vh; background: radial-gradient(1200px 600px at 80% -10%, #0e2650 0%, var(--night) 60%);
+  color: var(--frost); font: 300 16px/1.7 "Readex Pro", system-ui, sans-serif; padding: 0 16px 48px; }
+.top { display: flex; align-items: center; justify-content: space-between; max-width: 960px; margin: 0 auto; padding: 20px 0; }
+.brand { margin: 0; font: 700 34px/1 "Reem Kufi", serif; text-shadow: 0 0 24px rgba(143,220,255,.4); }
+.brand small { display: block; margin-top: 6px; font: 300 13px "Readex Pro"; color: var(--mist); }
+main, .news, .stale { max-width: 960px; margin: 0 auto; }
+h2 { font: 500 19px "Reem Kufi"; color: var(--mist); margin: 28px 0 12px; }
+.news, .stale { padding: 10px 16px; border-radius: 14px; border: 1px solid var(--line); background: var(--glass); margin-bottom: 8px; }
+.stale { border-color: rgba(255,196,107,.5); color: var(--soon); }
+.cards { display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
+.card { padding: 18px 20px; border-radius: 18px; border: 1px solid var(--line); background: var(--glass);
+  backdrop-filter: blur(12px); cursor: pointer; transition: border-color .25s; }
+.card:hover, .card:focus-visible { border-color: rgba(143,220,255,.55); outline: none; }
+.card.done { opacity: .6; }
+.who { font: 700 22px "Reem Kufi"; }
+.kind, .hint { font-size: 13px; color: var(--mist); }
+.count { margin: 10px 0 4px; font-size: 20px; font-weight: 600; color: var(--ice); }
+.match b { color: var(--open); font-size: 18px; margin-inline-end: 6px; }
+.warn { display: inline-block; margin-top: 8px; padding: 2px 10px; border-radius: 999px; font-size: 13px;
+  color: var(--warn); border: 1px solid rgba(255,107,122,.45); }
+.good { color: var(--open); }
+.note, .badge { display: inline-block; margin: 8px 6px 0 0; font-size: 12px; color: var(--soon); }
+.badge { color: var(--open); }
+.empty { color: var(--mist); }
+input[type=search], input:not([type]), select { width: 100%; padding: 10px 14px; border-radius: 12px; border: 1px solid var(--line);
+  background: var(--deep); color: var(--frost); font: inherit; }
+.list { list-style: none; padding: 0; margin: 12px 0 0; display: grid; gap: 6px; }
+.list button { width: 100%; display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: center; text-align: start;
+  padding: 12px 14px; border-radius: 12px; border: 1px solid transparent; background: rgba(10,23,48,.6); color: inherit; font: inherit; cursor: pointer; }
+.list button:hover, .list button:focus-visible { border-color: var(--line); outline: none; }
+.name { font-weight: 400; flex: 1 1 auto; }
+.stars { color: var(--ice); font-size: 13px; letter-spacing: 1px; }
+.st { font-size: 13px; color: var(--mist); }
+.st-open, .st-closing_soon { color: var(--open); }
+.st-announced { color: var(--ice); }
+.health { font-size: 12px; color: var(--soon); }
+dialog { width: min(560px, calc(100vw - 32px)); max-height: 85vh; border: 1px solid var(--line); border-radius: 20px;
+  background: #0b1631; color: var(--frost); padding: 22px 24px; }
+dialog::backdrop { background: rgba(2,6,15,.7); backdrop-filter: blur(4px); }
+dialog h2 { font: 700 26px "Reem Kufi"; color: var(--frost); margin-top: 0; }
+blockquote { margin: 8px 0; padding: 8px 14px; border-inline-start: 2px solid var(--ice); color: var(--mist); font-size: 14px; }
+.close { float: left; background: none; border: 0; color: var(--mist); font-size: 26px; cursor: pointer; }
+.primary, .ghost { display: inline-block; padding: 10px 18px; border-radius: 12px; font: 600 15px "Readex Pro";
+  text-decoration: none; cursor: pointer; margin: 6px 0 6px 8px; }
+.primary { background: var(--ice); color: var(--night); border: 0; }
+.ghost { background: transparent; color: var(--frost); border: 1px solid var(--line); }
+:focus-visible { outline: 2px solid var(--ice); outline-offset: 3px; }
+#settings-form label, fieldset { display: block; margin: 12px 0; }
+fieldset { border: 1px solid var(--line); border-radius: 12px; }
+a { color: var(--ice); }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
