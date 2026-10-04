@@ -1,0 +1,324 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>راصد: المرصد</title>
+<style>@import url("https://fonts.googleapis.com/css2?family=Reem+Kufi:wght@500;700&family=Readex+Pro:wght@300;400;600&display=swap");
+
+:root {
+  --night: #050a17;      /* سماء الليل */
+  --deep: #0a1730;       /* عمق الأزرق */
+  --ice: #8fdcff;        /* سماوي متوهج */
+  --frost: #e4f1ff;      /* أبيض بارد للنص */
+  --mist: #7d93b5;       /* نص ثانوي */
+  --open: #5ef2c6;       /* مفتوح */
+  --soon: #ffc46b;       /* يقفل قريباً */
+  --warn: #ff6b7a;       /* تحذير التفرغ */
+  --glass: rgba(14, 30, 58, 0.55);
+  --line: rgba(143, 220, 255, 0.16);
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: var(--night); color: var(--frost); }
+body { font-family: "Readex Pro", system-ui, sans-serif; font-weight: 300; overflow: hidden; }
+canvas#scene { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+
+.brand {
+  position: fixed; top: 22px; inset-inline-start: 28px; z-index: 3;
+  font-family: "Reem Kufi", serif; font-weight: 700; font-size: 34px; letter-spacing: 0;
+  color: var(--frost); text-shadow: 0 0 24px rgba(143, 220, 255, 0.45);
+}
+.brand small { display: block; font-family: "Readex Pro"; font-weight: 300; font-size: 13px; color: var(--mist); }
+
+.news {
+  position: fixed; top: 26px; inset-inline-end: 28px; z-index: 3; max-width: min(520px, 60vw);
+  padding: 10px 16px; border: 1px solid var(--line); border-radius: 999px;
+  background: var(--glass); backdrop-filter: blur(10px); font-size: 14px; color: var(--frost);
+}
+.news b { color: var(--open); font-weight: 600; }
+
+.panel {
+  position: fixed; z-index: 3; inset-inline-start: 28px; bottom: 28px; width: min(380px, calc(100vw - 32px));
+  display: flex; flex-direction: column; gap: 14px;
+}
+.panel h2 { margin: 0 0 2px; font-family: "Reem Kufi"; font-weight: 500; font-size: 18px; color: var(--mist); }
+
+.card {
+  padding: 18px 20px; border-radius: 18px; border: 1px solid var(--line);
+  background: var(--glass); backdrop-filter: blur(14px);
+  transition: border-color .3s, transform .3s;
+}
+.card:hover, .card:focus-within { border-color: rgba(143, 220, 255, 0.5); transform: translateY(-2px); }
+.card .who { font-family: "Reem Kufi"; font-weight: 700; font-size: 22px; }
+.card .kind { font-size: 13px; color: var(--mist); }
+.card .count { margin: 12px 0 6px; font-size: 26px; font-weight: 600; color: var(--ice); }
+.card .count.open { color: var(--open); }
+.card .dates { font-size: 13px; color: var(--mist); line-height: 1.7; }
+.card .warn { display: inline-block; margin-top: 10px; padding: 3px 10px; border-radius: 999px;
+  font-size: 12px; color: var(--warn); border: 1px solid rgba(255, 107, 122, 0.4); }
+.card a.apply {
+  display: inline-block; margin-top: 14px; padding: 9px 16px; border-radius: 12px;
+  background: var(--ice); color: var(--night); text-decoration: none; font-weight: 600; font-size: 14px;
+}
+.card a.apply:focus-visible { outline: 2px solid var(--frost); outline-offset: 3px; }
+
+.tip {
+  position: fixed; z-index: 4; pointer-events: none; padding: 8px 12px; border-radius: 10px;
+  background: var(--glass); border: 1px solid var(--line); backdrop-filter: blur(8px);
+  font-size: 14px; opacity: 0; transition: opacity .2s; white-space: nowrap;
+}
+.tip b { font-family: "Reem Kufi"; font-size: 17px; display: block; }
+.tip.on { opacity: 1; }
+
+.note { position: fixed; z-index: 3; bottom: 10px; inset-inline-end: 28px; font-size: 11px; color: var(--mist); opacity: .7; }
+
+@media (max-width: 720px) {
+  .brand { top: 14px; inset-inline-start: 16px; font-size: 26px; }
+  .news { top: auto; bottom: calc(100% - 64px); inset-inline-end: 16px; font-size: 12px; max-width: 55vw; }
+  .panel { inset-inline-start: 16px; bottom: 16px; width: calc(100vw - 32px); max-height: 46vh; overflow: auto; }
+  .note { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { .card { transition: none; } }
+</style>
+<script>// بيانات حقيقية من أول تشغيل (٤ أكتوبر ٢٠٢٦)
+window.RASID={"entities": [{"id": "aramco", "name": "أرامكو السعودية", "stars": 5, "cyber": 1, "fulltime": "yes", "months": [10], "city": "الظهران"}, {"id": "nca", "name": "الهيئة الوطنية للأمن السيبراني", "stars": 5, "cyber": 3, "fulltime": "unknown", "months": [1], "city": "الرياض"}, {"id": "ncac", "name": "الأكاديمية الوطنية للأمن السيبراني", "stars": 5, "cyber": 3, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "pif", "name": "صندوق الاستثمارات العامة", "stars": 5, "cyber": 1, "fulltime": "unknown", "months": [2], "city": "الرياض"}, {"id": "sabic", "name": "سابك", "stars": 5, "cyber": 1, "fulltime": "unknown", "months": [2, 9], "city": "الرياض"}, {"id": "sama", "name": "البنك المركزي السعودي", "stars": 5, "cyber": 3, "fulltime": "unknown", "months": [3], "city": "الرياض"}, {"id": "sdaia", "name": "الهيئة السعودية للبيانات والذكاء الاصطناعي", "stars": 5, "cyber": 3, "fulltime": "unknown", "months": [7, 12], "city": "الرياض"}, {"id": "site", "name": "الشركة السعودية لتقنية المعلومات", "stars": 5, "cyber": 3, "fulltime": "unknown", "months": [1], "city": "الرياض"}, {"id": "stc", "name": "stc", "stars": 5, "cyber": 2, "fulltime": "unknown", "months": [9], "city": "الرياض"}, {"id": "albilad", "name": "بنك البلاد", "stars": 4, "cyber": 1, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "alinma", "name": "مصرف الإنماء", "stars": 4, "cyber": 1, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "alrajhi", "name": "مصرف الراجحي", "stars": 4, "cyber": 1, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "anb", "name": "البنك العربي الوطني", "stars": 4, "cyber": 1, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "bankaljazira", "name": "بنك الجزيرة", "stars": 4, "cyber": 1, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "bog", "name": "ديوان المظالم", "stars": 4, "cyber": 1, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "bsf", "name": "البنك السعودي الفرنسي", "stars": 4, "cyber": 1, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "citc", "name": "هيئة الاتصالات والفضاء والتقنية", "stars": 4, "cyber": 3, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "cma", "name": "هيئة السوق المالية", "stars": 4, "cyber": 1, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "deloitte_sa", "name": "ديلويت السعودية", "stars": 4, "cyber": 2, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "dga", "name": "هيئة الحكومة الرقمية", "stars": 4, "cyber": 3, "fulltime": "unknown", "months": [12], "city": "الرياض"}, {"id": "elm", "name": "شركة علم", "stars": 4, "cyber": 3, "fulltime": "unknown", "months": [10], "city": "الرياض"}, {"id": "ey_sa", "name": "إي واي السعودية", "stars": 4, "cyber": 2, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "gastat", "name": "الهيئة العامة للإحصاء", "stars": 4, "cyber": 1, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "kpmg_sa", "name": "كي بي إم جي السعودية", "stars": 4, "cyber": 2, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "maaden", "name": "معادن", "stars": 4, "cyber": 1, "fulltime": "unknown", "months": [11], "city": "الرياض"}, {"id": "mcit", "name": "وزارة الاتصالات وتقنية المعلومات", "stars": 4, "cyber": 2, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "mim", "name": "وزارة الصناعة والثروة المعدنية", "stars": 4, "cyber": 1, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "mobily", "name": "موبايلي", "stars": 4, "cyber": 2, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "moj", "name": "وزارة العدل", "stars": 4, "cyber": 1, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "ncai", "name": "المركز الوطني للذكاء الاصطناعي", "stars": 4, "cyber": 3, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "ncdc", "name": "المركز الوطني للتصديق الرقمي", "stars": 4, "cyber": 3, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "pwc_sa", "name": "بي دبليو سي السعودية", "stars": 4, "cyber": 2, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "riyadbank", "name": "بنك الرياض", "stars": 4, "cyber": 1, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "saib", "name": "البنك السعودي للاستثمار", "stars": 4, "cyber": 1, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "sar", "name": "الخطوط الحديدية السعودية", "stars": 4, "cyber": 1, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "simah", "name": "سمة", "stars": 4, "cyber": 1, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "snb", "name": "البنك الأهلي السعودي", "stars": 4, "cyber": 1, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "tadawul", "name": "تداول السعودية", "stars": 4, "cyber": 2, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "takamol", "name": "تكامل القابضة", "stars": 4, "cyber": 2, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "taqnia", "name": "تقنية", "stars": 4, "cyber": 2, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "tetco", "name": "تيتكو", "stars": 4, "cyber": 1, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "thiqah", "name": "ثقة للخدمات التجارية", "stars": 4, "cyber": 1, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "zatca", "name": "هيئة الزكاة والضريبة والجمارك", "stars": 4, "cyber": 1, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "aec", "name": "الشركات المتقدمة للإلكترونيات", "stars": 3, "cyber": 1, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "devoteam_sa", "name": "ديفوتيم السعودية", "stars": 3, "cyber": 1, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "ejada", "name": "إجادة للنظم", "stars": 3, "cyber": 1, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "fakeeh", "name": "مستشفى الدكتور سليمان فقيه", "stars": 3, "cyber": 1, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "masterworks", "name": "ماستر ووركس", "stars": 3, "cyber": 1, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "mckinsey_sa", "name": "ماكنزي وشركاه", "stars": 3, "cyber": 1, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "ndf", "name": "صندوق التنمية الوطني", "stars": 4, "cyber": 1, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "nournet", "name": "نورنت", "stars": 3, "cyber": 1, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "sidf", "name": "صندوق التنمية الصناعية", "stars": 4, "cyber": 1, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "taif_amanah", "name": "أمانة محافظة الطائف", "stars": 3, "cyber": 1, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "taif_uni_it", "name": "عمادة تقنية المعلومات، جامعة الطائف", "stars": 3, "cyber": 1, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "wadi_makkah", "name": "وادي مكة للتقنية", "stars": 3, "cyber": 1, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "adeem", "name": "أديم المالية", "stars": 2, "cyber": 1, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "adf", "name": "صندوق التنمية الزراعية", "stars": 2, "cyber": 1, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "awqaf", "name": "الهيئة العامة للأوقاف", "stars": 2, "cyber": 1, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "bahri", "name": "البحري", "stars": 2, "cyber": 1, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "derayah", "name": "دراية المالية", "stars": 2, "cyber": 1, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "ecza", "name": "هيئة المدن الاقتصادية والمناطق الخاصة", "stars": 2, "cyber": 1, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "etec", "name": "هيئة تقويم التعليم والتدريب", "stars": 2, "cyber": 1, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "falcom", "name": "فالكم المالية", "stars": 2, "cyber": 1, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "gac", "name": "الهيئة العامة للمنافسة", "stars": 4, "cyber": 1, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "gaca", "name": "الهيئة العامة للطيران المدني", "stars": 2, "cyber": 1, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "gcam", "name": "الهيئة العامة للإعلام المرئي والمسموع", "stars": 2, "cyber": 1, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "gea", "name": "الهيئة العامة للترفيه", "stars": 2, "cyber": 1, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "housing", "name": "وزارة الإسكان", "stars": 2, "cyber": 1, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "hrc", "name": "هيئة حقوق الإنسان السعودية", "stars": 2, "cyber": 1, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "hrsd", "name": "وزارة الموارد البشرية والتنمية الاجتماعية", "stars": 2, "cyber": 1, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "jadwa", "name": "جدوى للاستثمار", "stars": 2, "cyber": 1, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "kapsarc", "name": "مركز الملك عبدالله للدراسات والبحوث البترولية", "stars": 2, "cyber": 1, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "kasb", "name": "كسب المالية", "stars": 2, "cyber": 1, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "lcgpa", "name": "هيئة المحتوى المحلي والمشتريات الحكومية", "stars": 2, "cyber": 1, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "mawhiba", "name": "مؤسسة الملك عبدالعزيز ورجاله للموهبة والإبداع", "stars": 2, "cyber": 1, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "mc", "name": "وزارة التجارة", "stars": 2, "cyber": 1, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "mecca_health", "name": "تجمع مكة المكرمة الصحي", "stars": 3, "cyber": 1, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "media", "name": "وزارة الإعلام", "stars": 2, "cyber": 1, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "mep", "name": "وزارة الاقتصاد والتخطيط", "stars": 2, "cyber": 1, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "mewa", "name": "وزارة البيئة والمياه والزراعة", "stars": 2, "cyber": 1, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "misa", "name": "وزارة الاستثمار", "stars": 2, "cyber": 1, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "moc", "name": "وزارة الثقافة", "stars": 2, "cyber": 1, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "modon", "name": "الهيئة السعودية للمدن الصناعية ومناطق التقنية", "stars": 2, "cyber": 1, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "moe", "name": "وزارة التعليم", "stars": 2, "cyber": 1, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "moenergy", "name": "وزارة الطاقة", "stars": 2, "cyber": 1, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "mof", "name": "وزارة المالية", "stars": 2, "cyber": 1, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "mofa", "name": "وزارة الخارجية", "stars": 2, "cyber": 1, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "moh", "name": "وزارة الصحة", "stars": 2, "cyber": 1, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "monshaat", "name": "الهيئة العامة للمنشآت الصغيرة والمتوسطة", "stars": 2, "cyber": 1, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "mot", "name": "وزارة النقل والخدمات اللوجستية", "stars": 2, "cyber": 1, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "nazaha", "name": "نزاهة", "stars": 4, "cyber": 1, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "ncar", "name": "المركز الوطني للوثائق والمحفوظات", "stars": 2, "cyber": 1, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "ncc", "name": "المركز الوطني للتنافسية", "stars": 2, "cyber": 1, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "pension", "name": "المؤسسة العامة للتقاعد", "stars": 2, "cyber": 1, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "rcjy", "name": "الهيئة الملكية للجبيل وينبع", "stars": 2, "cyber": 1, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "rcrc", "name": "الهيئة الملكية لمدينة الرياض", "stars": 2, "cyber": 1, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "rcu", "name": "الهيئة الملكية لمحافظة العلا", "stars": 2, "cyber": 1, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "redf", "name": "صندوق التنمية العقارية", "stars": 2, "cyber": 1, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "rega", "name": "الهيئة العامة للعقار", "stars": 2, "cyber": 1, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "saip", "name": "الهيئة السعودية للملكية الفكرية", "stars": 2, "cyber": 1, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "sanabil", "name": "سنابل للاستثمار", "stars": 2, "cyber": 1, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "saso", "name": "الهيئة السعودية للمواصفات والمقاييس والجودة", "stars": 2, "cyber": 1, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "saudi_exports", "name": "هيئة تنمية الصادرات السعودية", "stars": 2, "cyber": 1, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "scfhs", "name": "الهيئة السعودية للتخصصات الصحية", "stars": 2, "cyber": 1, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "seec", "name": "المركز السعودي لكفاءة الطاقة", "stars": 2, "cyber": 1, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "sfd", "name": "الصندوق السعودي للتنمية", "stars": 2, "cyber": 1, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "sfda", "name": "الهيئة العامة للغذاء والدواء", "stars": 4, "cyber": 1, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "srca", "name": "الهلال الأحمر السعودي", "stars": 2, "cyber": 1, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "ssc", "name": "الهيئة السعودية للفضاء", "stars": 2, "cyber": 1, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "sta", "name": "الهيئة السعودية للسياحة", "stars": 2, "cyber": 1, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "swcc", "name": "المؤسسة العامة لتحلية المياه المالحة", "stars": 2, "cyber": 1, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "tawuniya", "name": "التعاونية للتأمين", "stars": 2, "cyber": 1, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "tvtc", "name": "المؤسسة العامة للتدريب التقني والمهني", "stars": 2, "cyber": 1, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "unilever_sa", "name": "يونيليفر", "stars": 2, "cyber": 1, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "wasatah", "name": "الوساطة المالية", "stars": 2, "cyber": 1, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "sirar", "name": "سرار من stc", "stars": 5, "cyber": 1, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "tahakom", "name": "تحاكم", "stars": 5, "cyber": 1, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "kacst", "name": "مدينة الملك عبدالعزيز للعلوم والتقنية", "stars": 4, "cyber": 1, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "nic_moi", "name": "المركز الوطني للمعلومات", "stars": 4, "cyber": 1, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "sami", "name": "الشركة السعودية للصناعات العسكرية", "stars": 4, "cyber": 1, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "zain_ksa", "name": "زين السعودية", "stars": 3, "cyber": 1, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "sec", "name": "الشركة السعودية للكهرباء", "stars": 3, "cyber": 1, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "sab", "name": "البنك السعودي الأول", "stars": 3, "cyber": 1, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "spl", "name": "البريد السعودي", "stars": 2, "cyber": 1, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "ncvc", "name": "المركز الوطني لتنمية الغطاء النباتي", "stars": 2, "cyber": 1, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "flyadeal", "name": "طيران أديل", "stars": 2, "cyber": 1, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "kafd", "name": "مركز الملك عبدالله المالي", "stars": 2, "cyber": 1, "fulltime": "unknown", "months": [], "city": "الرياض"}, {"id": "sasref", "name": "مصفاة أرامكو السعودية شل (ساسرف)", "stars": 4, "cyber": 1, "fulltime": "yes", "months": [4], "city": "الجبيل"}, {"id": "samref", "name": "مصفاة أرامكو السعودية موبيل (سامرف)", "stars": 4, "cyber": 1, "fulltime": "unknown", "months": [3], "city": "ينبع"}, {"id": "yasref", "name": "مصفاة أرامكو السعودية سينوبك (ياسرف)", "stars": 4, "cyber": 1, "fulltime": "unknown", "months": [4], "city": "ينبع"}, {"id": "satorp", "name": "أرامكو توتال للتكرير (ساتورب)", "stars": 4, "cyber": 1, "fulltime": "unknown", "months": [5], "city": "الجبيل"}, {"id": "luberef", "name": "لوبريف", "stars": 4, "cyber": 1, "fulltime": "unknown", "months": [], "city": "جدة"}], "programs": [{"entity": "aramco", "kind": "coop", "title": "University Internship Program", "opens": "2026-10-26", "closes": "2026-11-02", "no_courses": true, "apply": "https://jobs.aramco.com/myprofile/", "source": "https://www.aramco.com/en/careers/for-saudi-applicants/student-opportunities", "quote": "The application will open at 08:00 AM on October 26, 2026"}, {"entity": "sabic", "kind": "coop", "title": "برنامج التدريب التعاوني COOP", "opens": null, "closes": null, "no_courses": null, "apply": "https://www.sabic.com/ar/careers/middle-east-africa/students-and-fresh-graduates", "source": "https://www.sabic.com/ar/careers/middle-east-africa/students-and-fresh-graduates", "quote": "برنامج التدريب التعاوني COOP"}], "today": "2026-10-05"};
+</script>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js"}}</script>
+</head>
+<body>
+<canvas id="scene" aria-hidden="true"></canvas>
+<script type="module">
+import * as THREE from "three";
+const {byId, programsByEntity, reducedMotion, status, renderChrome, showTip, hideTip, tint} = (() => {
+// الأجزاء المشتركة بين النماذج الثلاثة: الشريط، البطاقات، العدّ التنازلي، التلميح.
+const D = window.RASID;
+const TODAY = new Date(D.today + "T00:00:00");
+const MONTHS = ["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"];
+const KIND = { coop: "تدريب تعاوني", university: "تدريب جامعي", hint: "تلميح لبرنامج قادم" };
+const byId = Object.fromEntries(D.entities.map(e => [e.id, e]));
+const programsByEntity = Object.fromEntries(D.programs.map(p => [p.entity, p]));
+const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+function days(n) {
+  if (n === 1) return "يوم واحد";
+  if (n === 2) return "يومين";
+  return n <= 10 ? `${n} أيام` : `${n} يوماً`;
+}
+function fmt(iso) { const d = new Date(iso + "T00:00:00"); return `${d.getDate()} ${MONTHS[d.getMonth()]}`; }
+function diff(iso) { return Math.round((new Date(iso + "T00:00:00") - TODAY) / 86400000); }
+
+function status(p) {
+  if (!p) return "none";
+  if (p.closes && diff(p.closes) < 0) return "closed";
+  if (p.opens && diff(p.opens) > 0) return "upcoming";
+  if (p.closes && diff(p.closes) <= 3) return "soon";
+  return p.opens || p.closes ? "open" : "listed";
+}
+
+function countdown(p) {
+  if (p.opens && diff(p.opens) > 0) return { text: `يفتح بعد ${days(diff(p.opens))}`, cls: "" };
+  if (p.closes) return { text: diff(p.closes) === 0 ? "آخر يوم اليوم" : `باقي ${days(diff(p.closes))}`, cls: "open" };
+  return { text: "صفحة البرنامج متاحة", cls: "" };
+}
+
+function renderChrome() {
+  const live = D.programs.filter(p => status(p) !== "closed");
+  document.body.insertAdjacentHTML("beforeend", `
+    <div class="brand">راصد<small>التدريب التعاوني، من مصدره</small></div>
+    <div class="news" role="status"><b>جديد منذ آخر زيارة:</b> أرامكو أعلنت التدريب الجامعي، والتسجيل ${fmt("2026-10-26")}</div>
+    <section class="panel" aria-label="الفرص القادمة والمفتوحة">
+      <h2>القادم والمفتوح</h2>
+      ${live.map(p => {
+        const e = byId[p.entity], c = countdown(p);
+        return `<article class="card" data-entity="${e.id}">
+          <div class="who">${e.name}</div>
+          <div class="kind">${KIND[p.kind] || ""}${p.title ? "، " + p.title : ""}</div>
+          <div class="count ${c.cls}">${c.text}</div>
+          ${p.opens ? `<div class="dates">التسجيل من ${fmt(p.opens)} إلى ${fmt(p.closes)}</div>` : ""}
+          ${p.no_courses ? `<span class="warn">تشترط التفرّغ: لا مواد أثناء التدريب</span>` : ""}
+          <div><a class="apply" href="${p.apply}" target="_blank" rel="noopener">قدّم من الموقع الرسمي</a></div>
+        </article>`;
+      }).join("")}
+    </section>
+    <div class="tip" aria-hidden="true"></div>
+    <div class="note">نموذج للتصميم ببيانات حقيقية. أشهر الفتح على الرسم تقريبية حتى يكتمل سجل السنوات.</div>`);
+}
+
+const tip = () => document.querySelector(".tip");
+function showTip(entity, x, y) {
+  const t = tip(), p = programsByEntity[entity.id];
+  const st = { open: "مفتوح الآن", upcoming: "أعلن وقريباً يفتح", soon: "يقفل قريباً", listed: "صفحة البرنامج متاحة" }[status(p)] || "لم يعلن بعد";
+  t.innerHTML = `<b>${entity.name}</b>${"★".repeat(entity.stars)}${"☆".repeat(5 - entity.stars)}، ${st}`;
+  t.style.left = Math.min(x + 14, innerWidth - t.offsetWidth - 10) + "px";
+  t.style.top = (y + 14) + "px";
+  t.classList.add("on");
+}
+function hideTip() { tip().classList.remove("on"); }
+
+// لون خفيف لكل جهة حسب طابعها (اللمسة الخفيفة)
+function tint(id) {
+  if (["aramco", "sasref", "samref", "yasref", "satorp", "luberef", "sabic", "maaden"].includes(id)) return [0.37, 0.95, 0.78];
+  if (["sdaia", "nca", "ncac", "site", "elm", "dga", "ncai", "ncdc"].includes(id)) return [0.62, 0.62, 1.0];
+  return [0.56, 0.86, 1.0];
+}
+
+return {byId, programsByEntity, reducedMotion, status, renderChrome, showTip, hideTip, tint};
+})();
+renderChrome();
+
+// النموذج الأول «المرصد»: كوكب من نقاط، المملكة مضيئة عليه، وكل جهة نقطة في مدينتها.
+const canvas = document.getElementById("scene");
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: "low-power" });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 1.75));
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 100);
+camera.position.set(0, 0, 7.2);
+
+const KSA = [[36.5,29.4],[38,30.3],[39.2,32.1],[42,31.1],[44.7,29.2],[46.5,29.1],[47.7,28.5],[48.4,27.7],[49.6,26.8],[50.2,25.8],[50.8,24.7],[51.6,24.2],[52,23],[55.6,22],[55.2,20],[52,19],[48.8,18.2],[46.4,17.3],[43.4,17],[42.8,16.4],[42.2,17.9],[40.8,19.8],[39.1,21.5],[38.4,23.6],[37.2,24.9],[36.6,26.3],[35.2,28.1],[34.6,28.1]];
+const CITY = { "الرياض": [24.71, 46.68], "الظهران": [26.29, 50.11], "جدة": [21.54, 39.17], "الجبيل": [27.01, 49.66], "ينبع": [24.09, 38.06] };
+function inKSA(lon, lat) {
+  let inside = false;
+  for (let i = 0, j = KSA.length - 1; i < KSA.length; j = i++) {
+    const [xi, yi] = KSA[i], [xj, yj] = KSA[j];
+    if ((yi > lat) !== (yj > lat) && lon < ((xj - xi) * (lat - yi)) / (yj - yi) + xi) inside = !inside;
+  }
+  return inside;
+}
+function toVec(lat, lon, r = 2) {
+  const phi = (90 - lat) * Math.PI / 180, th = (lon + 180) * Math.PI / 180;
+  return new THREE.Vector3(-r * Math.sin(phi) * Math.cos(th), r * Math.cos(phi), r * Math.sin(phi) * Math.sin(th));
+}
+
+const globe = new THREE.Group();
+scene.add(globe);
+
+// نقاط الكوكب (توزيع فيبوناتشي متساوٍ)
+const N = 14000, pos = [], col = [], size = [], seed = [];
+for (let i = 0; i < N; i++) {
+  const y = 1 - (i / (N - 1)) * 2, r = Math.sqrt(1 - y * y), th = Math.PI * (3 - Math.sqrt(5)) * i;
+  const v = new THREE.Vector3(Math.cos(th) * r, y, Math.sin(th) * r).multiplyScalar(2);
+  const lat = 90 - Math.acos(v.y / 2) * 180 / Math.PI;
+  const lon = ((Math.atan2(v.z, -v.x) * 180 / Math.PI) + 360) % 360 - 180;
+  const home = inKSA(lon, lat);
+  pos.push(v.x, v.y, v.z);
+  col.push(...(home ? [0.62, 0.9, 1.0] : [0.2, 0.32, 0.55]));
+  size.push(home ? 3.4 : 2.0);
+  seed.push(Math.random() * 6.28);
+}
+// طبقة كثيفة داخل حدود المملكة فقط حتى تظهر خريطتها مضيئة
+for (let k = 0, made = 0; made < 2600 && k < 40000; k++) {
+  const lon = 34.5 + Math.random() * 21.5, lat = 16 + Math.random() * 16.5;
+  if (!inKSA(lon, lat)) continue;
+  const v = toVec(lat, lon, 2.005);
+  pos.push(v.x, v.y, v.z); col.push(0.25, 0.48, 0.85); size.push(1.9); seed.push(Math.random() * 6.28);
+  made++;
+}
+function pointsMaterial() {
+  return new THREE.ShaderMaterial({
+    transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+    uniforms: { uTime: { value: 0 }, uPix: { value: renderer.getPixelRatio() } },
+    vertexShader: `attribute vec3 color; attribute float size; attribute float seed; uniform float uTime; uniform float uPix;
+      varying vec3 vColor; varying float vFade;
+      void main(){ vec4 mv = modelViewMatrix * vec4(position,1.0);
+        vec3 n = normalize(normalMatrix * position); vFade = smoothstep(-0.25, 0.35, n.z);
+        vColor = color * (0.75 + 0.25 * sin(uTime * 1.3 + seed));
+        gl_PointSize = size * uPix * (7.0 / -mv.z); gl_Position = projectionMatrix * mv; }`,
+    fragmentShader: `varying vec3 vColor; varying float vFade;
+      void main(){ float d = length(gl_PointCoord - 0.5); float a = smoothstep(0.5, 0.0, d);
+        gl_FragColor = vec4(vColor, a * (0.08 + 0.62 * vFade)); }`,
+  });
+}
+const g = new THREE.BufferGeometry();
+g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+g.setAttribute("color", new THREE.Float32BufferAttribute(col, 3));
+g.setAttribute("size", new THREE.Float32BufferAttribute(size, 1));
+g.setAttribute("seed", new THREE.Float32BufferAttribute(seed, 1));
+const dotsMat = pointsMaterial();
+globe.add(new THREE.Points(g, dotsMat));
+
+// الجهات: نقاط أكبر في مدنها (حول الرياض بانتشار خفيف)
+const ents = window.RASID.entities, ep = [], ec = [], es = [], esd = [], entPos = [];
+ents.forEach((e, i) => {
+  const [la, lo] = CITY[e.city] || CITY["الرياض"];
+  const spread = e.city === "الرياض" ? 3.2 : 0.6, a = i * 2.399;
+  const v = toVec(la + Math.sin(a) * spread * Math.sqrt(i % 9) / 3, lo + Math.cos(a) * spread * Math.sqrt(i % 9) / 3, 2.03);
+  const st = status(programsByEntity[e.id]);
+  const c = st === "upcoming" || st === "open" ? [0.37, 0.95, 0.78] : tint(e.id).map(x => Math.min(1, x * (0.7 + e.stars * 0.12)));
+  ep.push(v.x, v.y, v.z); ec.push(...c); es.push(1.6 + e.stars * 0.55 + (st === "none" ? 0 : 4)); esd.push(i);
+  entPos.push(v);
+});
+const eg = new THREE.BufferGeometry();
+eg.setAttribute("position", new THREE.Float32BufferAttribute(ep, 3));
+eg.setAttribute("color", new THREE.Float32BufferAttribute(ec, 3));
+eg.setAttribute("size", new THREE.Float32BufferAttribute(es, 1));
+eg.setAttribute("seed", new THREE.Float32BufferAttribute(esd, 1));
+const entMat = pointsMaterial();
+entMat.blending = THREE.NormalBlending;
+const entPoints = new THREE.Points(eg, entMat);
+globe.add(entPoints);
+
+// هالة رقيقة حول الكوكب
+const halo = new THREE.Mesh(new THREE.SphereGeometry(2.25, 64, 64), new THREE.ShaderMaterial({
+  transparent: true, side: THREE.BackSide, depthWrite: false, blending: THREE.AdditiveBlending,
+  vertexShader: `varying vec3 vN; void main(){ vN = normalize(normalMatrix * normal); gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`,
+  fragmentShader: `varying vec3 vN; void main(){ float rim = 1.0 - abs(dot(vN, vec3(0,0,1.0))); float i = pow(rim, 4.0) * 0.35; gl_FragColor = vec4(0.45, 0.78, 1.0, i); }`,
+}));
+scene.add(halo);
+
+// توجيه الكوكب نحو المملكة، ثم دوران بطيء يتبع الفأرة
+const riyadh = toVec(24.7, 46.7, 2);
+const base = { x: Math.asin(riyadh.y / 2) * 0.9, y: -Math.atan2(riyadh.x, riyadh.z) };
+let target = { ...base }, mouse = { x: 0, y: 0 }, focus = null;
+globe.rotation.set(base.x, base.y, 0);
+addEventListener("pointermove", ev => {
+  mouse.x = ev.clientX / innerWidth - 0.5; mouse.y = ev.clientY / innerHeight - 0.5;
+  pick(ev.clientX, ev.clientY);
+});
+const ray = new THREE.Raycaster(); ray.params.Points.threshold = 0.06;
+function pick(x, y) {
+  ray.setFromCamera(new THREE.Vector2(x / innerWidth * 2 - 1, -(y / innerHeight) * 2 + 1), camera);
+  const hit = ray.intersectObject(entPoints)[0];
+  if (hit) { showTip(ents[hit.index], x, y); document.body.style.cursor = "pointer"; }
+  else { hideTip(); document.body.style.cursor = ""; }
+}
+addEventListener("pointerdown", ev => pick(ev.clientX, ev.clientY));
+// الضغط على بطاقة يلف الكوكب إلى الجهة
+document.querySelectorAll(".card").forEach(c => c.addEventListener("pointerenter", () => {
+  const i = ents.findIndex(e => e.id === c.dataset.entity);
+  focus = i >= 0 ? i : null;
+}));
+document.querySelector(".panel").addEventListener("pointerleave", () => (focus = null));
+
+function resize() {
+  renderer.setSize(innerWidth, innerHeight, false);
+  camera.aspect = innerWidth / innerHeight;
+  camera.position.z = innerWidth < 720 ? 6.6 : 4.4;
+  camera.position.x = innerWidth < 720 ? 0 : 0.55;
+  camera.updateProjectionMatrix();
+}
+addEventListener("resize", resize); resize();
+
+const clock = new THREE.Clock();
+let running = true;
+document.addEventListener("visibilitychange", () => { running = !document.hidden; if (running) loop(); });
+function loop() {
+  if (!running) return;
+  const t = clock.getElapsedTime();
+  dotsMat.uniforms.uTime.value = entMat.uniforms.uTime.value = reducedMotion ? 0 : t;
+  const drift = reducedMotion ? 0 : Math.sin(t * 0.05) * 0.35;
+  target.y = base.y + drift + mouse.x * 0.5;
+  target.x = base.x + mouse.y * 0.25;
+  if (focus !== null) {
+    const v = entPos[focus];
+    target.y = -Math.atan2(v.x, v.z); target.x = Math.asin(v.y / 2.03) * 0.9;
+  }
+  globe.rotation.y += (target.y - globe.rotation.y) * 0.03;
+  globe.rotation.x += (target.x - globe.rotation.x) * 0.03;
+  renderer.render(scene, camera);
+  requestAnimationFrame(loop);
+}
+loop();
+</script>
+</body>
+</html>

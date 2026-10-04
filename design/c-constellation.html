@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>راصد: الكوكبة</title>
+<link rel="stylesheet" href="shared.css">
+<script src="data.js"></script>
+<style>
+  .legend { position: fixed; z-index: 2; bottom: 40px; inset-inline-end: 28px;
+    display: flex; flex-direction: column; gap: 10px; font-size: 13px; color: var(--mist); }
+  .legend span::before { content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+    margin-inline-end: 8px; background: var(--c); box-shadow: 0 0 10px var(--c); }
+  @media (max-width: 720px) { .legend { display: none; } }
+</style>
+</head>
+<body>
+<canvas id="scene" aria-hidden="true"></canvas>
+<div class="legend" aria-hidden="true">
+  <span style="--c:#5ef2c6">الطاقة والصناعة</span>
+  <span style="--c:#9e9eff">التقنية والأمن السيبراني</span>
+  <span style="--c:#8fdcff">بقية الجهات</span>
+</div>
+<script type="module">
+import { renderChrome, programsByEntity, status, showTip, hideTip, tint, reducedMotion } from "./shared.js";
+renderChrome();
+
+// النموذج الثالث «الكوكبة»: سماء ليل عميقة، كل جهة نجم يلمع بقدر نجومها،
+// والمفتوح ينبض. كل قطاع كوكبة مرسومة بخطوط رفيعة.
+const c = document.getElementById("scene"), x = c.getContext("2d");
+let W, H, dpr, mouse = { x: 0.5, y: 0.5 };
+const groupOf = id => { const t = tint(id); return t[1] > 0.9 ? 0 : t[0] > 0.6 ? 1 : 2; };
+const CENTER = [[0.20, 0.36], [0.47, 0.27], [0.36, 0.68]];      // مراكز الكوكبات (نسبة من الشاشة)
+const SPREAD = [[0.12, 0.16], [0.15, 0.15], [0.28, 0.2]];
+const hash = (s, k) => { let h = k * 977; for (const ch of s) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return (h % 10000) / 10000; };
+const ents = window.RASID.entities.map(e => {
+  const g = groupOf(e.id), [mx, my] = CENTER[g], [sx, sy] = SPREAD[g];
+  const a = hash(e.id, 1) * 6.283, r = Math.sqrt(hash(e.id, 2));
+  return { e, g, fx: mx + Math.cos(a) * r * sx, fy: my + Math.sin(a) * r * sy, z: 0.4 + e.stars * 0.12,
+           live: ["upcoming", "open"].includes(status(programsByEntity[e.id])), tw: hash(e.id, 3) * 6.283 };
+});
+// اسم واحد فقط لكل كوكبة (الأعلى نجوماً) + كل جهة مفتوحة، حتى لا تتزاحم الأسماء
+const named = new Set([0, 1, 2].map(g => ents.filter(s => s.g === g).sort((a, b) => b.e.stars - a.e.stars)[0]));
+// خطوط الكوكبة: أقوى ٧ نجوم في كل قطاع، كل واحد بأقرب جار
+const lines = [];
+[0, 1, 2].forEach(g => {
+  const top = ents.filter(s => s.g === g).sort((a, b) => b.e.stars - a.e.stars).slice(0, 7);
+  for (let i = 1; i < top.length; i++) {
+    const near = top.slice(0, i).sort((a, b) => Math.hypot(a.fx - top[i].fx, a.fy - top[i].fy) - Math.hypot(b.fx - top[i].fx, b.fy - top[i].fy))[0];
+    lines.push([near, top[i]]);
+  }
+});
+const layers = [0.15, 0.35, 0.7].map(z => Array.from({ length: 220 }, () => ({ x: Math.random(), y: Math.random(), z })));
+
+function resize() {
+  dpr = Math.min(devicePixelRatio, 2); W = innerWidth; H = innerHeight;
+  c.width = W * dpr; c.height = H * dpr; x.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+addEventListener("resize", resize); resize();
+const P = s => {
+  const narrow = W <= 720;
+  return [ (narrow ? s.fx * 1.3 - 0.1 : s.fx) * W + (mouse.x - 0.5) * -40 * s.z,
+           (narrow ? s.fy * 0.75 : s.fy) * H + (mouse.y - 0.5) * -30 * s.z ];
+};
+
+let hits = [];
+function draw(t) {
+  x.clearRect(0, 0, W, H);
+  // سدم خافتة باردة
+  for (const [i, [mx, my]] of CENTER.entries()) {
+    const g = x.createRadialGradient(mx * W, my * H, 0, mx * W, my * H, Math.max(W, H) * 0.32);
+    g.addColorStop(0, ["rgba(70,190,170,0.07)", "rgba(110,110,255,0.08)", "rgba(80,160,230,0.06)"][i]);
+    g.addColorStop(1, "rgba(0,0,0,0)"); x.fillStyle = g; x.fillRect(0, 0, W, H);
+  }
+  // نجوم الخلفية بطبقات عمق تتحرك مع الفأرة
+  x.fillStyle = "#d6e8ff";
+  for (const L of layers) for (const s of L) {
+    x.globalAlpha = 0.18 + s.z * 0.5;
+    x.fillRect(s.x * W + (mouse.x - 0.5) * -60 * s.z, s.y * H + (mouse.y - 0.5) * -45 * s.z, s.z * 1.8, s.z * 1.8);
+  }
+  x.globalAlpha = 1;
+  // خطوط الكوكبات
+  x.lineWidth = 0.8;
+  for (const [a, b] of lines) {
+    const [ax, ay] = P(a), [bx, by] = P(b);
+    x.strokeStyle = "rgba(143,220,255,0.18)"; x.beginPath(); x.moveTo(ax, ay); x.lineTo(bx, by); x.stroke();
+  }
+  // الجهات
+  hits = [];
+  for (const s of ents) {
+    const [px, py] = P(s);
+    const twinkle = reducedMotion ? 1 : 0.75 + 0.25 * Math.sin(t / 900 + s.tw);
+    const pulse = s.live && !reducedMotion ? 0.5 + 0.5 * Math.sin(t / 420) : 0;
+    const [r, g, b] = s.live ? [0.37, 0.95, 0.78] : tint(s.e.id);
+    const rad = 0.9 + s.e.stars * 0.75;
+    const halo = rad * (4 + pulse * 4);
+    const gr = x.createRadialGradient(px, py, 0, px, py, halo);
+    gr.addColorStop(0, `rgba(${r * 255},${g * 255},${b * 255},${0.45 * twinkle + pulse * 0.3})`);
+    gr.addColorStop(1, "rgba(0,0,0,0)");
+    x.fillStyle = gr; x.beginPath(); x.arc(px, py, halo, 0, 7); x.fill();
+    x.fillStyle = "#f2f8ff"; x.globalAlpha = 0.6 + 0.4 * twinkle;
+    x.beginPath(); x.arc(px, py, rad, 0, 7); x.fill(); x.globalAlpha = 1;
+    if (named.has(s) || s.live) {              // اسم أقوى النجوم بخط هادئ
+      x.font = `500 13px "Reem Kufi"`; x.textAlign = "center"; x.fillStyle = s.live ? "#5ef2c6" : "rgba(228,241,255,0.7)";
+      x.fillText(s.e.name.length > 22 ? s.e.name.slice(0, 20) + "…" : s.e.name, px, py - rad - 10);
+    }
+    hits.push({ e: s.e, px, py, rad: rad + 7 });
+  }
+}
+
+addEventListener("pointermove", ev => {
+  mouse.x = ev.clientX / W; mouse.y = ev.clientY / H;
+  const h = hits.find(h => Math.hypot(h.px - ev.clientX, h.py - ev.clientY) < h.rad);
+  if (h) { showTip(h.e, ev.clientX, ev.clientY); c.style.cursor = "pointer"; } else { hideTip(); c.style.cursor = ""; }
+});
+let running = true;
+document.addEventListener("visibilitychange", () => { running = !document.hidden; if (running) requestAnimationFrame(loop); });
+function loop(t) { if (!running) return; draw(t || 0); requestAnimationFrame(loop); }
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

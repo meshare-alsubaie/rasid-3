@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>راصد: مدار السنة</title>
+<link rel="stylesheet" href="shared.css">
+<script src="data.js"></script>
+<style>
+  .hub { position: fixed; z-index: 2; pointer-events: none; text-align: center; transform: translate(-50%, -50%); }
+  .hub .when { font-family: "Reem Kufi"; font-weight: 700; font-size: clamp(30px, 4vw, 46px); color: var(--frost); }
+  .hub .next { margin-top: 6px; font-size: 15px; color: var(--mist); }
+  .hub .next b { color: var(--open); font-weight: 600; }
+</style>
+</head>
+<body>
+<canvas id="scene" aria-hidden="true"></canvas>
+<div class="hub"><div class="when"></div><div class="next"></div></div>
+<script type="module">
+import { renderChrome, byId, programsByEntity, status, showTip, hideTip, tint, reducedMotion } from "./shared.js";
+renderChrome();
+
+// النموذج الثاني «مدار السنة»: السنة مدار، والأشهر حوله، وكل جهة على شهر فتحها المعتاد،
+// ومؤشر «اليوم» يمشي ببطء. التصميم نفسه يقول لك مين يفتح بعدك.
+const MONTHS = ["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"];
+const today = new Date(window.RASID.today + "T00:00:00");
+const yearFrac = (today - new Date(today.getFullYear(), 0, 1)) / 31536000000;
+const c = document.getElementById("scene"), x = c.getContext("2d");
+let W, H, cx, cy, R, dpr, tilt = 0.42, rot = 0, mouse = { x: 0.5, y: 0.5 };
+const ents = window.RASID.entities;
+const placed = [], unknown = [];
+ents.forEach((e, i) => (e.months.length ? e.months.forEach(m => placed.push({ e, m, j: i })) : unknown.push({ e, j: i })));
+
+// غبار المدار: جسيمات تجري على الحلقات
+const dust = Array.from({ length: 900 }, () => ({ a: Math.random() * 6.283, r: 0.55 + Math.random() * 0.62, s: 0.0004 + Math.random() * 0.0012, z: Math.random() }));
+const stars = Array.from({ length: 260 }, () => ({ x: Math.random(), y: Math.random(), z: Math.random() }));
+
+function resize() {
+  dpr = Math.min(devicePixelRatio, 2); W = innerWidth; H = innerHeight;
+  c.width = W * dpr; c.height = H * dpr; x.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const wide = W > 720;
+  cx = wide ? W * 0.40 : W * 0.5; cy = wide ? H * 0.52 : H * 0.33; R = Math.min(wide ? W * 0.3 : W * 0.33, H * 0.62);
+  const hub = document.querySelector(".hub"); hub.style.left = cx + "px"; hub.style.top = cy + "px";
+}
+addEventListener("resize", resize); resize();
+
+const angleOf = f => -Math.PI / 2 + f * Math.PI * 2 + rot;
+const pt = (a, r) => [cx + Math.cos(a) * R * r, cy + Math.sin(a) * R * r * tilt];
+function ringR(stars) { return stars >= 5 ? 0.72 : stars === 4 ? 0.86 : 1.0; }
+
+// المحور: أقرب فتح قادم
+const nextP = window.RASID.programs.filter(p => p.opens && new Date(p.opens) >= today).sort((a, b) => a.opens.localeCompare(b.opens))[0];
+document.querySelector(".hub .when").textContent = `${today.getDate()} ${MONTHS[today.getMonth()]}`;
+if (nextP) {
+  const d = Math.round((new Date(nextP.opens + "T00:00:00") - today) / 86400000);
+  document.querySelector(".hub .next").innerHTML = `أقرب فتح: <b>${byId[nextP.entity].name}</b> بعد ${d} يوماً`;
+}
+
+let hits = [];
+function draw(t) {
+  x.clearRect(0, 0, W, H);
+  // سماء
+  for (const s of stars) {
+    x.globalAlpha = 0.25 + 0.5 * s.z * (reducedMotion ? 1 : 0.6 + 0.4 * Math.sin(t / 1400 + s.x * 40));
+    x.fillStyle = "#cfe6ff"; x.fillRect(s.x * W + (mouse.x - 0.5) * 12 * s.z, s.y * H + (mouse.y - 0.5) * 12 * s.z, 1.2, 1.2);
+  }
+  x.globalAlpha = 1;
+  // الحلقات الثلاث (الأقرب = نجوم أكثر)
+  for (const r of [0.72, 0.86, 1.0]) {
+    x.beginPath(); x.ellipse(cx, cy, R * r, R * r * tilt, 0, 0, Math.PI * 2);
+    x.strokeStyle = "rgba(143,220,255,0.14)"; x.lineWidth = 1; x.stroke();
+  }
+  // الغبار يجري على المدار
+  for (const d of dust) {
+    if (!reducedMotion) d.a += d.s;
+    const [px, py] = pt(d.a + rot, d.r);
+    const front = Math.sin(d.a + rot) > 0;
+    x.globalAlpha = (front ? 0.55 : 0.22) * d.z; x.fillStyle = "#8fdcff"; x.fillRect(px, py, 1.4, 1.4);
+  }
+  x.globalAlpha = 1;
+  // أسماء الأشهر
+  x.font = `500 ${W > 720 ? 15 : 12}px "Reem Kufi"`; x.textAlign = "center"; x.textBaseline = "middle";
+  MONTHS.forEach((m, i) => {
+    const [px, py] = pt(angleOf((i + 0.5) / 12), 1.17);
+    x.fillStyle = i === today.getMonth() ? "#e4f1ff" : "rgba(125,147,181,0.85)"; x.fillText(m, px, py);
+  });
+  // مؤشر اليوم
+  const ta = angleOf(yearFrac), [tx, ty] = pt(ta, 1.06);
+  const pulse = reducedMotion ? 1 : 0.6 + 0.4 * Math.sin(t / 700);
+  const grd = x.createLinearGradient(cx, cy, tx, ty);
+  grd.addColorStop(0, "rgba(143,220,255,0)"); grd.addColorStop(1, `rgba(143,220,255,${0.75 * pulse})`);
+  x.strokeStyle = grd; x.lineWidth = 2; x.beginPath(); x.moveTo(cx, cy); x.lineTo(tx, ty); x.stroke();
+  x.fillStyle = "#e4f1ff"; x.beginPath(); x.arc(tx, ty, 4, 0, 7); x.fill();
+  // الجهات على أشهرها
+  hits = [];
+  placed.forEach(({ e, m, j }) => {
+    const jitter = ((j * 37) % 11 - 5) / 220;
+    const [px, py] = pt(angleOf((m - 0.5) / 12 + jitter), ringR(e.stars));
+    const st = status(programsByEntity[e.id]);
+    const live = st === "upcoming" || st === "open";
+    const [r, g, b] = live ? [0.37, 0.95, 0.78] : tint(e.id);
+    const rad = 2.5 + e.stars * 0.9 + (live ? 2 * pulse : 0);
+    const glow = x.createRadialGradient(px, py, 0, px, py, rad * 4);
+    glow.addColorStop(0, `rgba(${r * 255},${g * 255},${b * 255},0.55)`); glow.addColorStop(1, "rgba(0,0,0,0)");
+    x.fillStyle = glow; x.beginPath(); x.arc(px, py, rad * 4, 0, 7); x.fill();
+    x.fillStyle = `rgb(${r * 255},${g * 255},${b * 255})`; x.beginPath(); x.arc(px, py, rad, 0, 7); x.fill();
+    hits.push({ e, px, py, rad: rad + 6 });
+  });
+  // من لم يُعرف موعده: سحابة خافتة خارج المدار
+  unknown.forEach(({ e, j }) => {
+    const a = j * 2.399 + t * (reducedMotion ? 0 : 0.00002), rr = 1.3 + ((j * 13) % 10) / 40;
+    const [px, py] = pt(a, rr);
+    x.globalAlpha = 0.35; x.fillStyle = "#7d93b5"; x.beginPath(); x.arc(px, py, 1.6 + e.stars * 0.3, 0, 7); x.fill();
+    hits.push({ e, px, py, rad: 6 });
+  });
+  x.globalAlpha = 1;
+}
+
+addEventListener("pointermove", ev => {
+  mouse.x = ev.clientX / W; mouse.y = ev.clientY / H;
+  const h = hits.find(h => Math.hypot(h.px - ev.clientX, h.py - ev.clientY) < h.rad);
+  if (h) { showTip(h.e, ev.clientX, ev.clientY); c.style.cursor = "pointer"; } else { hideTip(); c.style.cursor = ""; }
+});
+let running = true;
+document.addEventListener("visibilitychange", () => { running = !document.hidden; if (running) requestAnimationFrame(loop); });
+function loop(t) {
+  if (!running) return;
+  tilt += ((0.36 + mouse.y * 0.14) - tilt) * 0.05;
+  rot += ((mouse.x - 0.5) * 0.25 - rot) * 0.04;
+  draw(t || 0);
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
