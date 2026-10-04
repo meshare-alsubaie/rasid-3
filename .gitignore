@@ -1,0 +1,11 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+# أسرار محلية: لا تُرفع أبداً
+*.local
+*.local.env
+.env
+.forbidden.local
+# وثيقة المؤسس فيها تفاصيل شخصية: تبقى محلية
+SPEC.md

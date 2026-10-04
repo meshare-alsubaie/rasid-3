@@ -1,0 +1,3 @@
+#!/bin/sh
+# حارس الخصوصية: يرفض أي التزام فيه بيانات شخصية
+exec py -m uv run python -m rasid.privacy_guard
