@@ -33,13 +33,16 @@ def load_env() -> dict[str, str]:
 
 
 def ask(provider: str, model: str, key: str, system: str, user: str) -> tuple[dict | None, str, dict]:
-    r = httpx.post(BASE[provider] + "chat/completions", timeout=120,
-                   headers={"Authorization": f"Bearer {key}"},
-                   json={"model": model, "temperature": 0, "response_format": {"type": "json_object"},
-                         "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}]})
+    try:
+        r = _post(provider, model, key, system, user)
+        if r.status_code == 429:  # حد الدقيقة: انتظر المدة التي يطلبها المزود ثم أعد مرة واحدة
+            time.sleep(min(float(r.headers.get("retry-after", 30)), 90) + 1)
+            r = _post(provider, model, key, system, user)
+    except httpx.HTTPError as e:
+        return None, f"خطأ شبكة: {type(e).__name__}", {}
     limits = {k: v for k, v in r.headers.items() if "ratelimit" in k.lower()}
     if r.status_code != 200:
-        return None, f"HTTP {r.status_code}: {r.text[:200]}", limits
+        return None, f"HTTP {r.status_code}: {r.text.strip().splitlines()[0][:80] if r.text else ''}", limits
     txt = r.json()["choices"][0]["message"]["content"] or ""
     txt = re.sub(r"^```(?:json)?|```$", "", txt.strip()).strip()
     try:
@@ -48,8 +51,17 @@ def ask(provider: str, model: str, key: str, system: str, user: str) -> tuple[di
         return None, "JSON غير صالح: " + txt[:120], limits
 
 
+def _post(provider: str, model: str, key: str, system: str, user: str) -> httpx.Response:
+    return httpx.post(BASE[provider] + "chat/completions", timeout=120,
+                   headers={"Authorization": f"Bearer {key}"},
+                   json={"model": model, "temperature": 0, "response_format": {"type": "json_object"},
+                         "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}]})
+
+
 def _norm(s: str) -> str:
-    return re.sub(r"\s+", " ", s).strip()
+    # الحروف والأرقام فقط: يتجاهل الترقيم والنقاط والتشكيل، ويبقى يكشف أي كلمة مختلقة
+    s = re.sub(r"[ً-ْـ]", "", s)
+    return re.sub(r"[^\w]+", " ", s).strip()
 
 
 def check(out: dict, exp: dict, text: str) -> list[str]:

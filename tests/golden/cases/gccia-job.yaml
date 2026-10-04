@@ -1,0 +1,7 @@
+id: gccia-job
+entity: gccia
+source_url: https://www.wdeftksa.com/sa/jobs/20700
+text_file: ../raw/job-a.txt
+captured_at: 2026-10-04
+expected:
+  kind: job

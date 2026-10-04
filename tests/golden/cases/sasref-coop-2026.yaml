@@ -1,0 +1,10 @@
+id: sasref-coop-2026
+entity: sasref
+source_url: https://www.wdeftksa.com/sa/jobs/20687
+text_file: ../raw/sasref-coop-2026.txt
+captured_at: 2026-10-04
+expected:
+  kind: coop
+  opens: 2026-04-12
+  closes: 2026-04-23        # النص يقول «23 أبريل» بلا سنة
+  no_courses_allowed: true  # «لا يجوز للطالب دراسة أي مادة أثناء مشاركته»

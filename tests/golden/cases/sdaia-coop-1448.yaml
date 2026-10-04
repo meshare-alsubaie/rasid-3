@@ -1,0 +1,9 @@
+id: sdaia-coop-1448
+entity: sdaia
+source_url: https://sabq.org/article/ya19pib
+text_file: ../raw/sdaia-coop-1448.txt
+captured_at: 2026-10-04
+expected:
+  kind: coop
+  opens: 2026-07-05
+  closes: 2026-07-12

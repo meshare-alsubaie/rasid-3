@@ -1,0 +1,7 @@
+id: nca-news-irrelevant
+entity: nca
+source_url: https://nca.gov.sa/ar/news/2583/
+text_file: ../raw/nca-news.txt
+captured_at: 2026-10-04
+expected:
+  kind: irrelevant          # خبر عن برنامج انتهى، لا فرصة مفتوحة (مثال صعب)

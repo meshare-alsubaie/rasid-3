@@ -1,0 +1,8 @@
+id: hajj-seasonal-job
+entity: hajj-council
+source_url: https://www.wdeftksa.com/sa/jobs/20650
+text_file: ../raw/job-b.txt
+captured_at: 2026-10-04
+expected:
+  kind: job
+  opens: 2026-04-07

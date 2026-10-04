@@ -1,0 +1,8 @@
+id: nca-cyberpro-grad
+entity: nca
+source_url: https://www.wdeftksa.com/sa/jobs/2674
+text_file: ../raw/nca-cyberpro-grad.txt
+captured_at: 2026-10-04
+expected:
+  kind: grad_program        # لحديثي التخرج، ليس تعاونياً
+  closes: 2020-10-11
