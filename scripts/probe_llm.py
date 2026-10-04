@@ -45,6 +45,7 @@ def ask(provider: str, model: str, key: str, system: str, user: str) -> tuple[di
     if r.status_code != 200:
         return None, f"HTTP {r.status_code}: {r.text.strip().splitlines()[0][:80] if r.text else ''}", limits
     txt = r.json()["choices"][0]["message"]["content"] or ""
+    txt = re.sub(r"<(?:think|thought)>.*?</(?:think|thought)>", "", txt, flags=re.S)
     txt = re.sub(r"^```(?:json)?|```$", "", txt.strip()).strip()
     try:
         return json.loads(txt), "", limits
@@ -53,7 +54,7 @@ def ask(provider: str, model: str, key: str, system: str, user: str) -> tuple[di
 
 
 def _post(provider: str, model: str, key: str, system: str, user: str) -> httpx.Response:
-    return httpx.post(BASE[provider] + "chat/completions", timeout=120,
+    return httpx.post(BASE[provider] + "chat/completions", timeout=float(__import__("os").environ.get("PROBE_TIMEOUT", "120")),
                    headers={"Authorization": f"Bearer {key}"},
                    json={"model": model, "temperature": 0, "response_format": {"type": "json_object"},
                          "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}]})
