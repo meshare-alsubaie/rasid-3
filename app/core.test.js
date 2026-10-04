@@ -73,3 +73,47 @@ test("المحاسبة والمحاسب ليست علوم حاسب، والحا�
   const cs = matchScore(prog({}, [{ name: "الحاسب الآلي" }]), ent(), { ...ME, hasCourses: false });
   assert.ok(acc.pct < 30 && cs.pct >= 80, `acc=${acc.pct} cs=${cs.pct}`);
 });
+
+import { isStale, rankPrograms, DEFAULT_PROFILE } from "./core.js";
+
+const RESULTS = {
+  generated_at: "2026-10-05T09:00:00+03:00",
+  entities: [
+    { id: "aramco", name: "أرامكو", stars: 5, cyber: 1, fulltime_history: "yes", status: "announced" },
+    { id: "sdaia", name: "سدايا", stars: 5, cyber: 3, fulltime_history: "unknown", status: "open" },
+    { id: "weak", name: "جهة", stars: 2, cyber: 0, fulltime_history: "unknown", status: "open" },
+    { id: "old", name: "قديمة", stars: 4, cyber: 1, fulltime_history: "unknown", status: "closed" },
+  ],
+  programs: [
+    { key: "a", entity: "aramco", family: "student", kind: "coop", opens: "2026-10-26", closes: "2026-11-02", status: "announced",
+      fields: { open_to_all_majors: { value: true }, no_courses_allowed: { value: true } }, majors: [] },
+    { key: "s", entity: "sdaia", family: "student", kind: "coop", opens: "2026-10-01", closes: "2026-10-10", status: "open",
+      fields: {}, majors: [{ name: "علوم الحاسب", seats: 10 }] },
+    { key: "w", entity: "weak", family: "student", kind: "coop", status: "open", fields: {}, majors: [] },
+    { key: "o", entity: "old", family: "student", kind: "coop", closes: "2025-01-01", status: "closed", fields: {}, majors: [] },
+    { key: "j", entity: "sdaia", family: "job", kind: "job", status: "listed", fields: {}, majors: [] },
+  ],
+};
+
+test("الترتيب: المفتوح أولاً ثم القادم، وبالنسبة، بلا المنتهي ولا الوظائف ولا الأقل من حد النجوم", () => {
+  const r = rankPrograms(RESULTS, { ...DEFAULT_PROFILE, minStars: 3 }, "2026-10-05");
+  assert.deepEqual(r.map(x => x.program.key), ["s", "a"]);
+  assert.ok(r[0].match.pct >= 95);
+  assert.ok(r[1].match.warning);  // أرامكو تشترط التفرغ والملف الافتراضي معه مواد
+});
+
+test("الوظائف تظهر فقط إذا فعّلها المستخدم", () => {
+  const r = rankPrograms(RESULTS, { ...DEFAULT_PROFILE, minStars: 1, showJobs: true }, "2026-10-05");
+  assert.ok(r.some(x => x.program.key === "j"));
+});
+
+test("الملف الافتراضي: علوم حاسب، معه مواد، حد ٣ نجوم", () => {
+  assert.equal(DEFAULT_PROFILE.major, "علوم حاسب");
+  assert.equal(DEFAULT_PROFILE.hasCourses, true);
+  assert.equal(DEFAULT_PROFILE.minStars, 3);
+});
+
+test("البيانات قديمة إذا تجاوزت ١٢ ساعة", () => {
+  assert.equal(isStale("2026-10-05T09:00:00+03:00", new Date("2026-10-05T20:00:00+03:00")), false);
+  assert.equal(isStale("2026-10-05T09:00:00+03:00", new Date("2026-10-05T22:00:00+03:00")), true);
+});
