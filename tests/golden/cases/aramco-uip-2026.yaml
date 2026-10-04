@@ -4,7 +4,7 @@ source_url: https://www.aramco.com/ar/careers/for-saudi-applicants/student-oppor
 text_file: ../raw/aramco-uip-ar.txt
 captured_at: 2026-10-04
 expected:
-  kind: university          # تدريب جامعي يشترط أن تطلبه الجامعة قبل التخرج
+  kind: coop  # يشترط أن تطلبه الجامعة قبل التخرج ويُقيَّم لحساب نقاط التدريب الجامعية
   opens: 2026-10-26
   closes: 2026-11-02
   training_starts: 2027-01-18
