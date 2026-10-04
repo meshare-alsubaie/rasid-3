@@ -61,3 +61,28 @@ def test_engine_ignores_stale_inbox(monkeypatch):
                      "fetched_at": (datetime.now(RIYADH) - timedelta(hours=13)).isoformat()}})
     r = fetch(Channel("web", URL), httpx.Client())
     assert not r.ok and "جهاز" in r.error_ar
+
+
+# ---------- الحارس المستقل: جهاز المؤسس يراقب نبضة المحرّك ----------
+
+def test_watchdog_silent_when_engine_fresh():
+    from relay.home_agent import watchdog_alerts
+    assert watchdog_alerts((NOW - timedelta(hours=3)).isoformat(), NOW, None) == []
+
+
+def test_watchdog_alerts_owner_and_group_when_engine_stale():
+    from relay.home_agent import watchdog_alerts
+    alerts = watchdog_alerts((NOW - timedelta(hours=10)).isoformat(), NOW, None)
+    chats = {c for c, _ in alerts}
+    assert chats == {"owner", "group"}
+    assert all("10 ساعات" in t or "10" in t for _, t in alerts)
+
+
+def test_watchdog_alerts_once_per_day():
+    from relay.home_agent import watchdog_alerts
+    assert watchdog_alerts((NOW - timedelta(hours=10)).isoformat(), NOW, NOW.date().isoformat()) == []
+
+
+def test_watchdog_alerts_when_engine_never_ran():
+    from relay.home_agent import watchdog_alerts
+    assert {c for c, _ in watchdog_alerts(None, NOW, None)} == {"owner"}

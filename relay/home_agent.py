@@ -44,6 +44,46 @@ def build_inbox(urls: list[str], client: httpx.Client, now: datetime) -> dict[st
     return out
 
 
+STALE_AFTER_H = 8
+
+
+def watchdog_alerts(last_state_iso: str | None, now: datetime, last_alert_day: str | None) -> list[tuple[str, str]]:
+    """الحارس المستقل: إذا المحرّك ما حفظ حالته من ٨ ساعات، ينبّه المؤسس والقروب (مرة باليوم)."""
+    if last_alert_day == now.date().isoformat():
+        return []
+    if last_state_iso is None:
+        return [("owner", "🔴 الحارس (جهازك): ما لقيت أي حالة محفوظة للمحرّك. يبدو أنه لم يعمل بعد.")]
+    hours = int((now - datetime.fromisoformat(last_state_iso)).total_seconds() // 3600)
+    if hours < STALE_AFTER_H:
+        return []
+    return [("owner", f"🔴 الحارس (جهازك): المحرّك ما اشتغل من {hours} ساعات.\n"
+                      f"افتح صفحة التشغيل: https://github.com/{REPO}/actions"),
+            ("group", f"⚠️ راصد متوقف مؤقتاً من {hours} ساعات. تابعوا مواقع الجهات بأنفسكم احتياطاً حتى يرجع.")]
+
+
+def _watchdog(client: httpx.Client, now: datetime) -> str:
+    from rasid.__main__ import load_env
+    from rasid.notify.telegram import DeliveryError, send
+    mark = ROOT / "state" / "watchdog_last_alert.txt"
+    last_alert = mark.read_text(encoding="utf-8").strip() if mark.exists() else None
+    r = _gh("api", f"repos/{REPO}/branches/state", "--jq", ".commit.commit.committer.date")
+    last = r.stdout.strip() or None
+    if last:
+        last = datetime.fromisoformat(last.replace("Z", "+00:00")).astimezone(now.tzinfo).isoformat()
+    alerts = watchdog_alerts(last, now, last_alert)
+    if not alerts:
+        return "الحارس: المحرّك سليم"
+    env = load_env()
+    chats = {"owner": env.get("TG_OWNER_CHAT", ""), "group": env.get("TG_GROUP_CHAT", "")}
+    try:
+        for chat, text in alerts:
+            send(env.get("TELEGRAM_BOT_TOKEN", ""), chats[chat], text, client)
+    except DeliveryError as e:
+        return f"الحارس: فشل التنبيه {e}"
+    mark.write_text(now.date().isoformat(), encoding="utf-8")
+    return "الحارس: أرسل تنبيه توقف"
+
+
 def _gh(*args: str, stdin: str | None = None) -> subprocess.CompletedProcess:
     return subprocess.run(["gh", *args], input=stdin, capture_output=True, text=True, encoding="utf-8")
 
@@ -75,6 +115,7 @@ def main() -> int:
     inbox = build_inbox(urls, client, now) if urls else {}
     result = upload(inbox) if urls else "لا قائمة"
     ok = sum(1 for v in inbox.values() if v["ok"])
+    result += " | " + _watchdog(client, now)
     LOG.parent.mkdir(exist_ok=True)
     with LOG.open("a", encoding="utf-8") as f:
         f.write(f"{now:%Y-%m-%d %H:%M} | صفحات {ok}/{len(inbox)} | {result} {note}\n")
