@@ -117,7 +117,7 @@ def _handle(st: State, deps: Deps, now: datetime, entity_id: str, name: str, url
     already_closed = bool(closes) and datetime.fromisoformat(closes).date() < now.date()
     quiet = already_closed or (first_sight and p is not None and not _upcoming(p.fields, now.date()))
     if change and p and p.family == "student" and not quiet:
-        st.outbox.enqueue(f"{change.kind}:{p.key}:{_id(change.detail_ar)}", "group", render(change, p, name), now)
+        st.outbox.enqueue(f"{change.kind}:{p.key}:{_id(change.detail_ar)}", "group", render(change, p, name, now.date()), now)
         st.meta["new_since_digest"].append(p.key)
     if r.needs_recheck and not recheck_of:
         st.queue.add("re:" + item_id, entity_id, url, text, "إعادة فحص بالنموذج الأساسي", now, recheck_of=r.kind)

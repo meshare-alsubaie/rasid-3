@@ -5,6 +5,7 @@ from datetime import date
 
 from hijridate import Gregorian
 
+from rasid.dates import riyadh_now
 from rasid.programs import Change, Program
 
 GREG_MONTHS = ["يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو", "يوليو", "أغسطس",
@@ -20,6 +21,31 @@ def fmt_date(iso: str) -> str:
     return f"{d.day} {GREG_MONTHS[d.month - 1]} {d.year} ({h.day} {h.month_name('ar')} {h.year}هـ)"
 
 
+def days_ar(n: int) -> str:
+    if n == 1:
+        return "يوم واحد"
+    if n == 2:
+        return "يومين"
+    return f"{n} أيام" if 3 <= n <= 10 else f"{n} يوماً"
+
+
+def countdown(opens: str | None, closes: str | None, today: date) -> str | None:
+    """سطر العدّ التنازلي من لحظة الرسالة: «يفتح بعد ...» أو «مفتوح الآن، باقي ...»."""
+    o = date.fromisoformat(opens) if opens else None
+    c = date.fromisoformat(closes) if closes else None
+    if c and today > c:
+        return "🔒 أقفل التقديم."
+    parts = []
+    if o and today < o:
+        parts.append(f"يفتح بعد {days_ar((o - today).days)}")
+    elif o or c:
+        parts.append("مفتوح الآن")
+    if c:
+        left = (c - today).days
+        parts.append("آخر يوم للتقديم اليوم" if left == 0 else f"باقي {days_ar(left)} على الإغلاق")
+    return "⏱️ " + "، ".join(parts) + "." if parts else None
+
+
 def _val(p: Program, name: str):
     return (p.fields.get(name) or {}).get("value")
 
@@ -28,7 +54,8 @@ def _quote(p: Program, name: str) -> str | None:
     return (p.fields.get(name) or {}).get("quote")
 
 
-def render(change: Change, p: Program, entity_name: str) -> str:
+def render(change: Change, p: Program, entity_name: str, today: date | None = None) -> str:
+    today = today or riyadh_now().date()
     if change.kind == "important_update":
         detail = change.detail_ar
         for en, ar in FIELD_AR.items():
@@ -50,6 +77,9 @@ def render(change: Change, p: Program, entity_name: str) -> str:
         lines.append(f"📅 يفتح: {fmt_date(opens)}")
     if closes:
         lines.append(f"⏳ يقفل: {fmt_date(closes)}")
+    cd = countdown(opens, closes, today)
+    if cd:
+        lines.append(cd)
     if _val(p, "no_courses_allowed") is True:
         lines.append("🔴 تشترط التفرّغ: لا يُسمح بتسجيل مواد أثناء التدريب.")
     if _val(p, "apply_url"):

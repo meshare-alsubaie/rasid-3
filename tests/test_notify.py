@@ -151,3 +151,24 @@ def test_round_trip():
     ob = Outbox()
     ob.enqueue("m1", "group", "نص", T0)
     assert Outbox.from_dict(ob.to_dict()).to_dict() == ob.to_dict()
+
+
+def test_days_in_correct_arabic():
+    from rasid.notify.templates import days_ar
+    assert days_ar(1) == "يوم واحد" and days_ar(2) == "يومين"
+    assert days_ar(3) == "3 أيام" and days_ar(10) == "10 أيام" and days_ar(11) == "11 يوماً"
+
+
+def test_countdown_before_opening():
+    t = render(Change("new", "k"), prog(), "أرامكو", today=date(2026, 10, 25))
+    assert "يفتح بعد يوم واحد" in t and "باقي 8 أيام على الإغلاق" in t
+
+
+def test_countdown_while_open():
+    t = render(Change("new", "k"), prog(), "أرامكو", today=date(2026, 10, 28))
+    assert "مفتوح الآن" in t and "باقي 5 أيام على الإغلاق" in t
+
+
+def test_countdown_last_day_and_closed():
+    assert "آخر يوم للتقديم اليوم" in render(Change("new", "k"), prog(), "أرامكو", today=date(2026, 11, 2))
+    assert "أقفل التقديم" in render(Change("important_update", "k", ""), prog(), "أرامكو", today=date(2026, 11, 5))
