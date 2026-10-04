@@ -86,3 +86,34 @@ def test_watchdog_alerts_once_per_day():
 def test_watchdog_alerts_when_engine_never_ran():
     from relay.home_agent import watchdog_alerts
     assert {c for c, _ in watchdog_alerts(None, NOW, None)} == {"owner"}
+
+
+def test_upload_creates_inbox_branch_when_missing(monkeypatch):
+    """خطأ حقيقي: عند غياب الفرع يطبع غيت هاب رسالة خطأ، فقُرئت كأنها معرّف ملف ولم يُنشأ الفرع."""
+    import subprocess
+    from relay import home_agent
+    calls = []
+
+    def fake_gh(*args, stdin=None):
+        calls.append(args)
+        if "contents/inbox.json?ref=inbox" in args[1]:
+            return subprocess.CompletedProcess(args, 1, '{"message":"No commit found for the ref inbox"}', "404")
+        if args[1].endswith("git/ref/heads/main"):
+            return subprocess.CompletedProcess(args, 0, "abc123\n", "")
+        return subprocess.CompletedProcess(args, 0, "{}", "")
+    monkeypatch.setattr(home_agent, "_gh", fake_gh)
+    assert home_agent.upload({"u": {"ok": True}}) == "تم"
+    assert any(a[1].endswith("git/refs") for a in calls)
+    put = next(a for a in calls if "-X" in a)
+    assert '"sha"' not in json.dumps(put)
+
+
+@respx.mock
+def test_agent_fetches_in_parallel():
+    import time
+    urls = [f"https://s{i}.example.sa/p" for i in range(8)]
+    for u in urls:
+        respx.get(u).mock(side_effect=lambda req: (time.sleep(0.4), httpx.Response(200, html=PAGE))[1])
+    t0 = time.time()
+    inbox = build_inbox(urls, httpx.Client(), NOW, resolve=lambda h: "45.1.2.3")
+    assert len(inbox) == 8 and time.time() - t0 < 2.0

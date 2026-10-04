@@ -10,6 +10,7 @@ import json
 import socket
 import subprocess
 import sys
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from pathlib import Path
 
@@ -26,22 +27,27 @@ LIST_URL = f"https://raw.githubusercontent.com/{REPO}/state/saudi_list.json"
 LOG = ROOT / "state" / "home_agent.log"
 
 
-def build_inbox(urls: list[str], client: httpx.Client, now: datetime) -> dict[str, dict]:
-    out: dict[str, dict] = {}
-    for url in urls:
-        entry = {"ok": False, "fetched_at": now.isoformat(), "blocks": [], "links": []}
-        if not _public(url, socket.gethostbyname):
-            entry["error_ar"] = "رابط غير مسموح"
+def _one(url: str, client: httpx.Client, now: datetime, resolve) -> dict:
+    entry = {"ok": False, "fetched_at": now.isoformat(), "blocks": [], "links": []}
+    if not _public(url, resolve):
+        entry["error_ar"] = "رابط غير مسموح"
+    else:
+        resp, err = _get(client, url)
+        if resp is None:
+            entry["error_ar"] = err
         else:
-            resp, err = _get(client, url)
-            if resp is None:
-                entry["error_ar"] = err
-            else:
-                blocks, links = _html_blocks(resp.text, str(resp.url))
-                entry.update(ok=bool(blocks), blocks=[b.text for b in blocks], links=links[:40],
-                             error_ar=None if blocks else "المحتوى فارغ")
-        out[url] = entry
-    return out
+            blocks, links = _html_blocks(resp.text, str(resp.url))
+            entry.update(ok=bool(blocks), blocks=[b.text for b in blocks], links=links[:40],
+                         error_ar=None if blocks else "المحتوى فارغ")
+    return entry
+
+
+def build_inbox(urls: list[str], client: httpx.Client, now: datetime,
+                resolve=socket.gethostbyname) -> dict[str, dict]:
+    """يجلب بالتوازي (٨ معاً) حتى لا تتراكم مهلات المواقع البطيئة."""
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        entries = list(pool.map(lambda u: _one(u, client, now, resolve), urls))
+    return dict(zip(urls, entries))
 
 
 STALE_AFTER_H = 8
@@ -91,7 +97,9 @@ def _gh(*args: str, stdin: str | None = None) -> subprocess.CompletedProcess:
 def upload(inbox: dict) -> str:
     """يرفع inbox.json لفرع inbox (ينشئ الفرع أول مرة)."""
     content = base64.b64encode(json.dumps(inbox, ensure_ascii=False).encode("utf-8")).decode()
-    sha = _gh("api", f"repos/{REPO}/contents/inbox.json?ref=inbox", "--jq", ".sha").stdout.strip()
+    got = _gh("api", f"repos/{REPO}/contents/inbox.json?ref=inbox", "--jq", ".sha")
+    # نعتمد على نجاح الطلب لا على النص: عند الفشل يطبع غيت هاب رسالة خطأ في المخرجات
+    sha = got.stdout.strip() if got.returncode == 0 else ""
     if not sha:
         main_sha = _gh("api", f"repos/{REPO}/git/ref/heads/main", "--jq", ".object.sha").stdout.strip()
         _gh("api", f"repos/{REPO}/git/refs", "-f", "ref=refs/heads/inbox", "-f", f"sha={main_sha}")
