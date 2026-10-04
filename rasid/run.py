@@ -86,8 +86,14 @@ def _safe_classify(deps: Deps, text: str) -> Verdict | Pending:
         return Pending(f"[المصنّف] انهيار: {e}")
 
 
+def _upcoming(fields: dict, today) -> bool:
+    """فيه نافذة تقديم مفتوحة أو قادمة بتاريخ صريح."""
+    dates = [v["value"] for k, v in fields.items() if k in ("opens", "closes") and v.get("value")]
+    return any(datetime.fromisoformat(d).date() >= today for d in dates)
+
+
 def _handle(st: State, deps: Deps, now: datetime, entity_id: str, name: str, url: str, text: str,
-            item_id: str, rep: RunReport, queued: QueueItem | None = None) -> None:
+            item_id: str, rep: RunReport, queued: QueueItem | None = None, first_sight: bool = False) -> None:
     r = _safe_classify(deps, text)
     recheck_of = queued.recheck_of if queued else None
     if isinstance(r, Pending) or (recheck_of and r.needs_recheck):
@@ -106,7 +112,11 @@ def _handle(st: State, deps: Deps, now: datetime, entity_id: str, name: str, url
                           f"🔁 تصحيح: {name}\nالتصنيف السابق «{KIND_AR.get(recheck_of, recheck_of)}» "
                           f"غير دقيق، والصحيح «{KIND_AR.get(r.kind, 'غير ذي صلة')}».", now)
     p, change = st.programs.merge(entity_id, r, url, now)
-    if change and p and p.family == "student":
+    # أول مرة نرى الصفحة: لا ننبّه إلا لنافذة مفتوحة أو قادمة (الصفحات الدائمة والبرامج المنتهية تُحفظ بهدوء)
+    closes = (p.fields.get("closes") or {}).get("value") if p else None
+    already_closed = bool(closes) and datetime.fromisoformat(closes).date() < now.date()
+    quiet = already_closed or (first_sight and p is not None and not _upcoming(p.fields, now.date()))
+    if change and p and p.family == "student" and not quiet:
         st.outbox.enqueue(f"{change.kind}:{p.key}:{_id(change.detail_ar)}", "group", render(change, p, name), now)
         st.meta["new_since_digest"].append(p.key)
     if r.needs_recheck and not recheck_of:
@@ -137,7 +147,7 @@ def _fetch_channel(st: State, deps: Deps, now: datetime, e: Entity, ch: Channel,
     body = "\n".join(b.text for b in fresh)[:MAX_INPUT]
     links = "\n".join(f"{t}: {u}" for t, u in res.links[:40])
     text = f"الجهة: {e.name_ar}\nالرابط: {ch.url}\n\nالنص:\n{body}" + (f"\n\nروابط الصفحة:\n{links}" if links else "")
-    _handle(st, deps, now, e.id, e.name_ar, ch.url, text, _id(ch.url, body), rep)
+    _handle(st, deps, now, e.id, e.name_ar, ch.url, text, _id(ch.url, body), rep, first_sight=ch.url not in st.seen)
     # تُعلَّم مقروءة فقط بعد حكم أو دخول الطابور (النص محفوظ فيه، فلا ضياع)
     st.seen[ch.url] = (prev + [b.hash for b in fresh])[-SEEN_CAP:]
 

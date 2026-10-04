@@ -160,3 +160,41 @@ def test_recheck_disagreement_sends_correction():
     w.verdicts["التعاوني"] = Verdict("irrelevant", "confirmer")
     run_once(T0 + timedelta(hours=3), [ARAMCO], st, w.deps())
     assert any("تصحيح" in t for c, t in w.sent if c == "group")
+
+
+def test_first_sight_of_page_without_upcoming_window_is_silent():
+    w = World()
+    w.verdicts["التعاوني"] = lambda: Verdict("coop", "m", {})  # صفحة دائمة بلا تواريخ
+    st = State()
+    run_once(T0, [ARAMCO], st, w.deps())
+    assert not any(c == "group" and "جديد:" in t for c, t in w.sent)
+    assert len(st.programs.items) == 1  # محفوظ بهدوء
+
+
+def test_first_sight_of_closed_program_is_silent():
+    w = World()
+    w.verdicts["التعاوني"] = lambda: Verdict("coop", "m", {"closes": Field(date(2025, 7, 12), "q")})
+    st = State()
+    run_once(T0, [ARAMCO], st, w.deps())
+    assert not any(c == "group" and "جديد:" in t for c, t in w.sent)
+
+
+def test_change_after_first_sight_alerts_even_without_dates():
+    w = World()
+    w.verdicts["التعاوني"] = lambda: Verdict("coop", "m", {})
+    st = State()
+    run_once(T0, [ARAMCO], st, w.deps())
+    w.pages["https://aramco/x"].append("إعلان جديد: برنامج التدريب الصيفي الثاني")
+    w.verdicts = {"الصيفي": lambda: Verdict("university", "m", {})}
+    st.programs.items.clear()
+    run_once(T0 + timedelta(hours=3), [ARAMCO], st, w.deps())
+    assert any(c == "group" and "جديد:" in t for c, t in w.sent)
+
+
+def test_closed_program_from_queue_is_not_announced_as_new():
+    w = World(); w.verdicts["التعاوني"] = Pending("متوقف")
+    st = State()
+    run_once(T0, [ARAMCO], st, w.deps())
+    w.verdicts["التعاوني"] = lambda: Verdict("coop", "m", {"closes": Field(date(2025, 7, 12), "q")})
+    run_once(T0 + timedelta(hours=3), [ARAMCO], st, w.deps())
+    assert not any(c == "group" and "جديد:" in t for c, t in w.sent)
