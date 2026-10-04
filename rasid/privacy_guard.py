@@ -32,10 +32,10 @@ def load_forbidden(root: Path | None = None) -> list[str]:
 
 
 def scan_text(text: str, forbidden: list[str] | None = None,
-              allowed_domains: list[str] | None = None) -> list[str]:
+              allowed_domains: list[str] | None = None, check_emails: bool = True) -> list[str]:
     allowed = [d.lower() for d in (allowed_domains or []) + DEFAULT_ALLOWED]
     problems: list[str] = []
-    for m in EMAIL.finditer(text):
+    for m in (EMAIL.finditer(text) if check_emails else ()):
         domain = m.group(0).split("@", 1)[1].lower()
         if not any(domain == d or domain.endswith("." + d) for d in allowed):
             problems.append(f"إيميل شخصي محتمل: {m.group(0)}")
@@ -49,7 +49,7 @@ def scan_text(text: str, forbidden: list[str] | None = None,
 
 
 def scan_paths(paths: list[Path], forbidden: list[str] | None = None,
-               allowed_domains: list[str] | None = None) -> list[str]:
+               allowed_domains: list[str] | None = None, check_emails: bool = True) -> list[str]:
     out: list[str] = []
     for p in paths:
         if p.name in SKIP_NAMES or p.suffix.lower() not in TEXT_SUFFIXES or not p.is_file():
@@ -58,7 +58,7 @@ def scan_paths(paths: list[Path], forbidden: list[str] | None = None,
             text = p.read_text(encoding="utf-8")
         except UnicodeDecodeError:
             continue
-        for problem in scan_text(text, forbidden, allowed_domains):
+        for problem in scan_text(text, forbidden, allowed_domains, check_emails):
             out.append(f"[حارس الخصوصية][{p.name}] {problem}")
     return out
 
@@ -71,8 +71,11 @@ def _staged_files() -> list[Path]:
 
 def main(argv: list[str]) -> int:
     sys.stdout.reconfigure(encoding="utf-8")
+    # --state: ملف حالة المحرّك فيه نصوص صفحات عامة قد تحوي إيميلات رسمية للجهات؛ نفحص الممنوعات والمسارات فقط
+    state_mode = "--state" in argv
+    argv = [a for a in argv if a != "--state"]
     paths = [Path(a) for a in argv] if argv else _staged_files()
-    problems = scan_paths(paths, load_forbidden())
+    problems = scan_paths(paths, load_forbidden(), check_emails=not state_mode)
     for p in problems:
         print(p)
     if problems:

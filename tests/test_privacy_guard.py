@@ -41,3 +41,12 @@ def test_binary_files_are_skipped(tmp_path: Path):
     f = tmp_path / "img.png"
     f.write_bytes(b"\x89PNG\x00\x00me@gmail.com")
     assert scan_paths([f]) == []
+
+
+def test_state_mode_allows_public_emails_but_blocks_forbidden(tmp_path: Path):
+    from rasid.privacy_guard import main
+    f = tmp_path / "state.json"
+    f.write_text('{"text": "careers@company.example.org"}', encoding="utf-8")
+    assert main(["--state", str(f)]) == 0
+    f.write_text('{"text": "C:\\Users\\Someone\\x"}', encoding="utf-8")
+    assert main(["--state", str(f)]) == 1

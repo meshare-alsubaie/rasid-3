@@ -1,0 +1,47 @@
+# محرّك راصد: جولة كل ٣ ساعات. الحالة تُحفظ في فرع state (ملف واحد + نسخة سابقة للرجوع).
+name: engine
+on:
+  schedule:
+    - cron: "17 */3 * * *"   # دقيقة غير مزدحمة
+  workflow_dispatch:
+concurrency:
+  group: engine
+  cancel-in-progress: false
+permissions:
+  contents: write
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v6
+      - run: uv sync --frozen --no-dev
+      - name: استرجاع الحالة
+        run: |
+          mkdir -p state
+          if git fetch -q origin state; then git archive FETCH_HEAD | tar -x -C state; fi
+          ls -la state
+      - name: جولة
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TG_GROUP_CHAT: ${{ secrets.TG_GROUP_CHAT }}
+          TG_OWNER_CHAT: ${{ secrets.TG_OWNER_CHAT }}
+          HC_PING_URL: ${{ secrets.HC_PING_URL }}
+          RASID_TEST_MODE: ${{ vars.RASID_TEST_MODE }}
+        run: uv run python -m rasid
+      - name: حفظ الحالة
+        if: always()
+        env:
+          RASID_FORBIDDEN: ${{ secrets.RASID_FORBIDDEN }}
+        run: |
+          test -f state/state.json || exit 0
+          uv run python -m rasid.privacy_guard --state state/*.json state/*.yaml
+          cd state
+          if git -C .. cat-file -e FETCH_HEAD:state.json 2>/dev/null; then git -C .. show FETCH_HEAD:state.json > state.prev.json; fi
+          git init -q -b state
+          git add -A
+          git -c user.name=rasid-bot -c user.email=rasid@users.noreply.github.com commit -qm "state $(date -u +%FT%TZ)"
+          git push -qf "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" state
