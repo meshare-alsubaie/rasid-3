@@ -115,3 +115,21 @@ def reminders(programs: list[Program], today: date, names: dict[str, str]) -> li
             msg += f"\n🔗 التقديم الرسمي: {_val(p, 'apply_url')}"
         out.append((f"{tag}:{p.key}", msg))
     return out
+
+
+def launch_message(programs: list[Program], names: dict[str, str], today: date) -> str:
+    """رسالة الإطلاق للقروب: كل ما هو مفتوح أو قادم الآن (البرامج المرصودة قبل الإطلاق لا تنتج «جديد»)."""
+    live = []
+    for p in programs:
+        closes = _val(p, "closes")
+        if p.family != "student" or (closes and date.fromisoformat(closes) < today):
+            continue
+        cd = countdown(_val(p, "opens"), closes, today)
+        line = f"• {names.get(p.entity_id, p.entity_id)}: {KIND_AR.get(p.kind, 'فرصة')}"
+        live.append((0 if cd else 1, line + (f"\n  {cd}" if cd else "\n  صفحة البرنامج متاحة")))
+    head = ("🚀 أهلاً، راصد بدأ يشتغل للقروب.\n"
+            "يراقب أكثر من ١٣٠ جهة كل ٣ ساعات، ويرسل هنا كل جديد مع رابط التقديم ودليله.\n")
+    if not live:
+        return head + "\nما فيه شي مفتوح أو قادم الحين. أول ما يُعلن شي توصلكم رسالة."
+    body = "\n".join(x for _, x in sorted(live))
+    return head + "\nالمفتوح والقادم الحين:\n" + body

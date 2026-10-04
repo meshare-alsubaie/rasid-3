@@ -101,3 +101,11 @@ def test_new_blocks_only_returns_unseen():
 def test_hash_ignores_whitespace_and_digit_style():
     from rasid.fetch import block_hash
     assert block_hash("يبدأ  التسجيل ٥ يوليو") == block_hash("يبدأ التسجيل 5 يوليو")
+
+
+@respx.mock
+def test_202_challenge_retries_with_browser_identity():
+    """موقع «الوساطة المالية» يرد ٢٠٢ (انتظر) على الطلب الصريح."""
+    route = respx.get(URL).mock(side_effect=[httpx.Response(202), httpx.Response(200, html=PAGE)])
+    r = fetch(WEB, httpx.Client())
+    assert r.ok and route.call_count == 2

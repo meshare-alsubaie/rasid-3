@@ -172,3 +172,20 @@ def test_countdown_while_open():
 def test_countdown_last_day_and_closed():
     assert "آخر يوم للتقديم اليوم" in render(Change("new", "k"), prog(), "أرامكو", today=date(2026, 11, 2))
     assert "أقفل التقديم" in render(Change("important_update", "k", ""), prog(), "أرامكو", today=date(2026, 11, 5))
+
+
+def test_launch_message_lists_open_and_upcoming_only():
+    from rasid.notify.templates import launch_message
+    old = prog()
+    old.fields["closes"] = {"value": "2025-07-12", "quote": "q"}
+    old.key = "old"
+    t = launch_message([prog(), old], {"aramco": "أرامكو السعودية"}, date(2026, 10, 20))
+    assert "أرامكو السعودية" in t and "يفتح بعد 6 أيام" in t
+    assert t.count("أرامكو") == 1  # المنتهي لا يظهر
+    assert "راصد" in t
+
+
+def test_launch_message_when_nothing_open():
+    from rasid.notify.templates import launch_message
+    t = launch_message([], {}, date(2026, 10, 20))
+    assert "ما فيه شي مفتوح" in t

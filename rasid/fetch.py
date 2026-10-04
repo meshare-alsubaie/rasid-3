@@ -89,7 +89,7 @@ def _get(client: httpx.Client, url: str) -> tuple[httpx.Response | None, str]:
         if r.status_code == 200:
             return r, ""
         last = f"رد الموقع برمز {r.status_code}"
-        if r.status_code not in (403, 406, 429, 503):
+        if r.status_code not in (202, 403, 406, 429, 503):
             break
     return None, last
 
