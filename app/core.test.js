@@ -1,4 +1,4 @@
-// اختبارات منطق التطبيق: node --test app/
+// اختبارات منطق التطبيق: node --test "app/**/*.test.js"
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { matchScore, daysAr, countdown } from "./core.js";
