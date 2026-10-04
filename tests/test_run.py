@@ -250,3 +250,15 @@ def test_checkpoint_is_called_during_run():
         w.pages[f"https://s{i}/x"] = [f"خبر {i}"]
     run_once(T0, ents, st, w.deps(), checkpoint=lambda: calls.append(1), checkpoint_every=10)
     assert len(calls) >= 3
+
+
+def test_aramco_scenario_from_first_real_run_alerts_when_dates_appear():
+    w = World()
+    w.pages["https://aramco/x"] = ["برامج الطلاب في أرامكو"]
+    w.verdicts["برامج الطلاب"] = lambda: Verdict("coop", "m", {})
+    st = State()
+    run_once(T0, [ARAMCO], st, w.deps())
+    w.pages["https://aramco/x"].append("التسجيل في برنامج التدريب التعاوني يفتح 26 أكتوبر")
+    w.verdicts = {"التسجيل": coop}
+    run_once(T0 + timedelta(hours=3), [ARAMCO], st, w.deps())
+    assert any(c == "group" and "أرامكو" in t and "26 أكتوبر" in t for c, t in w.sent)

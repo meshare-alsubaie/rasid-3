@@ -7,7 +7,7 @@ from typing import Literal
 
 from rasid.classify.schema import Verdict
 
-ChangeKind = Literal["new", "hint", "important_update"]
+ChangeKind = Literal["new", "hint", "dates", "important_update"]
 FAMILY = {"coop": "student", "university": "student", "hint": "student",
           "grad_program": "grad", "job": "job"}
 ATTACH_WINDOW = timedelta(days=90)
@@ -92,6 +92,10 @@ class Programs:
             p.kind = v.kind
         elif v.kind != "hint" and p.kind != v.kind and family == "student":
             p.kind = v.kind  # المؤكّد يصحّح التصنيف
+        had_dates = any(p.fields.get(k, {}).get("value") for k in ("opens", "closes"))
+        gets_dates = any(new_fields.get(k, {}).get("value") for k in ("opens", "closes"))
+        if change is None and not had_dates and gets_dates:
+            change = Change("dates", p.key)  # برنامج معروف نزلت مواعيده لأول مرة: هذا هو الإعلان الفعلي
         for name in ("opens", "closes"):
             old, new = p.fields.get(name, {}).get("value"), new_fields.get(name, {}).get("value")
             if change is None and old and new and old != new:

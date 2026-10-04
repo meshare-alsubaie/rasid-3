@@ -88,3 +88,11 @@ def test_round_trip_serialisation():
     ps.merge("aramco", v(opens=date(2026, 10, 26), housing=True), "https://a", T0)
     ps2 = Programs.from_dict(ps.to_dict())
     assert ps2.to_dict() == ps.to_dict()
+
+
+def test_dates_announced_for_known_program_is_a_change():
+    """خطأ وُجد في أول تشغيل حقيقي: أرامكو رُصدت أولاً بلا تواريخ، ثم نزلت المواعيد ولم يُنبَّه أحد."""
+    ps = Programs()
+    ps.merge("aramco", v(), "https://aramco/student-opportunities", T0)
+    p, ch = ps.merge("aramco", v(opens=date(2026, 10, 26), closes=date(2026, 11, 2)), "https://aramco/uip", T0)
+    assert ch is not None and ch.kind == "dates"

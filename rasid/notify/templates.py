@@ -61,6 +61,9 @@ def render(change: Change, p: Program, entity_name: str, today: date | None = No
         for en, ar in FIELD_AR.items():
             detail = detail.replace(en, ar)
         lines = [f"✏️ تحديث مهم: {entity_name}", detail]
+    elif change.kind == "dates":
+        lines = [f"📅 أعلنت المواعيد: {entity_name}", f"{KIND_AR.get(p.kind, 'فرصة')}"
+                 + (f"، {_val(p, 'title')}" if _val(p, "title") else "")]
     elif change.kind == "hint" or p.kind == "hint":
         lines = [f"💡 تلميح غير مؤكّد: {entity_name}",
                  "لمّحت الجهة لبرنامج طلابي قادم، والتفاصيل ما نزلت. بنرسل لكم أول ما ينزل الإعلان الرسمي."]
