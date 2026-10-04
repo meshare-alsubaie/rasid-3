@@ -21,6 +21,7 @@ from rasid.dates import riyadh_now
 from rasid.entities import load_entities_safe
 from rasid.fetch import fetch, set_inbox
 from rasid.notify.telegram import send
+from rasid.publish import build_results
 from rasid.run import Deps, State, run_once, saudi_list
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -79,6 +80,8 @@ def main() -> int:
     rep = run_once(now, entities, st, deps)
     st.meta["budget"] = budget.to_dict()
     st.save(state_path)
+    (STATE_DIR / "results.json").write_text(json.dumps(build_results(st, entities, now), ensure_ascii=False),
+                                            encoding="utf-8")
     (STATE_DIR / "saudi_list.json").write_text(json.dumps(saudi_list(st), ensure_ascii=False, indent=0),
                                                encoding="utf-8")
 

@@ -51,3 +51,18 @@ jobs:
           git add -A
           git -c user.name=rasid-bot -c user.email=rasid@users.noreply.github.com commit -qm "state $(date -u +%FT%TZ)"
           git push -qf "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" state
+      - name: نشر النتائج (صفحة عامة)
+        if: always()
+        env:
+          RASID_FORBIDDEN: ${{ secrets.RASID_FORBIDDEN }}
+        run: |
+          test -f state/results.json || exit 0
+          mkdir -p site && cp state/results.json site/
+          if [ -d app ]; then cp -r app/. site/; fi
+          test -f site/index.html || echo '<!doctype html><meta charset="utf-8"><title>راصد</title><p dir="rtl">راصد قيد البناء. النتائج: <a href="results.json">results.json</a></p>' > site/index.html
+          uv run python -m rasid.privacy_guard --state site/results.json
+          cd site
+          git init -q -b site
+          git add -A
+          git -c user.name=rasid-bot -c user.email=rasid@users.noreply.github.com commit -qm "site $(date -u +%FT%TZ)"
+          git push -qf "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" site
