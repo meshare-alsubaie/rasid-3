@@ -1,0 +1,7 @@
+# سلسلة الذكاء. لا يدخل نموذج هنا إلا إذا نجح في كل الأمثلة الذهبية (scripts/probe_llm.py).
+# الحصص أقل قليلاً من الحد الرسمي لترك هامش. القارئ يقرأ كل جديد، والمؤكّد يحسم ما يبدو فرصة.
+- {name: flash-lite-3.5, base: gemini, model: gemini-3.5-flash-lite, key_env: GEMINI_API_KEY, daily: 480, role: reader}
+- {name: flash-lite-3.1, base: gemini, model: gemini-3.1-flash-lite, key_env: GEMINI_API_KEY, daily: 480, role: reader}
+- {name: flash-3.5, base: gemini, model: gemini-3.5-flash, key_env: GEMINI_API_KEY, daily: 18, role: confirmer}
+- {name: flash-3.8, base: gemini, model: gemini-3.8-flash, key_env: GEMINI_API_KEY, daily: 18, role: confirmer}
+- {name: qwen-3.8, base: groq, model: qwen/qwen3.8-27b, key_env: GROQ_API_KEY, daily: 900, role: confirmer}

@@ -20,7 +20,7 @@ from rasid.dates import parse_dates  # noqa: E402
 CANDIDATES = [
     ("gemini", "gemini-3.8-flash"), ("gemini", "gemini-3.5-flash"), ("gemini", "gemini-3-flash-preview"),
     ("gemini", "gemini-2.5-flash"), ("gemini", "gemini-3.5-flash-lite"),
-    ("gemini", "gemma-4-31b-it"), ("gemini", "gemma-4-26b-a4b-it"),
+    ("gemini", "gemini-3.1-flash-lite"),
     ("groq", "openai/gpt-oss-120b"), ("groq", "qwen/qwen3.8-27b"), ("groq", "allam-2-7b"),
 ]
 BASE = {"gemini": "https://generativelanguage.googleapis.com/v1beta/openai/",
