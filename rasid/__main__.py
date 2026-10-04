@@ -10,6 +10,7 @@ from __future__ import annotations
 import json
 import os
 import sys
+import time
 from functools import partial
 from pathlib import Path
 
@@ -77,7 +78,11 @@ def main() -> int:
                 classify=lambda text: classify(text, providers, budget,
                                                lambda p, s, u: call_provider(p, s, u, env, client)),
                 send=sender)
-    rep = run_once(now, entities, st, deps)
+    started = time.monotonic()
+    budget_min = float(env.get("RASID_BUDGET_MIN", "100"))  # أقل من حد الجولة (١٥٠ دقيقة) بهامش للحفظ والنشر
+    rep = run_once(now, entities, st, deps,
+                   deadline=lambda: time.monotonic() - started > budget_min * 60,
+                   checkpoint=lambda: (st.meta.__setitem__("budget", budget.to_dict()), st.save(state_path)))
     st.meta["budget"] = budget.to_dict()
     st.save(state_path)
     (STATE_DIR / "results.json").write_text(json.dumps(build_results(st, entities, now), ensure_ascii=False),
@@ -87,7 +92,7 @@ def main() -> int:
 
     print(f"[راصد] {now:%Y-%m-%d %H:%M} | مصادر سليمة {rep.fetch_ok} | فاشلة {rep.fetch_fail} | "
           f"جديد {rep.new_items} | أحكام {rep.verdicts} | معلّق {rep.pending} | أُرسل {rep.sent} | "
-          f"طابور {len(st.queue.items)}")
+          f"طابور {len(st.queue.items)} | مؤجل للجولة التالية {rep.deferred}")
     if env.get("HC_PING_URL"):
         try:
             client.post(env["HC_PING_URL"], content=f"ok {rep.fetch_ok}/{rep.fetch_ok + rep.fetch_fail}", timeout=15)

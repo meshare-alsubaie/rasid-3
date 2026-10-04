@@ -42,6 +42,7 @@ class RunReport:
     verdicts: int = 0
     pending: int = 0
     sent: int = 0
+    deferred: int = 0
     errors: list[str] = field(default_factory=list)
 
 
@@ -133,7 +134,7 @@ def _safe_fetch(deps: Deps, e: Entity, ch: Channel) -> FetchResult:
 
 
 def _fetch_channel(st: State, deps: Deps, now: datetime, e: Entity, ch: Channel, rep: RunReport,
-                   res: FetchResult) -> None:
+                   res: FetchResult, defer: bool = False) -> None:
     h = st.health.setdefault(ch.url, {"entity": e.id, "name": e.name_ar, "last_success": None,
                                       "last_error_ar": None, "consecutive_failures": 0, "first_failure": None})
     if not res.ok:
@@ -149,6 +150,9 @@ def _fetch_channel(st: State, deps: Deps, now: datetime, e: Entity, ch: Channel,
     prev = st.seen.get(ch.url, [])
     fresh = new_blocks(set(prev), res)
     if not fresh:
+        return
+    if defer:  # انتهت ميزانية الوقت: يُترك للجولة التالية ولا يُعلَّم مقروءاً
+        rep.deferred += 1
         return
     rep.new_items += 1
     body = "\n".join(b.text for b in fresh)[:MAX_INPUT]
@@ -196,16 +200,25 @@ def saudi_list(st: State) -> list[str]:
     return sorted(u for u, h in st.health.items() if h["consecutive_failures"] > 0 or h.get("via") == "home")
 
 
-def run_once(now: datetime, entities: list[Entity], st: State, deps: Deps) -> RunReport:
+def run_once(now: datetime, entities: list[Entity], st: State, deps: Deps,
+             deadline: Callable[[], bool] | None = None, checkpoint: Callable[[], None] | None = None,
+             checkpoint_every: int = 25) -> RunReport:
+    """deadline: إذا رجعت True يتوقف التصنيف بنظافة ويُترك الباقي للجولة التالية.
+    checkpoint: حفظ دوري أثناء الجولة حتى لا يضيع شيء لو قُتلت."""
     rep = RunReport()
+    over = deadline or (lambda: False)
     names = {e.id: e.name_ar for e in entities}
     jobs = [(e, ch) for e in entities for ch in e.channels if ch.kind in ("web", "rss")]
     # الجلب بالتوازي (المواقع المحجوبة بطيئة)، والمعالجة بالترتيب حتى تبقى الحالة متسقة
     with ThreadPoolExecutor(max_workers=FETCH_WORKERS) as pool:
         results = list(pool.map(lambda j: _safe_fetch(deps, *j), jobs))
-    for (e, ch), res in zip(jobs, results):
-        _fetch_channel(st, deps, now, e, ch, rep, res)
+    for i, ((e, ch), res) in enumerate(zip(jobs, results), 1):
+        _fetch_channel(st, deps, now, e, ch, rep, res, defer=over())
+        if checkpoint and i % checkpoint_every == 0:
+            checkpoint()
     for it in st.queue.due(now):
+        if over():
+            break
         _handle(st, deps, now, it.entity_id, names.get(it.entity_id, it.entity_id), it.url, it.text,
                 it.id, rep, queued=it)
     for msg_id, text in reminders(list(st.programs.items.values()), now.date(), names):

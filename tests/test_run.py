@@ -229,3 +229,24 @@ def test_fetching_is_parallel_so_slow_sites_do_not_add_up():
     t0 = time.time()
     run_once(T0, ents, State(), Deps(slow_fetch, w.classify, w.send))
     assert time.time() - t0 < 2.0  # ٨ مواقع بطيئة × نصف ثانية = ٤ ثوانٍ لو كانت متتالية
+
+
+def test_deadline_stops_cleanly_and_leaves_rest_for_next_run():
+    w = World(); w.verdicts["التعاوني"] = coop
+    st = State()
+    rep = run_once(T0, [SDAIA, ARAMCO], st, w.deps(), deadline=lambda: len(w.classified) >= 1)
+    assert rep.deferred == 1
+    assert "https://aramco/x" not in st.seen  # لم يُعلَّم مقروءاً
+    run_once(T0 + timedelta(hours=3), [SDAIA, ARAMCO], st, w.deps())
+    assert "https://aramco/x" in st.seen and len(st.programs.items) == 1
+
+
+def test_checkpoint_is_called_during_run():
+    w = World()
+    st = State()
+    calls = []
+    ents = [Entity(f"e{i}", f"جهة {i}", 1, 1, [Channel("web", f"https://s{i}/x")]) for i in range(30)]
+    for i in range(30):
+        w.pages[f"https://s{i}/x"] = [f"خبر {i}"]
+    run_once(T0, ents, st, w.deps(), checkpoint=lambda: calls.append(1), checkpoint_every=10)
+    assert len(calls) >= 3
