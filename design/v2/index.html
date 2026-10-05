@@ -1,0 +1,522 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>راصد: المرصد</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Reem+Kufi:wght@500;700&family=Readex+Pro:wght@300;400;600&display=swap" rel="stylesheet">
+<script src="data.js"></script>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"}}</script>
+<style>
+:root { --bg1:#07041a; --bg2:#120a33; --ink:#efe9ff; --mist:#a59bc9; --accent:#b48cff; --accent2:#7fd8ff;
+  --open:#5ef2c6; --soon:#ffc46b; --warn:#ff6b8a; --glass:rgba(22,14,52,.62); --line:rgba(180,140,255,.22);
+  --panel-blur:16px; --radius:18px; }
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; color: var(--ink); background: var(--bg1);
+  font: 300 15px/1.65 "Readex Pro", system-ui, sans-serif; overflow: hidden; }
+.app { position: fixed; inset: 0; display: grid; grid-template-columns: minmax(340px, 410px) 1fr; }
+.stage { position: relative; overflow: hidden; background: radial-gradient(120% 90% at 60% 40%, var(--bg2), var(--bg1) 70%); }
+.stage::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: var(--nebula, none); mix-blend-mode: screen; }
+canvas#globe { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; cursor: grab; }
+canvas#globe:active { cursor: grabbing; }
+
+/* اللوحة */
+.panel { position: relative; z-index: 2; display: flex; flex-direction: column; min-height: 0;
+  background: var(--glass); backdrop-filter: blur(var(--panel-blur)); border-inline-end: 1px solid var(--line); }
+.head { padding: 18px 20px 10px; display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.brand { font: 700 32px/1 "Reem Kufi"; margin: 0; text-shadow: 0 0 22px color-mix(in srgb, var(--accent) 55%, transparent); }
+.brand small { display: block; margin-top: 6px; font: 300 12.5px "Readex Pro"; color: var(--mist); }
+.themerow { display: flex; gap: 4px; margin-top: 4px; }
+.themerow button { width: 30px; border-radius: 10px; border: 1px solid var(--line); background: transparent; color: var(--ink); cursor: pointer; font-size: 16px; }
+.stats { padding: 0 20px 10px; font-size: 12.5px; color: var(--mist); }
+.stats b { color: var(--ink); font-weight: 600; }
+select, input[type=search] { font: inherit; color: var(--ink); background: color-mix(in srgb, var(--bg1) 70%, transparent);
+  border: 1px solid var(--line); border-radius: 12px; padding: 7px 10px; min-width: 0; }
+select:focus-visible, input:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.tabs { display: flex; gap: 4px; padding: 0 16px; border-bottom: 1px solid var(--line); }
+.tabs button { flex: 1; background: none; border: 0; color: var(--mist); font: 400 14px "Readex Pro"; padding: 10px 4px;
+  border-bottom: 2px solid transparent; cursor: pointer; }
+.tabs button[aria-selected=true] { color: var(--ink); border-bottom-color: var(--accent); }
+.filters { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; padding: 12px 16px 6px; }
+.filters input { grid-column: 1 / -1; }
+.list { flex: 1; overflow: auto; padding: 6px 12px 16px; scrollbar-width: thin; }
+.item { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; width: 100%; text-align: start; cursor: pointer;
+  padding: 11px 12px; margin: 4px 0; border-radius: 14px; border: 1px solid transparent; background: transparent; color: inherit; font: inherit; }
+.item:hover, .item:focus-visible, .item.sel { background: color-mix(in srgb, var(--accent) 12%, transparent); border-color: var(--line); outline: none; }
+.item .n { font-weight: 400; }
+.item .s { font-size: 12px; color: var(--mist); }
+.item .pct { font-weight: 600; color: var(--open); align-self: center; }
+.chip { display: inline-block; font-size: 11.5px; padding: 1px 8px; border-radius: 999px; border: 1px solid var(--line); color: var(--mist); }
+.chip.open { color: var(--open); border-color: color-mix(in srgb, var(--open) 45%, transparent); }
+.chip.announced { color: var(--accent2); border-color: color-mix(in srgb, var(--accent2) 45%, transparent); }
+.chip.listed { color: var(--accent); }
+.empty { color: var(--mist); padding: 16px; }
+
+/* التفاصيل */
+.detail { padding: 4px 20px 20px; overflow: auto; flex: 1; }
+.back { background: none; border: 0; color: var(--mist); cursor: pointer; font: inherit; padding: 8px 0; }
+.detail h2 { font: 700 26px "Reem Kufi"; margin: 4px 0 2px; }
+.big { font-size: 22px; font-weight: 600; color: var(--accent2); margin: 10px 0 4px; }
+.pctbig { font-size: 15px; } .pctbig b { color: var(--open); font-size: 22px; margin-inline-end: 6px; }
+.warn { display: inline-block; margin: 8px 0; padding: 3px 12px; border-radius: 999px; font-size: 13px; color: var(--warn);
+  border: 1px solid color-mix(in srgb, var(--warn) 45%, transparent); }
+blockquote { margin: 8px 0; padding: 8px 14px; border-inline-start: 2px solid var(--accent); color: var(--mist); font-size: 13.5px; }
+.apply { display: inline-block; margin: 12px 0 4px; padding: 10px 18px; border-radius: 12px; background: var(--accent);
+  color: var(--bg1); font-weight: 600; text-decoration: none; }
+.hint { font-size: 12.5px; color: var(--mist); }
+.cal { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 10px 4px; }
+.cal div { border: 1px solid var(--line); border-radius: 14px; padding: 10px; min-height: 84px; font-size: 12.5px; }
+.cal div.now { border-color: var(--accent); box-shadow: 0 0 18px color-mix(in srgb, var(--accent) 30%, transparent); }
+.cal h4 { margin: 0 0 4px; font: 500 14px "Reem Kufi"; }
+.cal span { display: block; color: var(--mist); }
+
+/* فوق الكوكب */
+.hud { position: absolute; z-index: 2; inset-inline-end: 16px; bottom: 16px; display: flex; gap: 8px; }
+.hud button { width: 42px; height: 42px; border-radius: 14px; border: 1px solid var(--line); background: var(--glass);
+  color: var(--ink); font-size: 18px; cursor: pointer; backdrop-filter: blur(10px); }
+.legend { position: absolute; z-index: 2; inset-inline-start: 16px; bottom: 18px; display: flex; gap: 14px; font-size: 12px; color: var(--mist); }
+.legend i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-inline-end: 6px; vertical-align: middle; }
+.tip { position: absolute; z-index: 3; pointer-events: none; padding: 8px 12px; border-radius: 12px; background: var(--glass);
+  border: 1px solid var(--line); backdrop-filter: blur(10px); font-size: 13px; white-space: nowrap; opacity: 0; transition: opacity .15s; }
+.tip b { display: block; font: 700 16px "Reem Kufi"; }
+.tip.on { opacity: 1; }
+.city { position: absolute; z-index: 1; pointer-events: none; font: 500 12px "Reem Kufi"; color: var(--mist);
+  transform: translate(-50%, -140%); white-space: nowrap; transition: opacity .3s; text-shadow: 0 0 8px var(--bg1); }
+.hint-drag { position: absolute; z-index: 2; top: 16px; inset-inline-start: 16px; font-size: 12px; color: var(--mist);
+  padding: 6px 12px; border-radius: 999px; background: var(--glass); border: 1px solid var(--line); }
+
+@media (max-width: 860px), (max-aspect-ratio: 4/5) {
+  .app { grid-template-columns: 1fr; grid-template-rows: 54vh 1fr; }
+  .stage { grid-row: 1; } .panel { grid-row: 2; border-inline-end: 0; border-top: 1px solid var(--line); }
+  .head { padding-top: 12px; } .brand { font-size: 26px; }
+  .legend { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { .tip, .city { transition: none; } }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="panel" aria-label="لوحة راصد">
+    <div class="head">
+      <h1 class="brand">راصد<small>التدريب التعاوني، من مصدره</small></h1>
+      <div class="hint themebox">الطابع
+        <div class="themerow"><button id="tprev" aria-label="الطابع السابق">›</button><select id="theme" aria-label="الطابع"></select><button id="tnext" aria-label="الطابع التالي">‹</button></div>
+      </div>
+    </div>
+    <div class="stats" id="stats"></div>
+    <div class="tabs" role="tablist">
+      <button role="tab" aria-selected="true" data-tab="live">القادم والمفتوح</button>
+      <button role="tab" aria-selected="false" data-tab="all">كل الجهات</button>
+      <button role="tab" aria-selected="false" data-tab="cal">التقويم</button>
+    </div>
+    <div class="filters" id="filters">
+      <select id="f-status" aria-label="الحالة"><option value="">كل الحالات</option><option value="open">مفتوح</option>
+        <option value="announced">أعلنت</option><option value="listed">صفحة متاحة</option><option value="not_announced">لم تعلن</option></select>
+      <select id="f-stars" aria-label="النجوم"><option value="0">كل النجوم</option><option value="3">٣ فأكثر</option>
+        <option value="4">٤ فأكثر</option><option value="5">٥ فقط</option></select>
+      <select id="f-sector" aria-label="القطاع"><option value="">كل القطاعات</option><option value="energy">الطاقة والصناعة</option>
+        <option value="tech">التقنية والأمن</option><option value="finance">المال والبنوك</option><option value="gov">الحكومة وغيرها</option></select>
+      <input id="f-q" type="search" placeholder="ابحث عن جهة" aria-label="ابحث عن جهة">
+    </div>
+    <div class="list" id="list"></div>
+    <div class="detail" id="detail" hidden></div>
+  </aside>
+  <section class="stage" aria-label="كوكب الجهات">
+    <canvas id="globe"></canvas>
+    <div class="hint-drag" id="hint">اسحب لتدوير الكوكب، والعجلة أو الأصابع للتكبير</div>
+    <div class="legend"><span><i style="background:var(--open)"></i>مفتوح أو أعلنت</span><span><i style="background:var(--accent)"></i>صفحة برنامج</span><span><i style="background:var(--mist)"></i>لم تعلن</span></div>
+    <div class="hud"><button id="zin" aria-label="تكبير">+</button><button id="zout" aria-label="تصغير">−</button><button id="home" aria-label="ارجع للمملكة">⌂</button></div>
+    <div class="tip" id="tip"></div>
+  </section>
+</div>
+
+<script type="module">
+import * as THREE from "three";
+import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import { matchScore, countdown, DEFAULT_PROFILE } from "../../app/core.js";
+
+const R = window.RASID;
+const TODAY = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Riyadh" });
+const MONTHS = ["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"];
+const STATUS = { not_announced: "لم تعلن بعد", announced: "أعلنت، وقريباً يفتح", open: "مفتوح الآن", closing_soon: "يقفل قريباً", closed: "أقفل", listed: "صفحة البرنامج متاحة" };
+const KIND = { coop: "تدريب تعاوني", university: "تدريب جامعي", hint: "تلميح لبرنامج قادم", grad_program: "لحديثي التخرج", job: "وظيفة" };
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const store = { get(k, d) { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } },
+                set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} } };
+const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+// ---------- الطوابع العشرة (كلها ليلية فيها بنفسجي) ----------
+const THEMES = [
+  { id: "nebula", name: "سديم ملكي", css: { bg1: "#07041a", bg2: "#1a0b3d", accent: "#b48cff", accent2: "#7fd8ff", glass: "rgba(22,14,52,.62)" },
+    world: [0.36, 0.24, 0.62], ksa: [0.72, 0.55, 1.0], border: 0xc9a6ff, atmo: [0.62, 0.38, 1.0],
+    nebula: "radial-gradient(60% 50% at 20% 25%, rgba(140,70,255,.18), transparent), radial-gradient(50% 40% at 85% 80%, rgba(80,160,255,.12), transparent)" },
+  { id: "aurora", name: "شفق", css: { bg1: "#030b17", bg2: "#0b2238", accent: "#a98bff", accent2: "#5ff0d0", glass: "rgba(8,24,40,.6)" },
+    world: [0.2, 0.42, 0.55], ksa: [0.4, 0.95, 0.85], border: 0x9d8bff, atmo: [0.4, 0.95, 0.75],
+    nebula: "linear-gradient(160deg, rgba(90,240,200,.10), transparent 40%, rgba(150,110,255,.16) 75%, transparent)" },
+  { id: "violet-ice", name: "مرصد الجليد", css: { bg1: "#050a17", bg2: "#14163e", accent: "#9f8cff", accent2: "#8fdcff", glass: "rgba(14,24,58,.6)" },
+    world: [0.22, 0.32, 0.58], ksa: [0.56, 0.86, 1.0], border: 0xa58cff, atmo: [0.5, 0.75, 1.0],
+    nebula: "radial-gradient(55% 45% at 75% 30%, rgba(160,130,255,.14), transparent)" },
+  { id: "cyber", name: "نيون سيبراني", css: { bg1: "#05010d", bg2: "#1b0533", accent: "#ff4fd8", accent2: "#36f1ff", glass: "rgba(20,4,36,.7)" },
+    world: [0.42, 0.12, 0.6], ksa: [0.2, 0.95, 1.0], border: 0xff4fd8, atmo: [1.0, 0.3, 0.85], grid: true, square: true,
+    nebula: "repeating-linear-gradient(0deg, rgba(255,79,216,.04) 0 1px, transparent 1px 28px)" },
+  { id: "glass", name: "زجاج الليل", css: { bg1: "#120f2a", bg2: "#2a2257", accent: "#c7b3ff", accent2: "#a4e1ff", glass: "rgba(255,255,255,.07)", line: "rgba(255,255,255,.16)" },
+    world: [0.45, 0.4, 0.75], ksa: [0.88, 0.82, 1.0], border: 0xe5dcff, atmo: [0.78, 0.7, 1.0],
+    nebula: "radial-gradient(70% 60% at 50% 50%, rgba(255,255,255,.05), transparent)" },
+  { id: "milky", name: "درب التبانة", css: { bg1: "#040312", bg2: "#150a2b", accent: "#ff8fd6", accent2: "#b9a2ff", glass: "rgba(18,8,36,.62)" },
+    world: [0.4, 0.25, 0.5], ksa: [1.0, 0.62, 0.9], border: 0xffa6e1, atmo: [0.95, 0.5, 0.95], stars: 2600,
+    nebula: "linear-gradient(115deg, transparent 30%, rgba(255,140,220,.12) 45%, rgba(170,140,255,.16) 52%, transparent 66%)" },
+  { id: "dawn", name: "فجر الصحراء", css: { bg1: "#0d0617", bg2: "#2b1036", accent: "#c08bff", accent2: "#ffc46b", glass: "rgba(36,14,40,.6)" },
+    world: [0.4, 0.22, 0.45], ksa: [1.0, 0.78, 0.45], border: 0xd3a2ff, atmo: [1.0, 0.6, 0.55],
+    nebula: "linear-gradient(0deg, rgba(255,170,90,.16), transparent 45%), radial-gradient(50% 40% at 30% 20%, rgba(170,90,255,.16), transparent)" },
+  { id: "holo", name: "هولوغرام", css: { bg1: "#05060f", bg2: "#141433", accent: "#9be7ff", accent2: "#ff9bf2", glass: "rgba(14,14,40,.6)" },
+    world: [0.3, 0.35, 0.6], ksa: [0.7, 0.9, 1.0], border: 0xb6f0ff, atmo: [0.6, 0.85, 1.0], holo: true,
+    nebula: "conic-gradient(from 200deg at 60% 40%, rgba(120,220,255,.10), rgba(255,130,240,.10), rgba(170,140,255,.10), rgba(120,220,255,.10))" },
+  { id: "royal", name: "ملكي أحادي", css: { bg1: "#0a0614", bg2: "#1f1238", accent: "#d8c2ff", accent2: "#ffffff", glass: "rgba(30,18,56,.6)", mist: "#b9abd9" },
+    world: [0.3, 0.22, 0.48], ksa: [0.86, 0.78, 1.0], border: 0xffffff, atmo: [0.7, 0.55, 1.0],
+    nebula: "radial-gradient(60% 50% at 70% 60%, rgba(216,194,255,.10), transparent)" },
+  { id: "orbit", name: "مدار الأقمار", css: { bg1: "#040716", bg2: "#101a44", accent: "#8f9bff", accent2: "#7fd8ff", glass: "rgba(12,18,52,.62)" },
+    world: [0.2, 0.28, 0.6], ksa: [0.6, 0.78, 1.0], border: 0x9fa8ff, atmo: [0.45, 0.6, 1.0], grid: true, sats: true,
+    nebula: "radial-gradient(50% 40% at 20% 75%, rgba(120,130,255,.14), transparent)" },
+];
+
+// ---------- الأماكن ----------
+const KSA = [[36.5,29.4],[38,30.3],[39.2,32.1],[42,31.1],[44.7,29.2],[46.5,29.1],[47.7,28.5],[48.4,27.7],[49.6,26.8],[50.2,25.8],[50.8,24.7],[51.6,24.2],[52,23],[55.6,22],[55.2,20],[52,19],[48.8,18.2],[46.4,17.3],[43.4,17],[42.8,16.4],[42.2,17.9],[40.8,19.8],[39.1,21.5],[38.4,23.6],[37.2,24.9],[36.6,26.3],[35.2,28.1],[34.6,28.1]];
+const CITIES = { "الرياض": [24.71, 46.68], "جدة": [21.54, 39.17], "الظهران": [26.29, 50.11], "الجبيل": [27.01, 49.66],
+  "ينبع": [24.09, 38.06], "مكة": [21.39, 39.86], "المدينة": [24.47, 39.61], "تبوك": [28.38, 36.57], "أبها": [18.22, 42.5] };
+// المعروف مكانه فقط يوضع في مدينته، والباقي يتوزع على المملكة بتباعد
+const KNOWN_CITY = { aramco: "الظهران", sasref: "الجبيل", satorp: "الجبيل", samref: "ينبع", yasref: "ينبع", luberef: "جدة" };
+const SECTOR = id => /aramco|sabic|maaden|sasref|samref|yasref|satorp|luberef|sec\b|neom|ma'aden/.test(id) ? "energy"
+  : /nca|ncac|sdaia|site|elm|dga|citc|stc|mobily|zain|takamol|taqnia|ncai|ncdc|mcit|ncvc/.test(id) ? "tech"
+  : /bank|rajhi|snb|riyad|bilad|alinma|anb|bsf|saib|sab\b|sama|cma|tadawul|jadwa|pif|simah|wasatah|derayah|falcom|kasb|tawuniya|bupa/.test(id) ? "finance" : "gov";
+function inKSA(lon, lat) {
+  let ins = false;
+  for (let i = 0, j = KSA.length - 1; i < KSA.length; j = i++) {
+    const [xi, yi] = KSA[i], [xj, yj] = KSA[j];
+    if ((yi > lat) !== (yj > lat) && lon < ((xj - xi) * (lat - yi)) / (yj - yi) + xi) ins = !ins;
+  }
+  return ins;
+}
+const RAD = 1.6;
+function toVec(lat, lon, r = RAD) {
+  const phi = (90 - lat) * Math.PI / 180, th = (lon + 180) * Math.PI / 180;
+  return new THREE.Vector3(-r * Math.sin(phi) * Math.cos(th), r * Math.cos(phi), r * Math.sin(phi) * Math.sin(th));
+}
+// رقم شبه عشوائي ثابت لكل (نص، رقم): بصمة النص ثم خلط قوي، حتى لا تصطف النقاط على خط
+function hash(s, k = 1) {
+  let h = 2166136261;
+  for (const c of s) h = Math.imul(h ^ c.charCodeAt(0), 16777619);
+  h = (h + Math.imul(k + 1, 0x9e3779b9)) | 0;
+  h = Math.imul(h ^ (h >>> 16), 0x85ebca6b); h = Math.imul(h ^ (h >>> 13), 0xc2b2ae35); h ^= h >>> 16;
+  return (h >>> 0) / 4294967296;
+}
+// توزيع متباعد داخل المملكة: أماكن مرشحة ثم اختيار الأبعد عن الموضوع سابقاً
+const placed = [];
+function spreadSpot(id) {
+  let best = null, bestD = -1;
+  for (let k = 0; k < 40; k++) {
+    const lon = 36 + hash(id, k * 2) * 18.5, lat = 17.5 + hash(id, k * 2 + 1) * 13;
+    if (!inKSA(lon, lat)) continue;
+    const d = placed.reduce((m, [a, b]) => Math.min(m, Math.hypot(a - lat, b - lon)), 99);
+    if (d > bestD) { bestD = d; best = [lat, lon]; }
+  }
+  return best || [24.7, 46.7];
+}
+const ENT = R.entities.map(e => {
+  const city = KNOWN_CITY[e.id];
+  const [lat, lon] = city ? [CITIES[city][0] + (hash(e.id) - .5) * .5, CITIES[city][1] + (hash(e.id, 9) - .5) * .5] : spreadSpot(e.id);
+  placed.push([lat, lon]);
+  const prog = R.programs.find(p => p.key === e.program);
+  return { ...e, lat, lon, sector: SECTOR(e.id), prog, pos: toVec(lat, lon, RAD * 1.006) };
+});
+const profile = { ...DEFAULT_PROFILE, ...store.get("profile", {}) };
+const live = e => ["open", "announced", "closing_soon"].includes(e.status);
+
+// ---------- المشهد ----------
+const canvas = $("#globe"), stage = $(".stage");
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: "low-power" });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 1.75));
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(40, 1, 0.05, 200);
+const controls = new OrbitControls(camera, canvas);
+Object.assign(controls, { enableDamping: true, dampingFactor: 0.08, enablePan: false, rotateSpeed: 0.45, zoomSpeed: 0.7,
+  minDistance: RAD * 1.28, maxDistance: RAD * 4.6 });
+const HOME = toVec(23.6, 45.2, 1).normalize();
+// الشاشات الضيقة (جوال، شاشة طولية) تحتاج الكاميرا أبعد حتى تظهر المملكة كاملة
+const homeDist = () => { const b = stage.getBoundingClientRect(); return RAD * (b.width / b.height < 0.9 ? 2.75 : 2.05); };
+camera.position.copy(HOME.clone().multiplyScalar(RAD * 2.05));
+controls.update();
+
+const globe = new THREE.Group(); scene.add(globe);
+const pointMat = (extra = {}) => new THREE.ShaderMaterial({
+  transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+  uniforms: { uTime: { value: 0 }, uPix: { value: renderer.getPixelRatio() }, uSquare: { value: 0 }, uHue: { value: 0 }, ...extra },
+  vertexShader: `attribute vec3 color; attribute float size; attribute float seed; attribute float pulse;
+    uniform float uTime; uniform float uPix; varying vec3 vC; varying float vA;
+    void main(){ vec4 mv = modelViewMatrix * vec4(position,1.0);
+      vec3 n = normalize(normalMatrix * position); float facing = smoothstep(-0.15, 0.3, dot(n, normalize(-mv.xyz)));
+      float tw = 0.78 + 0.22 * sin(uTime * 1.4 + seed); float p = pulse * (0.5 + 0.5 * sin(uTime * 3.0 + seed));
+      vC = color * tw; vA = (0.06 + 0.94 * facing);
+      gl_PointSize = (size + p * 6.0) * uPix * (3.2 / -mv.z); gl_Position = projectionMatrix * mv; }`,
+  fragmentShader: `uniform float uSquare; uniform float uHue; varying vec3 vC; varying float vA;
+    vec3 hue(vec3 c, float h){ const vec3 k = vec3(0.57735); float ca = cos(h); return c*ca + cross(k,c)*sin(h) + k*dot(k,c)*(1.0-ca); }
+    void main(){ vec2 q = gl_PointCoord - 0.5; float d = uSquare > 0.5 ? max(abs(q.x),abs(q.y)) : length(q);
+      float a = smoothstep(0.5, 0.05, d); gl_FragColor = vec4(hue(vC, uHue), a * vA); }`,
+});
+function cloud(points, mat) {
+  const g = new THREE.BufferGeometry();
+  for (const k of ["position", "color"]) g.setAttribute(k, new THREE.Float32BufferAttribute(points[k], 3));
+  for (const k of ["size", "seed", "pulse"]) g.setAttribute(k, new THREE.Float32BufferAttribute(points[k], 1));
+  return new THREE.Points(g, mat);
+}
+
+let worldPts, ksaPts, entPts, border, atmo, stars, grid, sats, ring, theme;
+function buildGlobe(t) {
+  globe.clear();
+  // العالم: نقاط فيبوناتشي خافتة
+  const W = { position: [], color: [], size: [], seed: [], pulse: [] }, N = 7000;
+  for (let i = 0; i < N; i++) {
+    const y = 1 - (i / (N - 1)) * 2, r = Math.sqrt(1 - y * y), th = Math.PI * (3 - Math.sqrt(5)) * i;
+    W.position.push(Math.cos(th) * r * RAD, y * RAD, Math.sin(th) * r * RAD); W.color.push(...t.world);
+    W.size.push(1.1); W.seed.push(i % 628 / 100); W.pulse.push(0);
+  }
+  worldPts = cloud(W, pointMat()); globe.add(worldPts);
+  // المملكة: طبقة كثيفة مضيئة
+  const K = { position: [], color: [], size: [], seed: [], pulse: [] };
+  for (let i = 0, made = 0; made < 5200 && i < 60000; i++) {
+    const lon = 34.5 + hash("k", i * 2) * 21.5, lat = 16 + hash("k", i * 2 + 1) * 16.5;
+    if (!inKSA(lon, lat)) continue;
+    const v = toVec(lat, lon, RAD * 1.002); K.position.push(v.x, v.y, v.z); K.color.push(...t.ksa.map(c => c * 0.55));
+    K.size.push(1.05); K.seed.push(i % 628 / 100); K.pulse.push(0); made++;
+  }
+  ksaPts = cloud(K, pointMat()); globe.add(ksaPts);
+  // حدود المملكة: خط مضيء
+  const bp = []; for (let i = 0; i <= KSA.length; i++) { const [lo, la] = KSA[i % KSA.length]; bp.push(toVec(la, lo, RAD * 1.003)); }
+  border = new THREE.Line(new THREE.BufferGeometry().setFromPoints(new THREE.CatmullRomCurve3(bp, true).getPoints(300)),
+    new THREE.LineBasicMaterial({ color: t.border, transparent: true, opacity: 0.75 }));
+  globe.add(border);
+  // الجهات
+  const E = { position: [], color: [], size: [], seed: [], pulse: [] };
+  for (const e of ENT) {
+    const c = live(e) ? [0.37, 0.95, 0.78] : e.status === "listed" ? t.ksa : [0.55, 0.52, 0.7];
+    E.position.push(e.pos.x, e.pos.y, e.pos.z); E.color.push(...c);
+    E.size.push(3.2 + e.stars * 1.1); E.seed.push(hash(e.id) * 6.28); E.pulse.push(live(e) ? 1 : 0);
+  }
+  const em = pointMat(); em.blending = THREE.NormalBlending;
+  entPts = cloud(E, em); globe.add(entPts);
+  // الغلاف الجوي
+  atmo = new THREE.Mesh(new THREE.SphereGeometry(RAD * 1.09, 64, 64), new THREE.ShaderMaterial({
+    transparent: true, side: THREE.BackSide, depthWrite: false, blending: THREE.AdditiveBlending,
+    uniforms: { uC: { value: new THREE.Vector3(...t.atmo) } },
+    vertexShader: `varying vec3 vN; varying vec3 vV; void main(){ vec4 mv = modelViewMatrix*vec4(position,1.0); vN = normalize(normalMatrix*normal); vV = normalize(-mv.xyz); gl_Position = projectionMatrix*mv; }`,
+    fragmentShader: `uniform vec3 uC; varying vec3 vN; varying vec3 vV; void main(){ float rim = pow(1.0 - abs(dot(vN, vV)), 3.0); gl_FragColor = vec4(uC, rim * 0.55); }`,
+  }));
+  globe.add(atmo);
+  // شبكة خطوط الطول والعرض (لبعض الطوابع)
+  if (t.grid) {
+    grid = new THREE.Group();
+    const m = new THREE.LineBasicMaterial({ color: t.border, transparent: true, opacity: 0.12 });
+    for (let lat = -60; lat <= 60; lat += 30) { const p = []; for (let lo = -180; lo <= 180; lo += 5) p.push(toVec(lat, lo, RAD * 1.001)); grid.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(p), m)); }
+    for (let lo = -180; lo < 180; lo += 30) { const p = []; for (let la = -90; la <= 90; la += 5) p.push(toVec(la, lo, RAD * 1.001)); grid.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(p), m)); }
+    globe.add(grid);
+  }
+  // أقمار صناعية تدور (طابع المدار)
+  sats = null;
+  if (t.sats) {
+    sats = new THREE.Group();
+    for (let i = 0; i < 3; i++) {
+      const orbit = new THREE.Group(); orbit.rotation.set(0.4 + i * 0.5, i * 1.1, 0.2 * i);
+      const path = new THREE.EllipseCurve(0, 0, RAD * (1.35 + i * 0.12), RAD * (1.35 + i * 0.12)).getPoints(160);
+      orbit.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(path.map(p => new THREE.Vector3(p.x, p.y, 0))),
+        new THREE.LineBasicMaterial({ color: t.border, transparent: true, opacity: 0.18 })));
+      const s = new THREE.Mesh(new THREE.SphereGeometry(0.018, 8, 8), new THREE.MeshBasicMaterial({ color: 0xffffff }));
+      s.userData = { r: RAD * (1.35 + i * 0.12), speed: 0.25 + i * 0.12 }; orbit.add(s); sats.add(orbit);
+    }
+    scene.add(sats);
+  }
+  // حلقة التحديد
+  ring = new THREE.Mesh(new THREE.RingGeometry(0.016, 0.0195, 48), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0, side: THREE.DoubleSide }));
+  globe.add(ring);
+}
+// سماء النجوم
+function buildStars(t) {
+  if (stars) scene.remove(stars);
+  const S = { position: [], color: [], size: [], seed: [], pulse: [] }, n = t.stars || 1400;
+  for (let i = 0; i < n; i++) {
+    const v = new THREE.Vector3(hash("s", i) - .5, hash("s", i + 9e5) - .5, hash("s", i + 2e6) - .5).normalize().multiplyScalar(40 + hash("d", i) * 30);
+    S.position.push(v.x, v.y, v.z); const b = 0.4 + hash("b", i) * 0.6; S.color.push(b * 0.9, b * 0.85, b);
+    S.size.push(10 + hash("z", i) * 26); S.seed.push(hash("t", i) * 6.28); S.pulse.push(0);
+  }
+  stars = cloud(S, pointMat()); scene.add(stars);
+}
+
+// ---------- الطابع ----------
+function applyTheme(id) {
+  theme = THEMES.find(t => t.id === id) || THEMES[0];
+  const css = { mist: "#a59bc9", line: "rgba(180,140,255,.22)", ...theme.css };
+  for (const [k, v] of Object.entries(css)) document.documentElement.style.setProperty("--" + k, v);
+  document.documentElement.style.setProperty("--nebula", theme.nebula);
+  if (sats) scene.remove(sats);
+  buildGlobe(theme); buildStars(theme);
+  for (const m of [worldPts.material, ksaPts.material, entPts.material]) m.uniforms.uSquare.value = theme.square ? 1 : 0;
+  store.set("theme", theme.id);
+}
+$("#theme").innerHTML = THEMES.map(t => `<option value="${t.id}">${t.name}</option>`).join("");
+const savedTheme = new URLSearchParams(location.search).get("theme") || store.get("theme", "nebula");
+$("#theme").value = savedTheme; applyTheme(savedTheme);
+$("#theme").addEventListener("change", e => applyTheme(e.target.value));
+const step = d => { const i = (THEMES.findIndex(t => t.id === theme.id) + d + THEMES.length) % THEMES.length; $("#theme").value = THEMES[i].id; applyTheme(THEMES[i].id); };
+$("#tnext").onclick = () => step(1); $("#tprev").onclick = () => step(-1);
+
+// ---------- التحكم: سحب، تكبير، رجوع للمملكة، طيران للجهة ----------
+let fly = null, idleAt = performance.now();
+function flyTo(dir, dist) { fly = { dir: dir.clone().normalize(), dist, t: 0, from: camera.position.clone() }; }
+controls.addEventListener("start", () => { fly = null; idleAt = Infinity; $("#hint").style.opacity = 0; });
+controls.addEventListener("end", () => { idleAt = performance.now(); });
+$("#home").onclick = () => flyTo(HOME, homeDist());
+$("#zin").onclick = () => flyTo(camera.position, Math.max(controls.minDistance, camera.position.length() * 0.75));
+$("#zout").onclick = () => flyTo(camera.position, Math.min(controls.maxDistance, camera.position.length() * 1.33));
+
+// ---------- الالتقاط ----------
+const ray = new THREE.Raycaster(), tip = $("#tip");
+let hovered = null, selected = null;
+function pick(ev) {
+  const b = canvas.getBoundingClientRect();
+  ray.params.Points.threshold = 0.012 * camera.position.length();
+  ray.setFromCamera(new THREE.Vector2(((ev.clientX - b.left) / b.width) * 2 - 1, -((ev.clientY - b.top) / b.height) * 2 + 1), camera);
+  const hits = ray.intersectObject(entPts).filter(h => h.point.dot(camera.position) > 0);
+  return hits.length ? ENT[hits[0].index] : null;
+}
+canvas.addEventListener("pointermove", ev => {
+  hovered = pick(ev);
+  if (hovered) {
+    const b = stage.getBoundingClientRect();
+    tip.innerHTML = `<b>${esc(hovered.name)}</b>${"★".repeat(hovered.stars)}، ${esc(STATUS[hovered.status])}`;
+    tip.style.left = Math.min(ev.clientX - b.left + 14, b.width - tip.offsetWidth - 8) + "px";
+    tip.style.top = (ev.clientY - b.top + 14) + "px"; tip.classList.add("on"); canvas.style.cursor = "pointer";
+  } else { tip.classList.remove("on"); canvas.style.cursor = ""; }
+});
+let downAt = null;
+canvas.addEventListener("pointerdown", ev => (downAt = [ev.clientX, ev.clientY]));
+canvas.addEventListener("pointerup", ev => {
+  if (!downAt || Math.hypot(ev.clientX - downAt[0], ev.clientY - downAt[1]) > 6) return;  // كان سحباً لا ضغطاً
+  const e = pick(ev); if (e) select(e.id);
+});
+
+// ---------- اللوحة ----------
+let tab = "live";
+const F = { status: $("#f-status"), stars: $("#f-stars"), sector: $("#f-sector"), q: $("#f-q") };
+Object.values(F).forEach(el => el.addEventListener("input", renderList));
+document.querySelectorAll(".tabs button").forEach(b => b.addEventListener("click", () => {
+  tab = b.dataset.tab; document.querySelectorAll(".tabs button").forEach(x => x.setAttribute("aria-selected", x === b));
+  $("#filters").hidden = tab === "cal"; closeDetail(); renderList();
+}));
+$("#stats").innerHTML = `يراقب <b>${R.entities.length}</b> جهة، يقرأ <b>${R.health.sources_ok}</b> من ${R.health.sources_total} مصدر، آخر تحديث ${new Date(R.generated_at).toLocaleString("ar-SA-u-nu-latn", { timeZone: "Asia/Riyadh", hour: "numeric", minute: "2-digit", day: "numeric", month: "long" })}`;
+
+function match(e) { return e.prog && e.prog.family === "student" ? matchScore(e.prog, e, profile) : null; }
+function filtered() {
+  const q = F.q.value.trim(), st = F.status.value, s = +F.stars.value, sec = F.sector.value;
+  return ENT.filter(e => (!q || e.name.includes(q)) && (!st || e.status === st || (st === "open" && e.status === "closing_soon"))
+    && e.stars >= s && (!sec || e.sector === sec));
+}
+function row(e) {
+  const m = match(e), cd = e.prog ? countdown(e.prog.opens, e.prog.closes, TODAY) : "";
+  return `<button class="item ${selected === e.id ? "sel" : ""}" data-id="${esc(e.id)}">
+    <span class="n">${esc(e.name)}</span>${m ? `<span class="pct">${m.pct}٪</span>` : "<span></span>"}
+    <span class="s"><span class="chip ${live(e) ? "open" : e.status}">${esc(STATUS[e.status])}</span> ${"★".repeat(e.stars)} ${cd ? "، " + esc(cd) : ""}</span></button>`;
+}
+function renderList() {
+  const L = $("#list");
+  if (tab === "cal") {
+    const now = +TODAY.slice(5, 7);
+    const by = Array.from({ length: 12 }, () => []);
+    ENT.forEach(e => { const m = e.prog?.opens ? +e.prog.opens.slice(5, 7) : e.expected_month; if (m) by[m - 1].push(e); });
+    const unknown = ENT.filter(e => !(e.prog?.opens || e.expected_month)).length;
+    L.innerHTML = `<div class="cal">${by.map((es, i) => `<div class="${i + 1 === now ? "now" : ""}"><h4>${MONTHS[i]}</h4>${
+      es.map(e => `<span>${esc(e.name)}</span>`).join("") || `<span>لا شيء معروف</span>`}</div>`).join("")}</div>
+      <p class="hint" style="padding:0 8px">${unknown} جهة موعدها المعتاد غير معروف بعد، ويتعلّمه راصد من رصده سنة بعد سنة.</p>`;
+    return;
+  }
+  let es = filtered();
+  if (tab === "live") es = es.filter(e => e.prog && e.prog.family === "student" && e.status !== "closed");
+  es.sort((a, b) => (live(b) - live(a)) || ((match(b)?.pct ?? -1) - (match(a)?.pct ?? -1)) || b.stars - a.stars);
+  L.innerHTML = es.length ? es.map(row).join("") : `<p class="empty">ما فيه نتائج بهذي الفلاتر.</p>`;
+}
+$("#list").addEventListener("click", ev => { const b = ev.target.closest("[data-id]"); if (b) select(b.dataset.id); });
+
+function select(id) {
+  const e = ENT.find(x => x.id === id); if (!e) return;
+  selected = id;
+  ring.position.copy(e.pos); ring.lookAt(e.pos.clone().multiplyScalar(2)); ring.material.opacity = 1;
+  flyTo(e.pos, RAD * 1.55);
+  const p = e.prog, m = match(e), f = k => p?.fields?.[k];
+  const quotes = ["opens", "closes", "no_courses_allowed", "title"].map(f).filter(x => x?.quote);
+  const apply = f("apply_url")?.value || p?.sources?.[0];
+  $("#detail").innerHTML = `<button class="back" id="back">رجوع للقائمة</button>
+    <h2>${esc(e.name)}</h2>
+    <div class="hint">${"★".repeat(e.stars)}، ${esc({ energy: "الطاقة والصناعة", tech: "التقنية والأمن", finance: "المال والبنوك", gov: "الحكومة وغيرها" }[e.sector])}</div>
+    <div class="big">${esc(p ? (countdown(p.opens, p.closes, TODAY) || STATUS[e.status]) : STATUS[e.status])}</div>
+    ${p ? `<div class="hint">${esc(KIND[p.kind] || "")}${p.title ? "، " + esc(p.title) : ""}</div>` : ""}
+    ${m ? `<p class="pctbig"><b>${m.pct}٪</b>${m.reasons.map(esc).join("، ")}</p>` : ""}
+    ${m?.warning ? `<span class="warn">${esc(m.warning)}</span>` : ""}
+    ${!p && e.expected_month ? `<p>المتوقع أن تفتح تقريباً في ${MONTHS[e.expected_month - 1]}</p>` : ""}
+    ${apply ? `<a class="apply" href="${esc(apply)}" target="_blank" rel="noopener">قدّم من الموقع الرسمي</a>` : ""}
+    ${quotes.length ? `<h4>الدليل من المصدر</h4>${quotes.map(x => `<blockquote dir="auto">${esc(x.quote)}</blockquote>`).join("")}` : ""}
+    <p class="hint">مصادر تُقرأ: ${e.sources_ok} من ${e.sources_total}${e.via_home ? "، بعضها عبر جهازك" : ""}</p>`;
+  $("#list").hidden = true; $("#filters").hidden = true; $("#detail").hidden = false;
+  $("#back").onclick = closeDetail;
+}
+function closeDetail() {
+  selected = null; ring.material.opacity = 0;
+  $("#detail").hidden = true; $("#list").hidden = false; $("#filters").hidden = tab === "cal"; renderList();
+}
+renderList();
+
+// ---------- أسماء المدن فوق الكوكب ----------
+const cityEls = Object.entries(CITIES).map(([n, [la, lo]]) => {
+  const el = document.createElement("div"); el.className = "city"; el.textContent = n; stage.appendChild(el);
+  return { el, v: toVec(la, lo, RAD * 1.01) };
+});
+
+// ---------- الحلقة ----------
+function resize() {
+  const b = stage.getBoundingClientRect();
+  renderer.setSize(b.width, b.height, false);
+  camera.aspect = b.width / b.height; camera.updateProjectionMatrix();
+}
+new ResizeObserver(resize).observe(stage); resize();
+camera.position.copy(HOME.clone().multiplyScalar(homeDist()));
+const clock = new THREE.Clock();
+let running = true;
+document.addEventListener("visibilitychange", () => { running = !document.hidden; if (running) loop(); });
+function loop() {
+  if (!running) return;
+  const t = reduced ? 0 : clock.getElapsedTime();
+  for (const o of [worldPts, ksaPts, entPts, stars]) o.material.uniforms.uTime.value = t;
+  if (theme.holo) for (const o of [ksaPts, entPts]) o.material.uniforms.uHue.value = Math.sin(t * 0.25) * 0.6;
+  if (sats) sats.children.forEach((o, i) => { const s = o.children[1]; const a = t * s.userData.speed + i; s.position.set(Math.cos(a) * s.userData.r, Math.sin(a) * s.userData.r, 0); });
+  if (ring.material.opacity > 0) ring.scale.setScalar(1 + 0.15 * Math.sin(t * 4));
+  // الطيران الناعم، والرجوع الهادئ للمملكة بعد ١٢ ثانية بلا لمس
+  if (!fly && !selected && performance.now() - idleAt > 12000 && camera.position.clone().normalize().dot(HOME) < 0.97) flyTo(HOME, camera.position.length());
+  if (fly) {
+    fly.t = Math.min(1, fly.t + 0.022); const k = 1 - Math.pow(1 - fly.t, 3);
+    const dir = fly.from.clone().normalize().lerp(fly.dir, k).normalize();
+    camera.position.copy(dir.multiplyScalar(THREE.MathUtils.lerp(fly.from.length(), fly.dist, k)));
+    if (fly.t >= 1) { fly = null; idleAt = performance.now(); }
+  }
+  controls.update();
+  renderer.render(scene, camera);
+  // أسماء المدن: تظهر عند الاقتراب وفي الوجه المقابل فقط
+  const b = stage.getBoundingClientRect(), near = camera.position.length() < RAD * 2.4;
+  for (const c of cityEls) {
+    const p = c.v.clone().project(camera), facing = c.v.dot(camera.position) > 0;
+    c.el.style.opacity = near && facing ? 0.9 : 0;
+    c.el.style.left = ((p.x + 1) / 2) * b.width + "px"; c.el.style.top = ((1 - p.y) / 2) * b.height + "px";
+  }
+  requestAnimationFrame(loop);
+}
+loop();
+</script>
+</body>
+</html>

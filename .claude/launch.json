@@ -24,6 +24,16 @@
         "app"
       ],
       "port": 8766
+    },
+    {
+      "name": "root",
+      "runtimeExecutable": "py",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "8767"
+      ],
+      "port": 8767
     }
   ]
 }
