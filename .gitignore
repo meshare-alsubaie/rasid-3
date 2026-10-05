@@ -21,3 +21,7 @@ tools/
 
 # نتائج تجربة محلية (المنشورة تُبنى في السحابة)
 app/results.json
+
+# أدوات كلاودفلير المحلية
+push/node_modules/
+push/.wrangler/

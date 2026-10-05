@@ -1,5 +1,6 @@
 // واجهة التطبيق: تقرأ results.json العام وتعرضه حسب ظروف المستخدم المحفوظة في جهازه.
 import { DEFAULT_PROFILE, countdown, isStale, matchScore, rankPrograms } from "./core.js";
+import { PUSH_URL, VAPID_PUBLIC } from "./config.js";
 
 const KIND = { coop: "تدريب تعاوني", university: "تدريب جامعي", hint: "تلميح لبرنامج قادم",
                grad_program: "برنامج لحديثي التخرج", job: "وظيفة" };
@@ -141,6 +142,34 @@ $("#settings-form").addEventListener("submit", () => {
   store.set("profile", profile);
   if (results) render();
 });
+
+// ---------- التنبيهات المباشرة على هذا الجهاز ----------
+// الجهاز يرسل عنوان تنبيه مجهولاً وحد النجوم فقط؛ لا اسم ولا تخصص ولا أي ظرف شخصي.
+const pushStatus = msg => ($("#push-status").textContent = msg);
+const b64ToBytes = s => { const p = "=".repeat((4 - (s.length % 4)) % 4); const r = atob((s + p).replace(/-/g, "+").replace(/_/g, "/")); return Uint8Array.from(r, c => c.charCodeAt(0)); };
+async function registerPush() {
+  const reg = await navigator.serviceWorker.ready;
+  const sub = (await reg.pushManager.getSubscription())
+    || await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64ToBytes(VAPID_PUBLIC) });
+  const r = await fetch(PUSH_URL + "/subscribe", { method: "POST", headers: { "content-type": "application/json" },
+    body: JSON.stringify({ subscription: sub.toJSON(), minStars: profile.minStars }) });
+  if (!r.ok) throw new Error("subscribe " + r.status);
+}
+$("#enable-push").addEventListener("click", async () => {
+  const ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  const installed = matchMedia("(display-mode: standalone)").matches || navigator.standalone;
+  if (ios && !installed) return pushStatus("في الآيفون: أضف راصد للشاشة الرئيسية أولاً (زر المشاركة، ثم «إضافة إلى الشاشة الرئيسية»)، وافتحه من هناك واضغط هذا الزر.");
+  if (!("serviceWorker" in navigator) || !("PushManager" in window)) return pushStatus("هذا المتصفح لا يدعم التنبيهات. جرّب كروم أو سفاري الحديث.");
+  const perm = await Notification.requestPermission();
+  if (perm !== "granted") return pushStatus("ما سمحت بالتنبيهات. تقدر تسمح لها من إعدادات المتصفح ثم تضغط الزر مرة ثانية.");
+  try {
+    await registerPush(); store.set("push", true);
+    pushStatus("تم ✅ بتوصلك التنبيهات على هذا الجهاز للجهات من " + profile.minStars + " نجوم فأكثر.");
+  } catch { pushStatus("تعذّر التفعيل الآن. تأكد من الإنترنت وجرّب بعد قليل."); }
+});
+// تغيير حد النجوم يحدّث الاشتراك نفسه
+$("#settings-form").addEventListener("submit", () => { if (store.get("push", false)) registerPush().catch(() => {}); });
+if (store.get("push", false)) pushStatus("التنبيهات مفعّلة على هذا الجهاز ✅");
 
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
 load();
