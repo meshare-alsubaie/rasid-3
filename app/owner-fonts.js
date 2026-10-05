@@ -31,3 +31,6 @@ export async function loadOwnerFonts() {
     document.documentElement.classList.add("owner-fonts");
   } catch { /* بدون الخط الخاص: يبقى خط الموقع العادي */ }
 }
+
+// إذا فُتح الرابط الخاص والصفحة مفتوحة أصلاً، نعيد التحميل حتى يُطبَّق
+addEventListener("hashchange", () => { if (/^#owner=/.test(location.hash)) location.reload(); });
