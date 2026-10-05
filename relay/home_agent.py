@@ -67,6 +67,28 @@ def watchdog_alerts(last_state_iso: str | None, now: datetime, last_alert_day: s
             ("group", f"⚠️ راصد متوقف مؤقتاً من {hours} ساعات. تابعوا مواقع الجهات بأنفسكم احتياطاً حتى يرجع.")]
 
 
+TRIGGER_AFTER_MIN = 200  # الجدولة كل ١٨٠ دقيقة + هامش
+
+
+def should_trigger_engine(last_run_iso: str | None, now: datetime) -> bool:
+    """جدولة غيت هاب تتأخر أو تُسقط جولات أحياناً؛ الجهاز يشغّل المحرّك احتياطاً."""
+    if last_run_iso is None:
+        return True
+    return (now - datetime.fromisoformat(last_run_iso)).total_seconds() / 60 > TRIGGER_AFTER_MIN
+
+
+def _backup_trigger(now: datetime) -> str:
+    r = _gh("run", "list", "-R", REPO, "--workflow", "engine.yml", "--limit", "1", "--json", "createdAt",
+            "--jq", ".[0].createdAt")
+    last = r.stdout.strip() if r.returncode == 0 and r.stdout.strip() else None
+    if last:
+        last = datetime.fromisoformat(last.replace("Z", "+00:00")).astimezone(now.tzinfo).isoformat()
+    if not should_trigger_engine(last, now):
+        return "المحرّك في موعده"
+    ok = _gh("workflow", "run", "engine.yml", "-R", REPO).returncode == 0
+    return "شغّلت المحرّك احتياطاً" if ok else "فشل تشغيل المحرّك احتياطاً"
+
+
 def _watchdog(client: httpx.Client, now: datetime) -> str:
     from rasid.__main__ import load_env
     from rasid.notify.telegram import DeliveryError, send
@@ -123,7 +145,7 @@ def main() -> int:
     inbox = build_inbox(urls, client, now) if urls else {}
     result = upload(inbox) if urls else "لا قائمة"
     ok = sum(1 for v in inbox.values() if v["ok"])
-    result += " | " + _watchdog(client, now)
+    result += " | " + _watchdog(client, now) + " | " + _backup_trigger(now)
     LOG.parent.mkdir(exist_ok=True)
     with LOG.open("a", encoding="utf-8") as f:
         f.write(f"{now:%Y-%m-%d %H:%M} | صفحات {ok}/{len(inbox)} | {result} {note}\n")

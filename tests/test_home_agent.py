@@ -117,3 +117,10 @@ def test_agent_fetches_in_parallel():
     t0 = time.time()
     inbox = build_inbox(urls, httpx.Client(), NOW, resolve=lambda h: "45.1.2.3")
     assert len(inbox) == 8 and time.time() - t0 < 2.0
+
+
+def test_backup_trigger_when_github_schedule_skipped():
+    from relay.home_agent import should_trigger_engine
+    assert should_trigger_engine((NOW - timedelta(hours=3, minutes=30)).isoformat(), NOW) is True
+    assert should_trigger_engine((NOW - timedelta(hours=1)).isoformat(), NOW) is False
+    assert should_trigger_engine(None, NOW) is True
