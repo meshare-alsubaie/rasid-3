@@ -35,6 +35,9 @@ jobs:
           HC_PING_URL: ${{ secrets.HC_PING_URL }}
           RASID_RELAY_URL: ${{ secrets.RASID_RELAY_URL }}
           RASID_RELAY_TOKEN: ${{ secrets.RASID_RELAY_TOKEN }}
+          PUSH_URL: ${{ secrets.PUSH_URL }}
+          PUSH_SEND_TOKEN: ${{ secrets.PUSH_SEND_TOKEN }}
+          VAPID_PRIVATE: ${{ secrets.VAPID_PRIVATE }}
           RASID_TEST_MODE: ${{ vars.RASID_TEST_MODE }}
         run: uv run python -m rasid
       - name: حفظ الحالة

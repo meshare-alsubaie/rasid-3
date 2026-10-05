@@ -16,7 +16,8 @@ from rasid.diff import new_blocks
 from rasid.entities import Channel, Entity
 from rasid.fetch import FetchResult
 from rasid.notify.outbox import Outbox
-from rasid.notify.templates import KIND_AR, reminders, render
+from rasid.notify.templates import KIND_AR, countdown, reminders, render
+from rasid.notify.webpush import push_payload
 from rasid.programs import Programs, status_of
 from rasid.queue import QueueItem, RetryQueue
 
@@ -95,8 +96,22 @@ def _upcoming(fields: dict, today) -> bool:
     return any(datetime.fromisoformat(d).date() >= today for d in dates)
 
 
+HEADLINE = {"new": "جديد", "dates": "أعلنت المواعيد", "hint": "تلميح غير مؤكّد", "important_update": "تحديث مهم"}
+
+
+def _push_text(change, p, name: str, stars: int, today) -> str:
+    """نص التنبيه المباشر للجوال: سطران، والضغط يفتح بطاقة الجهة (entity)."""
+    head = HEADLINE.get(change.kind, "جديد")
+    if change.kind == "new":
+        head = f"{KIND_AR.get(p.kind, 'فرصة')} جديد"
+    cd = countdown((p.fields.get("opens") or {}).get("value"), (p.fields.get("closes") or {}).get("value"), today)
+    body = (cd or "").replace("⏱️ ", "") or change.detail_ar or "اضغط لتفاصيل البرنامج ورابط التقديم"
+    return push_payload(name, p.entity_id, stars, head, body)
+
+
 def _handle(st: State, deps: Deps, now: datetime, entity_id: str, name: str, url: str, text: str,
-            item_id: str, rep: RunReport, queued: QueueItem | None = None, first_sight: bool = False) -> None:
+            item_id: str, rep: RunReport, queued: QueueItem | None = None, first_sight: bool = False,
+            stars: int = 3) -> None:
     r = _safe_classify(deps, text)
     recheck_of = queued.recheck_of if queued else None
     if isinstance(r, Pending) or (recheck_of and r.needs_recheck):
@@ -120,7 +135,9 @@ def _handle(st: State, deps: Deps, now: datetime, entity_id: str, name: str, url
     already_closed = bool(closes) and datetime.fromisoformat(closes).date() < now.date()
     quiet = already_closed or (first_sight and p is not None and not _upcoming(p.fields, now.date()))
     if change and p and p.family == "student" and not quiet:
-        st.outbox.enqueue(f"{change.kind}:{p.key}:{_id(change.detail_ar)}", "group", render(change, p, name, now.date()), now)
+        msg_id = f"{change.kind}:{p.key}:{_id(change.detail_ar)}"
+        st.outbox.enqueue(msg_id, "group", render(change, p, name, now.date()), now)
+        st.outbox.enqueue("push:" + msg_id, "push", _push_text(change, p, name, stars, now.date()), now)
         st.meta["new_since_digest"].append(p.key)
     if r.needs_recheck and not recheck_of:
         st.queue.add("re:" + item_id, entity_id, url, text, "إعادة فحص بالنموذج الأساسي", now, recheck_of=r.kind)
@@ -158,7 +175,8 @@ def _fetch_channel(st: State, deps: Deps, now: datetime, e: Entity, ch: Channel,
     body = "\n".join(b.text for b in fresh)[:MAX_INPUT]
     links = "\n".join(f"{t}: {u}" for t, u in res.links[:40])
     text = f"الجهة: {e.name_ar}\nالرابط: {ch.url}\n\nالنص:\n{body}" + (f"\n\nروابط الصفحة:\n{links}" if links else "")
-    _handle(st, deps, now, e.id, e.name_ar, ch.url, text, _id(ch.url, body), rep, first_sight=ch.url not in st.seen)
+    _handle(st, deps, now, e.id, e.name_ar, ch.url, text, _id(ch.url, body), rep, first_sight=ch.url not in st.seen,
+            stars=e.stars_manual or 3)
     # تُعلَّم مقروءة فقط بعد حكم أو دخول الطابور (النص محفوظ فيه، فلا ضياع)
     st.seen[ch.url] = (prev + [b.hash for b in fresh])[-SEEN_CAP:]
 
@@ -208,6 +226,7 @@ def run_once(now: datetime, entities: list[Entity], st: State, deps: Deps,
     rep = RunReport()
     over = deadline or (lambda: False)
     names = {e.id: e.name_ar for e in entities}
+    stars = {e.id: e.stars_manual or 3 for e in entities}
     jobs = [(e, ch) for e in entities for ch in e.channels if ch.kind in ("web", "rss")]
     # الجلب بالتوازي (المواقع المحجوبة بطيئة)، والمعالجة بالترتيب حتى تبقى الحالة متسقة
     with ThreadPoolExecutor(max_workers=FETCH_WORKERS) as pool:
@@ -220,9 +239,12 @@ def run_once(now: datetime, entities: list[Entity], st: State, deps: Deps,
         if over():
             break
         _handle(st, deps, now, it.entity_id, names.get(it.entity_id, it.entity_id), it.url, it.text,
-                it.id, rep, queued=it)
+                it.id, rep, queued=it, stars=stars.get(it.entity_id, 3))
     for msg_id, text in reminders(list(st.programs.items.values()), now.date(), names):
         st.outbox.enqueue(msg_id, "group", text, now)
+        eid = msg_id.split(":")[1]
+        st.outbox.enqueue("push:" + msg_id, "push",
+                          push_payload(names.get(eid, eid), eid, stars.get(eid, 3), "تذكير", text.splitlines()[0].replace("⏰ ", "")), now)
     for it in st.queue.stuck(now):
         st.outbox.enqueue(f"stuck:{it.id}", "owner",
                           f"⚠️ عالق في طابور الإعادة: {names.get(it.entity_id, it.entity_id)}\n"

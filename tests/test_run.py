@@ -121,7 +121,7 @@ def test_quiet_hours_hold_group_alert():
     night = datetime(2026, 10, 27, 2, 0, tzinfo=RIYADH)
     run_once(night, [ARAMCO], st, w.deps())
     assert [c for c, _ in w.sent if c == "group"] == []
-    assert len(st.outbox.pending) == 1
+    assert [m["chat"] for m in st.outbox.pending.values()].count("group") == 1
 
 
 def test_state_save_is_atomic_and_round_trips(tmp_path):
@@ -262,3 +262,12 @@ def test_aramco_scenario_from_first_real_run_alerts_when_dates_appear():
     w.verdicts = {"التسجيل": coop}
     run_once(T0 + timedelta(hours=3), [ARAMCO], st, w.deps())
     assert any(c == "group" and "أرامكو" in t and "26 أكتوبر" in t for c, t in w.sent)
+
+
+def test_group_alert_also_goes_as_phone_push_with_deep_link():
+    w = World(); w.verdicts["التعاوني"] = coop
+    st = State()
+    run_once(T0, [ARAMCO], st, w.deps())
+    pushes = [json.loads(t) for c, t in w.sent if c == "push"]
+    assert pushes and pushes[0]["entity"] == "aramco" and "أرامكو" in pushes[0]["title"]
+    assert "يفتح" in pushes[0]["body"] or "مفتوح" in pushes[0]["body"]

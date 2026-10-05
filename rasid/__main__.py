@@ -22,6 +22,7 @@ from rasid.dates import riyadh_now
 from rasid.entities import load_entities_safe
 from rasid.fetch import fetch, set_inbox
 from rasid.notify.telegram import send
+from rasid.notify.webpush import PushConfig, send_push
 from rasid.publish import build_results
 from rasid.run import Deps, State, run_once, saudi_list
 
@@ -69,7 +70,11 @@ def main() -> int:
     chats = {"owner": env.get("TG_OWNER_CHAT", ""),
              "group": env.get("TG_OWNER_CHAT" if test_mode else "TG_GROUP_CHAT", "")}
 
+    push_cfg = PushConfig(env.get("PUSH_URL", ""), env.get("PUSH_SEND_TOKEN", ""), env.get("VAPID_PRIVATE", ""))
+
     def sender(chat: str, text: str) -> int:
+        if chat == "push":  # التنبيه المباشر لأجهزة التطبيق؛ قبل تشغيل خادم الاشتراكات لا أجهزة أصلاً
+            return send_push(push_cfg, text, client) if push_cfg.base else 0
         if test_mode and chat == "group":
             text = "🧪 وضع تجربة (كانت ستذهب للقروب):\n\n" + text
         return send(env.get("TELEGRAM_BOT_TOKEN", ""), chats[chat], text, client).message_id
