@@ -1,6 +1,6 @@
 // عامل الخدمة: أبسط ما يمكن، وكل خطوة محمية (في راصد ٢ كان ينهار مع كل إشعار).
-const CACHE = "rasid-v2";
-const SHELL = ["./", "index.html", "app.css", "app.js", "core.js", "config.js", "manifest.webmanifest", "icon.svg"];
+const CACHE = "rasid-v3";
+const SHELL = ["./", "index.html", "landing.css", "app.css", "main.js", "landing.js", "app.js", "core.js", "config.js", "owner-fonts.js", "manifest.webmanifest", "icon.svg"];
 
 self.addEventListener("install", e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).catch(() => {}));

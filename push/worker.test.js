@@ -75,3 +75,23 @@ test("طلبات الاستئذان المسبق (OPTIONS) تنجح", async () =
   const r = await worker.fetch(req("OPTIONS", "/subscribe"), env());
   assert.equal(r.status, 204);
 });
+
+// ---------- خط المالك ----------
+const fontEnv = () => ({ ...env(), OWNER_TOKEN: "owner-secret", FONTS: { get: async (k, t) => k === "thmanyahsans-Light.woff2" ? new Uint8Array([1, 2, 3]).buffer : null } });
+
+test("الخط لا يُعطى بدون رمز المالك", async () => {
+  assert.equal((await worker.fetch(req("GET", "/font/thmanyahsans-Light.woff2"), fontEnv())).status, 401);
+  assert.equal((await worker.fetch(req("GET", "/font/thmanyahsans-Light.woff2", null, { authorization: "Bearer wrong" }), fontEnv())).status, 401);
+});
+
+test("الخط يُعطى برمز المالك ولا يُخزَّن في وسيط عام", async () => {
+  const r = await worker.fetch(req("GET", "/font/thmanyahsans-Light.woff2", null, { authorization: "Bearer owner-secret" }), fontEnv());
+  assert.equal(r.status, 200);
+  assert.equal(r.headers.get("content-type"), "font/woff2");
+  assert.match(r.headers.get("cache-control"), /private/);
+});
+
+test("أسماء ملفات غريبة ترفض", async () => {
+  const r = await worker.fetch(req("GET", "/font/..%2Fsecret", null, { authorization: "Bearer owner-secret" }), fontEnv());
+  assert.equal(r.status, 404);
+});

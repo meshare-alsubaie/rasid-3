@@ -59,6 +59,15 @@ export default {
         } while (cursor);
         return json(out, 200, h);
       }
+      // خط ثمانية لأجهزة المالك فقط: برمزه، وبلا تخزين في وسطاء عامين
+      if (req.method === "GET" && pathname.startsWith("/font/")) {
+        const name = pathname.slice(6);
+        if (!/^[a-z-]+\.woff2$/i.test(name)) return json({ error: "غير موجود" }, 404, h);
+        if (!env.OWNER_TOKEN || req.headers.get("authorization") !== `Bearer ${env.OWNER_TOKEN}`) return json({ error: "غير مصرّح" }, 401, h);
+        const data = await env.FONTS.get(name, "arrayBuffer");
+        if (!data) return json({ error: "غير موجود" }, 404, h);
+        return new Response(data, { status: 200, headers: { ...h, "content-type": "font/woff2", "cache-control": "private, max-age=31536000" } });
+      }
       if (req.method === "DELETE" && pathname.startsWith("/subs/")) {
         if (!authorized(req, env)) return json({ error: "غير مصرّح" }, 401, h);
         await env.SUBS.delete(pathname.slice(6));

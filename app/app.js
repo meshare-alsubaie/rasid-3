@@ -1,5 +1,5 @@
-// واجهة التطبيق: تقرأ results.json العام وتعرضه حسب ظروف المستخدم المحفوظة في جهازه.
-import { DEFAULT_PROFILE, countdown, isStale, matchScore, rankPrograms } from "./core.js";
+// لوحة راصد الكاملة: طبقة فوق صفحة الكوكب، تعرض النتائج حسب ظروف المستخدم المحفوظة في جهازه.
+import { DEFAULT_PROFILE, countdown, matchScore, rankPrograms } from "./core.js";
 import { PUSH_URL, VAPID_PUBLIC } from "./config.js";
 
 const KIND = { coop: "تدريب تعاوني", university: "تدريب جامعي", hint: "تلميح لبرنامج قادم",
@@ -21,22 +21,32 @@ let profile = { ...DEFAULT_PROFILE, ...store.get("profile", {}) };
 const applied = new Set(store.get("applied", []));
 let results = null;
 
-async function load() {
-  try {
-    const r = await fetch("results.json", { cache: "no-cache" });
-    results = await r.json();
-  } catch {
-    $("#stale").hidden = false;
-    $("#stale").textContent = "تعذّر تحميل النتائج. تأكد من الإنترنت ثم افتح التطبيق مرة ثانية.";
-    return;
-  }
-  if (isStale(results.generated_at)) {
-    $("#stale").hidden = false;
-    $("#stale").textContent = "راصد ما تحدّث من أكثر من ١٢ ساعة. تابع مواقع الجهات بنفسك احتياطاً حتى يرجع.";
-  }
-  render();
-  openFromHash();
+let hooks = { onOpen() {}, onClose() {} };
+
+export function initBoard(res, h = {}) {
+  results = res; hooks = { ...hooks, ...h }; render();
 }
+
+// فتح اللوحة يضيف خطوة في سجل المتصفح، فزر الرجوع في الجوال يقفلها ويرجعك للكوكب
+export function openBoard({ entity = null, settings = false } = {}) {
+  const board = $("#board");
+  if (board.hidden) {
+    board.hidden = false; document.documentElement.classList.add("board-open"); hooks.onOpen();
+    history.pushState({ board: true }, "", "#board");
+    requestAnimationFrame(() => board.classList.add("on"));
+  }
+  if (entity) openEntity(entity);
+  if (settings) $("#open-settings").click();
+}
+function hideBoard() {
+  const board = $("#board");
+  if (board.hidden) return;
+  board.classList.remove("on");
+  document.documentElement.classList.remove("board-open"); hooks.onClose();
+  setTimeout(() => { board.hidden = true; }, 350);
+}
+export function closeBoard() { history.state?.board ? history.back() : hideBoard(); }
+addEventListener("popstate", () => { if (!history.state?.board) hideBoard(); });
 
 function card({ program: p, entity: e, match: m }) {
   const cd = countdown(p.opens, p.closes, today());
@@ -98,17 +108,10 @@ function openEntity(id) {
   if (!html) return;
   $("#entity-body").innerHTML = html;
   $("#entity").showModal();
-  history.replaceState(null, "", `#e=${encodeURIComponent(id)}`);
 }
-// التنبيه يفتح التطبيق على #e=الجهة مباشرة
-function openFromHash() {
-  const m = location.hash.match(/^#e=(.+)$/);
-  if (m) openEntity(decodeURIComponent(m[1]));
-}
-addEventListener("hashchange", openFromHash);
 
 document.addEventListener("click", ev => {
-  const t = ev.target.closest("[data-entity]");
+  const t = ev.target.closest("#board [data-entity]");
   if (t) return openEntity(t.dataset.entity);
   if (ev.target.id === "mark-applied") {
     const k = ev.target.dataset.key;
@@ -121,7 +124,8 @@ document.addEventListener("click", ev => {
 document.addEventListener("keydown", ev => {
   if (ev.key === "Enter" && ev.target.matches?.(".card[data-entity]")) openEntity(ev.target.dataset.entity);
 });
-$("#entity").addEventListener("close", () => history.replaceState(null, "", location.pathname));
+$("#close-board").addEventListener("click", closeBoard);
+addEventListener("keydown", ev => { if (ev.key === "Escape" && !$("#board").hidden && !document.querySelector("dialog[open]")) closeBoard(); });
 $("#search").addEventListener("input", () => results && render());
 
 // الإعدادات
@@ -171,5 +175,3 @@ $("#enable-push").addEventListener("click", async () => {
 $("#settings-form").addEventListener("submit", () => { if (store.get("push", false)) registerPush().catch(() => {}); });
 if (store.get("push", false)) pushStatus("التنبيهات مفعّلة على هذا الجهاز ✅");
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
-load();

@@ -25,3 +25,6 @@ app/results.json
 # أدوات كلاودفلير المحلية
 push/node_modules/
 push/.wrangler/
+
+# خطوط ثمانية: الرخصة تمنع نشر ملفاتها، فلا تُرفع للمستودع العام أبداً
+fonts-private/

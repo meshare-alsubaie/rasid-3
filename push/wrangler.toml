@@ -7,3 +7,7 @@ workers_dev = true
 [[kv_namespaces]]
 binding = "SUBS"
 id = "63d0771efded4067a4e6f284138b3a80"
+
+[[kv_namespaces]]
+binding = "FONTS"
+id = "8dac041e1e7043acb1c7b68285e1c6b9"
