@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>راصد</title>
+<meta name="description" content="يرصد إعلانات التدريب التعاوني في السعودية من مصادرها الرسمية">
+<meta name="theme-color" content="#101b23">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Alexandria:wght@200;300;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="landing.css">
+<link rel="stylesheet" href="app.css">
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.min.js","lenis":"https://cdn.jsdelivr.net/npm/lenis@1.3.26/dist/lenis.mjs"}}</script>
+</head>
+<body>
+<div id="stale" class="stale" role="alert" hidden></div>
+<div class="sky" aria-hidden="true"></div>
+<div class="halo" aria-hidden="true"></div>
+<canvas id="field" aria-hidden="true"></canvas>
+<header>
+  <a class="mark" href="#top">راص<span>د</span></a>
+  <div class="head-actions"><a class="pill small" href="#board" data-open-board>اللوحة</a>
+  <button class="menu-btn" aria-label="القائمة" aria-expanded="false"><i></i><i></i></button></div>
+</header>
+<nav class="menu" aria-label="القائمة الرئيسية">
+  <a href="#top">الرئيسية</a><a href="#sectors">القطاعات</a><a href="#open">المفتوح الآن</a><a href="#board" data-open-board>لوحة راصد الكاملة</a><a href="#board" data-open-board data-settings>ظروفي</a>
+</nav>
+<div class="progress" aria-hidden="true"><i></i></div>
+<div class="scroll-cue" aria-hidden="true">↓</div>
+
+<main>
+  <section class="sec hero in" id="top" data-state="0"><div class="inner">
+    <h1>كل فرصة تدريب<br>لحظة إعلانها</h1>
+    <p class="lede">راصد يراقب <b id="n-ent"></b> جهة سعودية من مصادرها الرسمية، ويوصلك التنبيه ومعه الدليل ورابط التقديم.</p>
+    <a class="pill" href="#open">شوف المفتوح الآن</a>
+  </div></section>
+
+  <section class="sec center" data-state="1"><div class="inner">
+    <h2>المملكة كلها<br>تحت عين واحدة</h2>
+    <p class="sub">مواقع الجهات وبواباتها وحساباتها الرسمية، كل ٣ ساعات، بلا توقف.</p>
+  </div></section>
+
+  <section class="sec center" data-state="2"><div class="inner">
+    <h2>عين واحدة لا تنام</h2>
+    <p class="sub">يقرأ الجديد فقط، ويفهمه بذكاء اصطناعي، ولا يكتب معلومة إلا ومعها جملتها من المصدر.</p>
+  </div></section>
+
+  <section class="sec center rings" id="sectors" data-state="3"><div class="inner">
+    <h2>أربعة آفاق</h2>
+    <div class="ring-labels" id="ring-labels"></div>
+  </div></section>
+
+  <section class="sec sector" data-state="4" data-sector="energy"><div class="inner"></div></section>
+  <section class="sec sector flip" data-state="5" data-sector="tech"><div class="inner"></div></section>
+  <section class="sec sector" data-state="6" data-sector="finance"><div class="inner"></div></section>
+  <section class="sec sector flip" data-state="7" data-sector="gov"><div class="inner"></div></section>
+
+  <section class="sec finale" id="open" data-state="8"><div class="inner">
+    <h2>القادم والمفتوح الآن</h2>
+    <div class="cards" id="cards"></div>
+    <a class="pill" href="#board" data-open-board>افتح لوحة راصد الكاملة</a>
+  </div></section>
+</main>
+<footer>راصد، مصدر مفتوح، يقرأ المصادر الرسمية فقط.</footer>
+
+<!-- لوحة راصد الكاملة: طبقة فوق الكوكب، لها زر رجوع، وزر الرجوع في الجوال يقفلها -->
+<div id="board" hidden role="dialog" aria-modal="true" aria-label="لوحة راصد الكاملة">
+  <div class="top">
+    <button class="back" id="close-board">رجوع للكوكب</button>
+    <h1 class="brand">راصد</h1>
+    <button class="back" id="open-settings" aria-haspopup="dialog">ظروفي</button>
+  </div>
+  <main>
+    <section aria-labelledby="h-live"><h2 id="h-live">القادم والمفتوح</h2><div id="live" class="cards"></div></section>
+    <section aria-labelledby="h-all"><h2 id="h-all">كل الجهات</h2>
+      <input id="search" type="search" placeholder="ابحث عن جهة" aria-label="ابحث عن جهة"><ul id="all" class="list"></ul></section>
+  </main>
+</div>
+
+<dialog id="entity" class="sheet" aria-labelledby="e-name">
+  <form method="dialog"><button class="close" aria-label="إغلاق">×</button></form>
+  <div id="entity-body"></div>
+</dialog>
+
+<dialog id="settings" class="sheet" aria-labelledby="s-title">
+  <form id="settings-form" method="dialog">
+    <h2 id="s-title">ظروفي</h2>
+    <p class="hint">تُحفظ في جهازك فقط، ولا تُرسل لأي مكان.</p>
+    <label>تخصصي <input name="major" required></label>
+    <fieldset><legend>اهتماماتي</legend>
+      <label><input type="checkbox" name="interests" value="أمن"> الأمن السيبراني</label>
+      <label><input type="checkbox" name="interests" value="ذكاء"> الذكاء الاصطناعي والبيانات</label>
+      <label><input type="checkbox" name="interests" value="برمجة"> البرمجة</label>
+    </fieldset>
+    <label><input type="checkbox" name="hasCourses"> معي مواد مع التدريب التعاوني</label>
+    <label>نبّهني للجهات من
+      <select name="minStars"><option value="1">نجمة فأكثر</option><option value="2">نجمتين فأكثر</option>
+        <option value="3">٣ نجوم فأكثر</option><option value="4">٤ نجوم فأكثر</option><option value="5">٥ نجوم فقط</option></select>
+    </label>
+    <label><input type="checkbox" name="showJobs"> اعرض الوظائف وبرامج ما بعد التخرج</label>
+    <fieldset><legend>التنبيهات على هذا الجهاز</legend>
+      <button type="button" class="ghost" id="enable-push">فعّل التنبيهات على هذا الجهاز</button>
+      <p class="hint" id="push-status" role="status"></p>
+    </fieldset>
+    <button class="primary" value="save">احفظ</button>
+  </form>
+</dialog>
+
+<script type="module" src="main.js"></script>
+</body>
+</html>

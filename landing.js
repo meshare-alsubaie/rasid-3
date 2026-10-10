@@ -1,0 +1,196 @@
+// صفحة الكوكب: مجموعة نقاط واحدة تتشكّل مع التمرير. تُستدعى بعد تحميل النتائج.
+import * as THREE from "three";
+import Lenis from "lenis";
+import { matchScore, countdown, DEFAULT_PROFILE } from "./core.js";
+
+export function initLanding(R, openBoard) {
+
+const TODAY = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Riyadh" });
+const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const mobile = matchMedia("(max-width: 760px)").matches;
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+let profile = DEFAULT_PROFILE;
+try { profile = { ...DEFAULT_PROFILE, ...JSON.parse(localStorage.getItem("profile") || "{}") }; } catch {}
+
+// ---------- البيانات ----------
+const SECTOR = id => /aramco|sabic|maaden|sasref|samref|yasref|satorp|luberef|sec\b|neom/.test(id) ? "energy"
+  : /nca|ncac|sdaia|site|elm|dga|citc|stc|mobily|zain|takamol|taqnia|ncai|ncdc|mcit|ncvc/.test(id) ? "tech"
+  : /bank|rajhi|snb|riyad|bilad|alinma|anb|bsf|saib|sab\b|sama|cma|tadawul|jadwa|pif|simah|wasatah|derayah|falcom|kasb|tawuniya|bupa/.test(id) ? "finance" : "gov";
+const SECTORS = {
+  energy: { name: "الطاقة والصناعة", line: "أرامكو ومصافيها، سابك، معادن. برامج كبيرة ومزايا سكن ومواصلات، وبعضها يشترط التفرّغ." },
+  tech: { name: "التقنية والأمن السيبراني", line: "سدايا، الأمن السيبراني، الحكومة الرقمية، علم. الأقرب لتخصصك، والمنافسة فيها أعلى." },
+  finance: { name: "المال والبنوك", line: "البنوك والهيئات المالية. تدريب تعاوني منتظم كل فصل، وأغلبه في الرياض." },
+  gov: { name: "الحكومة وبقية الجهات", line: "الوزارات والهيئات والمراكز الوطنية. برامج متفرقة يصعب تتبعها بدون راصد." },
+};
+const ents = R.entities.map(e => ({ ...e, sector: SECTOR(e.id), prog: R.programs.find(p => p.key === e.program) }));
+const live = e => e.prog && e.prog.family === "student" && e.status !== "closed";
+document.getElementById("n-ent").textContent = ents.length;
+document.getElementById("ring-labels").innerHTML = Object.entries(SECTORS).map(([k, s]) =>
+  `<div><b>${ents.filter(e => e.sector === k).length}</b><span>${s.name}</span></div>`).join("");
+function progRow(e) {
+  const m = matchScore(e.prog, e, profile), cd = countdown(e.prog.opens, e.prog.closes, TODAY) || "صفحة البرنامج متاحة";
+  return `<div class="prog"><span class="n">${esc(e.name)}</span><span class="m">${m.pct}٪</span><span class="c">${esc(cd)}</span>${m.warning ? `<span class="w">${esc(m.warning)}</span>` : ""}</div>`;
+}
+document.querySelectorAll(".sector").forEach(sec => {
+  const k = sec.dataset.sector, s = SECTORS[k];
+  const list = ents.filter(e => e.sector === k && live(e)).sort((a, b) => (matchScore(b.prog, b, profile).pct - matchScore(a.prog, a, profile).pct)).slice(0, 4);
+  sec.querySelector(".inner").innerHTML = `<h3>${s.name}</h3><p>${s.line}</p>${list.map(progRow).join("") || `<p class="empty">ما فيه برنامج مفتوح فيها الآن. أول ما يُعلن، يوصلك.</p>`}`;
+});
+document.getElementById("cards").innerHTML = ents.filter(live)
+  .sort((a, b) => matchScore(b.prog, b, profile).pct - matchScore(a.prog, a, profile).pct).slice(0, 6)
+  .map(e => { const m = matchScore(e.prog, e, profile);
+    return `<div class="card"><div class="n">${esc(e.name)}</div><div class="c">${esc(countdown(e.prog.opens, e.prog.closes, TODAY) || "صفحة البرنامج متاحة")}</div><div class="m">${m.pct}٪ ${esc(m.reasons[0] || "")}</div></div>`; }).join("");
+
+// ---------- لوحة النقاط: مجموعة واحدة تتشكّل من شكل لشكل ----------
+const N = mobile ? 4200 : 8000;
+const canvas = document.getElementById("field");
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, alpha: true, powerPreference: "low-power" });
+let dpr = Math.min(devicePixelRatio, 1.5);
+renderer.setPixelRatio(dpr);
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 100);
+camera.position.set(0, 0, 7);
+
+let seed = 7;
+const rnd = () => ((seed = Math.imul(seed ^ (seed >>> 15), 2246822507) + 0x9e3779b9 | 0) >>> 0) / 4294967296;
+const gauss = () => (rnd() + rnd() + rnd() - 1.5) / 1.5;
+const KSA = [[36.5,29.4],[38,30.3],[39.2,32.1],[42,31.1],[44.7,29.2],[46.5,29.1],[47.7,28.5],[48.4,27.7],[49.6,26.8],[50.2,25.8],[50.8,24.7],[51.6,24.2],[52,23],[55.6,22],[55.2,20],[52,19],[48.8,18.2],[46.4,17.3],[43.4,17],[42.8,16.4],[42.2,17.9],[40.8,19.8],[39.1,21.5],[38.4,23.6],[37.2,24.9],[36.6,26.3],[35.2,28.1],[34.6,28.1]];
+function inKSA(lon, lat) { let ins = false; for (let i = 0, j = KSA.length - 1; i < KSA.length; j = i++) { const [xi, yi] = KSA[i], [xj, yj] = KSA[j]; if ((yi > lat) !== (yj > lat) && lon < ((xj - xi) * (lat - yi)) / (yj - yi) + xi) ins = !ins; } return ins; }
+// تدوير الكرة بحيث تواجه المملكة الكاميرا دائماً
+const ksaDir = (() => { const la = 24 * Math.PI / 180, lo = 45 * Math.PI / 180; return new THREE.Vector3(Math.cos(la) * Math.sin(lo), Math.sin(la), Math.cos(la) * Math.cos(lo)); })();
+const face = new THREE.Quaternion().setFromUnitVectors(ksaDir, new THREE.Vector3(0.0, 0.18, 1).normalize());
+const C = { dim: [0.22, 0.36, 0.48], ice: [0.55, 0.85, 1.0], frost: [0.9, 0.95, 1.0], violet: [0.66, 0.56, 1.0], open: [0.37, 0.95, 0.78] };
+
+function shape(fn) { const P = new Float32Array(N * 3), Co = new Float32Array(N * 3); seed = 11; for (let i = 0; i < N; i++) { const [p, c] = fn(i); P.set(p, i * 3); Co.set(c, i * 3); } return { P, Co }; }
+function spherePoint(i, r) {
+  // ٣٥٪ من النقاط داخل المملكة (مضيئة) والباقي على الكرة كلها (خافتة)
+  const v = new THREE.Vector3(); let col = C.dim;
+  if (i % 100 < 35) {
+    let lon, lat; do { lon = 34.5 + rnd() * 21.5; lat = 16 + rnd() * 16.5; } while (!inKSA(lon, lat));
+    const la = lat * Math.PI / 180, lo = lon * Math.PI / 180; v.set(Math.cos(la) * Math.sin(lo), Math.sin(la), Math.cos(la) * Math.cos(lo)); col = rnd() < 0.08 ? C.frost : C.ice;
+  } else { const y = 1 - 2 * rnd(), t = rnd() * 6.283, s = Math.sqrt(1 - y * y); v.set(Math.cos(t) * s, y, Math.sin(t) * s); }
+  v.applyQuaternion(face).multiplyScalar(r);
+  return [[v.x, v.y, v.z], col];
+}
+function segPoint(a, b, j = 0.02) { const t = rnd(); return [a[0] + (b[0] - a[0]) * t + gauss() * j, a[1] + (b[1] - a[1]) * t + gauss() * j, a[2] + (b[2] - a[2]) * t + gauss() * j]; }
+const side = s => (mobile ? 0 : s);
+const STATES = [
+  shape(i => { const [p, c] = spherePoint(i, 3.4); const rim = Math.max(0, p[1]) / 3.4; return [[p[0], p[1] - 4.25, p[2]], c.map(x => Math.min(1, x * (1.5 + rim * 1.4)))]; }), // ٠ الأفق: الحافة العليا أسطع
+  shape(i => spherePoint(i, 1.55)),                                                                              // ١ الكوكب
+  shape(() => { const a = rnd() * 6.283, r = 1.5 + gauss() * 0.035; return [[Math.cos(a) * r, Math.sin(a) * r + 0.35, gauss() * 0.05], rnd() < 0.15 ? C.frost : C.ice]; }), // ٢ الكسوف
+  shape(i => { const k = i % 4, a = rnd() * 6.283, r = 0.52 + gauss() * 0.02, x = (k - 1.5) * (mobile ? 1.1 : 1.45); return [[x + Math.cos(a) * r, Math.sin(a) * r + 0.55, gauss() * 0.03], k === 1 ? C.violet : C.ice]; }), // ٣ أربع حلقات
+  shape(() => { // ٤ برج نفط شبكي
+    const legs = [[-0.75, -1.5, -0.75], [0.75, -1.5, -0.75], [0.75, -1.5, 0.75], [-0.75, -1.5, 0.75]], top = [0, 1.7, 0], u = rnd();
+    let p; if (u < 0.5) p = segPoint(legs[(rnd() * 4) | 0], top);
+    else if (u < 0.85) { const h = (rnd() * 6 | 0) / 6, a = (rnd() * 4) | 0, b = (a + 1) % 4, s = 1 - h * 0.95; p = segPoint([legs[a][0] * s, -1.5 + h * 3.2, legs[a][2] * s], [legs[b][0] * s, -1.5 + h * 3.2, legs[b][2] * s]); }
+    else p = segPoint([-1.6, -1.55, 0], [1.6, -1.55, 0], 0.05);
+    return [[p[0] + side(-2.2), p[1], p[2]], rnd() < 0.1 ? C.frost : C.ice]; }),
+  shape(() => { // ٥ درع
+    const t = rnd(), y = 1.5 - t * 3.0, w = t < 0.25 ? 1.25 : 1.25 * Math.cos((t - 0.25) / 0.75 * Math.PI / 2), edge = rnd() < 0.55;
+    const x = edge ? (rnd() < 0.5 ? -w : w) : (rnd() * 2 - 1) * w * 0.9;
+    return [[x + side(2.2), y, edge ? gauss() * 0.04 : gauss() * 0.22], edge ? C.ice : C.violet]; }),
+  shape(() => { // ٦ أعمدة كالرسم البياني
+    const k = (rnd() * 5) | 0, h = [1.2, 2.0, 1.5, 2.8, 2.2][k], a = rnd() * 6.283;
+    return [[(k - 2) * 0.62 + Math.cos(a) * 0.2 + side(-2.2), -1.5 + rnd() * h, Math.sin(a) * 0.2], rnd() < 0.12 ? C.frost : C.ice]; }),
+  shape(() => { // ٧ شبكة كروية
+    const y = 1 - 2 * rnd(), t = rnd() * 6.283, s = Math.sqrt(1 - y * y), r = 1.45 * (0.82 + Math.abs(gauss()) * 0.25);
+    return [[Math.cos(t) * s * r + side(2.2), y * r, Math.sin(t) * s * r], rnd() < 0.2 ? C.violet : C.ice]; }),
+  shape(() => [[(rnd() - 0.5) * 16, (rnd() - 0.5) * 10, -2 - rnd() * 6], [0.4, 0.55, 0.7]]),                   // ٨ نجوم خافتة
+];
+const SPIN = [0.02, 0.12, 0, 0, 0.25, 0.2, 0.22, 0.18, 0.01];
+
+const geo = new THREE.BufferGeometry();
+const pos = new Float32Array(N * 3), col = new Float32Array(N * 3), rand = new Float32Array(N);
+for (let i = 0; i < N; i++) rand[i] = Math.random() * 6.283;
+pos.set(STATES[0].P); col.set(STATES[0].Co);
+geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+geo.setAttribute("color", new THREE.BufferAttribute(col, 3));
+geo.setAttribute("seed", new THREE.BufferAttribute(rand, 1));
+const mat = new THREE.ShaderMaterial({
+  transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+  uniforms: { uTime: { value: 0 }, uPix: { value: dpr }, uSize: { value: mobile ? 2.4 : 2.1 } },
+  vertexShader: `attribute vec3 color; attribute float seed; uniform float uTime; uniform float uPix; uniform float uSize; varying vec3 vC;
+    void main(){ vec4 mv = modelViewMatrix * vec4(position, 1.0); vC = color * (0.75 + 0.25 * sin(uTime * 1.3 + seed));
+      gl_PointSize = uSize * uPix * (7.0 / -mv.z); gl_Position = projectionMatrix * mv; }`,
+  fragmentShader: `varying vec3 vC; void main(){ float d = length(gl_PointCoord - 0.5); gl_FragColor = vec4(vC, smoothstep(0.5, 0.0, d) * 0.9); }`,
+});
+const points = new THREE.Points(geo, mat);
+const group = new THREE.Group(); group.add(points); scene.add(group);
+
+// ---------- التمرير الناعم وربطه بالشكل ----------
+const lenis = reduced ? null : new Lenis({ lerp: 0.085, smoothWheel: true });
+const secs = [...document.querySelectorAll(".sec")];
+function stateAt() {
+  // موضع التمرير بالنسبة لمنتصف الشاشة يعطي رقم الحالة مع كسر للانتقال
+  // الشكل يكتمل حين يتوسّط قسمه الشاشة، ويتحوّل فقط في المسافة بين قسمين
+  const mid = innerHeight * 0.5;
+  for (let i = 0; i < secs.length; i++) {
+    const r = secs[i].getBoundingClientRect();
+    if (r.bottom > mid) return Math.max(0, i + (mid - r.top) / r.height - 0.5);
+  }
+  return secs.length - 1;
+}
+const ease = t => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+// ظهور النص مربوط بنفس حساب الشكل، فلا يختلفان أبداً
+let shownAt = -1;
+function showText(s) {
+  const i = Math.round(s);
+  if (i === shownAt) return;
+  shownAt = i; secs.forEach((el, j) => el.classList.toggle("in", j === i));
+}
+// أزرار «لوحة راصد الكاملة» تفتح اللوحة فوق الكوكب (لا تنقل لصفحة ثانية)
+document.querySelectorAll("[data-open-board]").forEach(a => a.addEventListener("click", ev => {
+  ev.preventDefault(); document.body.classList.remove("menu-open"); openBoard();
+}));
+document.querySelectorAll('a[href^="#"]:not([data-open-board])').forEach(a => a.addEventListener("click", ev => {
+  const t = document.querySelector(a.getAttribute("href")); if (!t) return;
+  ev.preventDefault(); document.body.classList.remove("menu-open");
+  lenis ? lenis.scrollTo(t, { duration: 1.6 }) : t.scrollIntoView();
+}));
+const menuBtn = document.querySelector(".menu-btn");
+menuBtn.addEventListener("click", () => { const o = document.body.classList.toggle("menu-open"); menuBtn.setAttribute("aria-expanded", o); });
+
+let mx = 0, my = 0;
+addEventListener("pointermove", e => { mx = e.clientX / innerWidth - 0.5; my = e.clientY / innerHeight - 0.5; }, { passive: true });
+function resize() {
+  renderer.setSize(innerWidth, innerHeight, false);
+  const a = innerWidth / innerHeight; camera.aspect = a;
+  // الشاشات الطولية: نثبّت العرض الأفقي للمشهد بدل الارتفاع، حتى لا يضيع الكوكب على الجوال
+  const hHalf = Math.tan(THREE.MathUtils.degToRad(38 / 2)) * Math.max(1, 1.25);
+  camera.fov = a < 1 ? THREE.MathUtils.radToDeg(2 * Math.atan(Math.min(Math.tan(THREE.MathUtils.degToRad(50)), hHalf / a))) : 38;
+  camera.position.z = 7; camera.updateProjectionMatrix();
+}
+addEventListener("resize", resize); resize();
+
+// خفّة تلقائية: إذا الجهاز بطيء، نخفّض الدقة ونصف النقاط
+let frames = 0, slowAcc = 0, last = performance.now(), downgraded = false;
+const progressBar = document.querySelector(".progress i"), cue = document.querySelector(".scroll-cue");
+let running = true, rotY = 0;
+document.addEventListener("visibilitychange", () => { running = !document.hidden; if (running) { last = performance.now(); requestAnimationFrame(loop); } });
+function loop(now) {
+  if (!running) return;
+  if (document.documentElement.classList.contains("board-open")) { last = now; requestAnimationFrame(loop); return; }
+  const dt = Math.min(0.05, (now - last) / 1000); last = now;
+  if (!downgraded && ++frames > 30) { slowAcc += dt; if (frames > 120) { if (slowAcc / 90 > 0.024) { dpr = 1; renderer.setPixelRatio(1); mat.uniforms.uPix.value = 1; geo.setDrawRange(0, N >> 1); } downgraded = true; } }
+  lenis?.raf(now);
+  const s = Math.min(STATES.length - 1.0001, stateAt()), i = Math.floor(s), f = s - i;
+  showText(s);
+  const k = reduced ? (f > 0.5 ? 1 : 0) : ease(Math.min(1, Math.max(0, (f - 0.25) / 0.5)));   // يثبت الشكل ثم يتحوّل في المنتصف
+  const A = STATES[i], B = STATES[Math.min(i + 1, STATES.length - 1)];
+  for (let j = 0; j < N * 3; j++) { pos[j] = A.P[j] + (B.P[j] - A.P[j]) * k; col[j] = A.Co[j] + (B.Co[j] - A.Co[j]) * k; }
+  geo.attributes.position.needsUpdate = true; geo.attributes.color.needsUpdate = true;
+  const spin = SPIN[i] + (SPIN[Math.min(i + 1, SPIN.length - 1)] - SPIN[i]) * k;
+  rotY += reduced ? 0 : spin * dt;
+  const sway = i <= 1 ? Math.sin(now / 5000) * 0.22 : 0;   // الكوكب يتمايل ولا يدير ظهره للمملكة
+  group.rotation.y += ((i <= 1 ? sway : rotY) + mx * 0.25 - group.rotation.y) * 0.06;
+  group.rotation.x += (my * 0.15 - group.rotation.x) * 0.06;
+  mat.uniforms.uTime.value = reduced ? 0 : now / 1000;
+  document.documentElement.style.setProperty("--hero", Math.max(0, 1 - s * 1.2).toFixed(3));
+  progressBar.style.translate = `0 ${(s / (STATES.length - 1)) * 450}%`;
+  cue.style.opacity = s > STATES.length - 1.6 ? 0 : 1;
+  renderer.render(scene, camera);
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+  return { lenis };
+}
