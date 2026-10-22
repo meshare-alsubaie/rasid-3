@@ -211,19 +211,16 @@ def _handle(c: Ctx, entity_id: str, url: str, text: str, item_id: str,
     c.rep.verdicts += 1
     if queued:
         st.queue.mark_done(queued.id)
+    if recheck_of and r.kind != recheck_of and recheck_of in RELEVANT:
+        _correct(c, url, item_id, recheck_of, r.kind)
     if resolve is not None:  # إعلان من موقع تجميع: صاحبه يُعرف من نصه
         who = resolve(r, text) if r.kind != "irrelevant" else None
         _log(c, who[0] if who else entity_id, url, r, note="من موقع تجميع")
         if who is None:
             return
-        entity_id, name = who
+        entity_id = who[0]
     else:
         _log(c, entity_id, url, r)
-        name = c.names.get(entity_id, entity_id)
-    if recheck_of and r.kind != recheck_of and recheck_of in RELEVANT:
-        st.outbox.enqueue(f"fix:{item_id}", "group",
-                          f"🔁 تصحيح: {name}\nالتصنيف السابق «{KIND_AR.get(recheck_of, recheck_of)}» "
-                          f"غير دقيق، والصحيح «{KIND_AR.get(r.kind, 'غير ذي صلة')}».", now)
     p, change = st.programs.merge(entity_id, r, url, now)
     if p is not None:
         p.sources = official_first(p.sources, c.agg_sites)
@@ -235,6 +232,28 @@ def _handle(c: Ctx, entity_id: str, url: str, text: str, item_id: str,
     if r.needs_recheck and not recheck_of:
         st.queue.add("re:" + item_id, entity_id if resolve is None else AGG, url, text,
                      "إعادة فحص بالنموذج الأساسي", now, recheck_of=r.kind)
+
+
+def _correct(c: Ctx, url: str, item_id: str, was: str, kind: str) -> None:
+    """إعادة الفحص خالفت الحكم الأول. التصحيح يُرسل فقط إذا وصل القروب تنبيه فعلاً. نوع آخر من نفس العائلة
+    (جامعي بدل تعاوني) يُصحَّح في مكانه ويُعاد كتابة تنبيهه المنتظر؛ وغير ذلك يُلغى تنبيهه المنتظر بهدوء،
+    والبرنامج الذي لم يأت إلا من هذا الرابط يُحذف ليُبنى من الحكم الصحيح."""
+    st, items = c.st, c.st.programs.items
+    moved = FAMILY.get(kind) != FAMILY.get(was)
+    for p in [p for p in items.values() if p.kind == was and url in p.sources]:
+        refs = {m: _pending_program(m, items) for m in [*st.outbox.pending, *st.outbox.receipts]}
+        mine = {m for m, ref in refs.items() if ref and ref[1] == p.key}
+        if any(st.outbox.receipts[m] and refs[m][0] in HEADLINE for m in mine & set(st.outbox.receipts)):
+            st.outbox.enqueue(f"fix:{item_id}", "group",  # الإيصال صفر يعني أُلغي ولم يصل
+                              f"🔁 تصحيح: {c.name_of(p)}\nالتصنيف السابق «{KIND_AR.get(was, was)}» "
+                              f"غير دقيق، والصحيح «{KIND_AR.get(kind, 'غير ذي صلة')}».", c.now)
+        if not moved:
+            continue
+        for m in mine & set(st.outbox.pending):
+            st.outbox.drop(m)
+        if p.sources == [url]:
+            del items[p.key]
+            st.meta["new_since_digest"] = [k for k in st.meta["new_since_digest"] if k != p.key]
 
 
 def _resolver(entities: list[Entity]) -> Resolver:
@@ -415,6 +434,7 @@ def _safety_net(c: Ctx) -> None:
 
 
 REMINDER_TAGS = ("open0", "open1", "rem3", "rem1")
+VERDICT_AR = {**KIND_AR, "irrelevant": "غير ذي صلة", "pending": "معلّق"}
 
 
 def _pending_program(msg_id: str, items: dict[str, Program]) -> tuple[str, str] | None:
@@ -490,7 +510,8 @@ def _digests(c: Ctx, aggregators: list[Aggregator]) -> None:
              f"المصادر السليمة: {total - len(bad)} من {total} (غير صالحة: {sum(1 for h in bad if h.get('junk'))}، "
              f"محجوبة أو معطلة: {sum(1 for h in bad if not h.get('junk'))})",
              f"جهات تُقرأ: {readable} من {len(c.entities)}، بلا أي مصدر: {len(c.entities) - len(watched)}",
-             "أحكام آخر ٢٤ ساعة: " + ("، ".join(f"{KIND_AR.get(k, k)} {n}" for k, n in kinds.most_common()) or "لا شيء"),
+             "أحكام آخر ٢٤ ساعة: " + ("، ".join(f"{VERDICT_AR.get(k, k)} {n}" for k, n in kinds.most_common())
+                                       or "لا شيء"),
              f"طابور الإعادة: {len(st.queue.items)} (العالق: {len(st.queue.stuck(now))})",
              f"رسائل تنتظر الإرسال: {len(st.outbox.pending)}"]
     if dead:
@@ -554,8 +575,12 @@ def run_once(now: datetime, entities: list[Entity], st: State, deps: Deps,
                 resolve=resolve if it.entity_id == AGG else None)
     _safety_net(c)
     for msg_id, text in reminders(list(st.programs.items.values()), now.date(), c.names):
-        legacy = msg_id.rsplit(":", 1)[0]  # معرّف قديم بلا تاريخ، أُرسل أو ينتظر قبل إضافة التاريخ
-        if legacy in st.outbox.receipts or legacy in st.outbox.pending:
+        legacy = msg_id.rsplit(":", 1)[0]  # معرّف قديم بلا تاريخ من قبل إضافة التاريخ
+        if legacy in st.outbox.pending:
+            continue
+        if legacy in st.outbox.receipts:  # أُرسل لهذا الموعد: يُنقل لمعرّفه مرة، فالموعد الممدّد بعده يُذكَّر به
+            st.outbox.receipts[msg_id] = st.outbox.receipts.pop(legacy)
+            st.outbox.receipts["push:" + msg_id] = st.outbox.receipts.pop("push:" + legacy, 0)
             continue
         p = st.programs.items[legacy.split(":", 1)[1]]
         st.outbox.enqueue(msg_id, "group", text, now)

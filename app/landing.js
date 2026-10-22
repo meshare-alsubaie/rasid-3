@@ -44,7 +44,7 @@ document.querySelectorAll(".sector").forEach(sec => {
   const list = ents.filter(e => e.sector === k && live(e)).sort(byRank).slice(0, 4);
   sec.querySelector(".inner").innerHTML = `<h3>${s.name}</h3><p>${s.line}</p>${list.map(progRow).join("") || `<p class="empty">ما فيه برنامج مفتوح فيها الآن. أول ما يُعلن، يوصلك.</p>`}`;
 });
-const upcoming = ents.filter(e => live(e) && RANK[e.status] < 3).sort(byRank).slice(0, 6);
+const upcoming = ents.filter(e => live(e) && RANK[e.status] < 3).sort(byRank);  // كلها: البرامج الحية قليلة دائماً
 document.getElementById("cards").innerHTML = upcoming.map(e => { const m = matchScore(e.prog, e, profile);
     return `<div class="card"><div class="n">${label(e)}</div><div class="c">${esc(when(e))}</div><div class="m">${m.pct}٪ ${esc(m.reasons[0] || "")}</div></div>`; }).join("")
   || `<p class="empty">ما فيه برنامج مفتوح أو قادم الآن. أول ما يُعلن، يوصلك.</p>`;

@@ -54,7 +54,7 @@ function card({ program: p, entity: e, match: m }) {
   const cd = p.status === "listed" ? "" : countdown(p.opens, p.closes, today());  // فتح قديم بلا إغلاق: لا نعرف
   const done = applied.has(p.key);
   return `<article class="card ${done ? "done" : ""}" data-entity="${esc(e.id)}" tabindex="0">
-    <div class="who">${esc(e.name)}</div>
+    <div class="who">${esc(e.name)}${e.outside ? " (من خارج القائمة)" : ""}</div>
     <div class="kind">${esc(KIND[p.kind] || "")}${p.title ? "، " + esc(p.title) : ""}</div>
     <div class="count">${esc(cd || STATUS[p.status] || "")}</div>
     <div class="match"><b>${m.pct}٪</b> ${esc(m.reasons[0] || "")}</div>

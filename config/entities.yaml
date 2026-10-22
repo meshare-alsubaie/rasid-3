@@ -90,12 +90,6 @@
     url: https://www.sabic.com/ar/careers/middle-east-africa/students-and-fresh-graduates
   - kind: web
     url: https://jobs.sabic.com/
-  - kind: web
-    url: https://www.sabic.com/ar/careers/asia
-  - kind: web
-    url: https://www.sabic.com/ar/careers/americas
-  - kind: web
-    url: https://jobs.sabic.com/job/Pittsfield-Technology-Intern-MA/857396423/
 - id: sama
   name_ar: البنك المركزي السعودي
   aliases:
@@ -155,8 +149,6 @@
     url: https://careers.stc.com.sa/
   - kind: web
     url: https://careers.stc.com.sa/go/Cooperative-Training/7736023/
-  - kind: web
-    url: https://careers.stc.com.sa/job/Compliance-Analyst/857393923/
 - id: albilad
   name_ar: بنك البلاد
   stars_manual: 4
@@ -299,17 +291,7 @@
   fulltime_history: unknown
   channels:
   - kind: web
-    url: https://www2.deloitte.com/
-  - kind: web
-    url: https://www.deloitte.com/an/en/services/tax/about/careers-tax-legal.html
-  - kind: web
-    url: https://www.deloitte.com/an/en/issues/work/unlocking-opportunity-one-career-lab-at-time.html
-  - kind: web
-    url: https://www.deloitte.com/global/en/insights/topics/economy/generative-ai-impact-on-jobs.html
-  - kind: web
-    url: https://www.deloitte.com/global/en/insights/topics/talent/recruiting-gen-z-and-millennials.html
-  - kind: web
-    url: https://www.deloitte.com/global/en/insights/topics/economy/spotlight/private-sector-job-growth.html
+    url: https://www.deloitte.com/middle-east/en/careers.html
 - id: dga
   name_ar: هيئة الحكومة الرقمية
   aliases:
@@ -493,10 +475,6 @@
     url: https://www.pwc.com/m1/en/careers/student-jobs.html
   - kind: web
     url: https://www.pwc.com/m1/en/careers/experienced-jobs.html
-  - kind: web
-    url: https://www.pwc.com/m1/en/careers/uae-nationals-careers.html
-  - kind: web
-    url: https://www.pwc.com/m1/en/careers/oman-nationals-careers.html
 - id: riyadbank
   name_ar: بنك الرياض
   aliases:
@@ -771,8 +749,6 @@
     url: https://nour.net.sa/news/
   - kind: web
     url: https://nour.net.sa/ar/news/
-  - kind: web
-    url: https://nour.net.sa/ar/news/limitless-2026-event/
 - id: sidf
   name_ar: صندوق التنمية الصناعية
   aliases:
@@ -827,12 +803,6 @@
     url: https://wadimakkah.sa/en/home
   - kind: web
     url: https://wadimakkah.sa/en/media-center/
-  - kind: web
-    url: https://wadimakkah.sa/en/media-center/page/2/
-  - kind: web
-    url: https://wadimakkah.sa/en/media-center/page/3/
-  - kind: web
-    url: https://wadimakkah.sa/en/%d8%b4%d8%b1%d9%83%d8%a9-%d9%88%d8%a7%d8%af%d9%8a-%d9%85%d9%83%d8%a9-%d8%a7%d9%84%d9%85%d8%b9%d8%b1%d9%81%d8%a9-%d8%aa%d9%88%d9%82%d8%b9-%d8%b9%d9%82%d8%af-%d8%ad%d9%82%d9%8a%d8%a8%d8%a9-%d9%85/
 - id: adeem
   name_ar: أديم المالية
   stars_manual: 2
@@ -1064,10 +1034,6 @@
     url: https://www.kapsarc.org/newsroom/events/
   - kind: web
     url: https://www.kapsarc.org/work-with-us/job-opportunities/
-  - kind: web
-    url: https://www.kapsarc.org/newsroom/news/saudi-nuclear-projects-can-meet-desalination-needs-and-generate-jobs/
-  - kind: web
-    url: https://www.kapsarc.org/newsroom/news/kapsarc-analyzes-impact-of-covid-19-on-the-saudi-market-in-24-job-sectors/
 - id: kasb
   name_ar: كسب المالية
   stars_manual: 2
@@ -1209,10 +1175,6 @@
     url: https://www.moenergy.gov.sa/ar/media-center
   - kind: web
     url: https://www.moenergy.gov.sa/ar/media-center/news
-  - kind: web
-    url: https://www.moenergy.gov.sa/ar/media-center/news/first-energy-hackathon
-  - kind: web
-    url: https://www.moenergy.gov.sa/ar/media-center/news/saudi-arabia-and-united-states-sign-agreement-on-cooperation-in-peaceful-uses-of-nuclear-energy
 - id: mof
   name_ar: وزارة المالية
   stars_manual: 2
@@ -1243,8 +1205,6 @@
     url: https://www.mofa.gov.sa/
   - kind: web
     url: https://www.mofa.gov.sa/ar/ministry/news/Pages/default.aspx
-  - kind: web
-    url: https://www.mofa.gov.sa/ar/ministry/news/Pages/%D8%A7%D8%AA%D9%81%D8%A7%D9%82%D9%8A%D8%A7%D8%AA-%D8%A7%D9%84%D8%A5%D8%B9%D9%81%D8%A7%D8%A1-%D8%A7%D9%84%D9%85%D8%AA%D8%A8%D8%A7%D8%AF%D9%84.aspx
 - id: moh
   name_ar: وزارة الصحة
   stars_manual: 2
@@ -1276,8 +1236,6 @@
   channels:
   - kind: web
     url: https://www.monshaat.gov.sa/
-  - kind: web
-    url: https://www.monshaat.gov.sa/ar/node/5257
   - kind: web
     url: https://www.monshaat.gov.sa/ar/newsletter
 - id: mot
