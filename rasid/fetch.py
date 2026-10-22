@@ -85,7 +85,10 @@ _BOILERPLATE = re.compile(
     r"|لإضافة الصفحة للمفضلة|(?:إرسال|استلام|بتقديم) ملاحظاتك|بيان المشاركة ال[اإ]لكترونية|^التعليقات والاقتراحات$"
     r"|يرجى إخبارنا بالسبب|شكر\S* لملاحظاتك|^أنا$|add this page as favou?rite|^please select$"
     r"|^الرجاء الضغط على$|^log ?in$|^home page$|skiptomaincontent|^change language to:?$"
-    r"|links to official saudi websites|^encryption$|^and security\.?$|^للمزيد\s+من المعلومات$",
+    r"|links to official saudi websites|^encryption$|^and security\.?$|^للمزيد\s+من المعلومات$"
+    # ساعة الموقع وتاريخ اليوم وسطر آخر تعديل وحده: تتغير مع كل جلب أو تعديل بلا محتوى جديد
+    r"|^\d{1,2}:\d{2}(?::\d{2})?\s*(?:ص|م|am|pm)?$|^\d{1,2}-[^\W\d_]+-\d{4}$"
+    r"|^[آأا]خر (?:تحديث|تعديل)(?: بتاريخ)?\s*:?\s*\d{1,2}[-\s/]\S+[-\s/]\d{4}$",
     re.IGNORECASE)
 _DIGITS = str.maketrans("٠١٢٣٤٥٦٧٨٩۰۱۲۳۴۵۶۷۸۹", "01234567890123456789")
 
