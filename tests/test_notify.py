@@ -57,7 +57,7 @@ def test_fulltime_warning():
 
 def test_update_message_has_detail():
     t = render(Change("important_update", "k", "تغيّر closes: من 2026-11-02 إلى 2026-11-09"), prog(), "أرامكو")
-    assert "تحديث" in t and "2026-11-09" in t
+    assert "تحديث" in t and "9 نوفمبر 2026" in t
 
 
 def test_no_latin_template_words_leak():
@@ -69,8 +69,8 @@ def test_reminders_three_days_and_one_day_once_each():
     p = prog()
     r3 = reminders([p], date(2026, 10, 30), {"aramco": "أرامكو"})
     r1 = reminders([p], date(2026, 11, 1), {"aramco": "أرامكو"})
-    assert [i for i, _ in r3] == ["rem3:aramco:student:2026-10"]
-    assert [i for i, _ in r1] == ["rem1:aramco:student:2026-10"]
+    assert [i for i, _ in r3] == ["rem3:aramco:student:2026-10:2026-11-02"]
+    assert [i for i, _ in r1] == ["rem1:aramco:student:2026-10:2026-11-02"]
     assert reminders([p], date(2026, 10, 27), {"aramco": "أرامكو"}) == []
     assert reminders([p], date(2026, 11, 3), {"aramco": "أرامكو"}) == []
 

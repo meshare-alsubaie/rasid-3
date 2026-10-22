@@ -51,7 +51,7 @@ export function closeBoard() { history.state?.board ? history.back() : hideBoard
 addEventListener("popstate", () => { if (!history.state?.board) hideBoard(); });
 
 function card({ program: p, entity: e, match: m }) {
-  const cd = countdown(p.opens, p.closes, today());
+  const cd = p.status === "listed" ? "" : countdown(p.opens, p.closes, today());  // فتح قديم بلا إغلاق: لا نعرف
   const done = applied.has(p.key);
   return `<article class="card ${done ? "done" : ""}" data-entity="${esc(e.id)}" tabindex="0">
     <div class="who">${esc(e.name)}</div>
@@ -91,7 +91,7 @@ function entityView(id) {
   const apply = p?.official_url || p?.sources?.[0];
   const evidence = [...new Set(["opens", "closes", "no_courses_allowed", "title"].map(k => f(k)?.quote).filter(Boolean))];
   const hosts = [...new Map((p?.sources || []).map(u => [new URL(u).hostname, u])).entries()];
-  const cd = p ? countdown(p.opens, p.closes, today()) : "";
+  const cd = p && p.status !== "listed" ? countdown(p.opens, p.closes, today()) : "";
   return `
     <h2 id="e-name">${esc(e.name)}</h2>
     <p class="st st-${esc(e.status)}">${esc(cd || STATUS[e.status])}</p>

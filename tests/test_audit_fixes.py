@@ -157,9 +157,9 @@ def _prog(opens=None, closes=None, **extra):
 
 def test_reminders_day_before_and_on_opening_day():
     p = _prog("2026-10-26", "2026-11-02")
-    assert [i for i, _ in reminders([p], date(2026, 10, 25), {"aramco": "أرامكو"})] == ["open1:" + p.key]
+    assert [i for i, _ in reminders([p], date(2026, 10, 25), {"aramco": "أرامكو"})] == ["open1:" + p.key + ":2026-10-26"]
     (mid, txt), = reminders([p], date(2026, 10, 26), {"aramco": "أرامكو"})
-    assert mid == "open0:" + p.key and "اليوم يفتح" in txt
+    assert mid == "open0:" + p.key + ":2026-10-26" and "اليوم يفتح" in txt
     assert reminders([p], date(2026, 10, 24), {"aramco": "أرامكو"}) == []
 
 

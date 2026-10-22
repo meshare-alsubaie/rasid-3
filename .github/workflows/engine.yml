@@ -39,7 +39,7 @@ jobs:
           PUSH_SEND_TOKEN: ${{ secrets.PUSH_SEND_TOKEN }}
           VAPID_PRIVATE: ${{ secrets.VAPID_PRIVATE }}
           RASID_TEST_MODE: ${{ vars.RASID_TEST_MODE }}
-        run: uv run python -m rasid
+        run: uv run --no-dev python -m rasid
       - name: حفظ الحالة
         if: always()
         env:
@@ -47,7 +47,7 @@ jobs:
         run: |
           test -f state/state.json || exit 0
           rm -f state/inbox.json
-          uv run python -m rasid.privacy_guard --state state/*.json state/*.yaml
+          uv run --no-dev python -m rasid.privacy_guard --state state/*.json state/*.yaml
           cd state
           if git -C .. cat-file -e FETCH_HEAD:state.json 2>/dev/null; then git -C .. show FETCH_HEAD:state.json > state.prev.json; fi
           git init -q -b state
@@ -63,7 +63,7 @@ jobs:
           mkdir -p site && cp state/results.json site/
           if [ -d app ]; then cp -r app/. site/; fi
           test -f site/index.html || echo '<!doctype html><meta charset="utf-8"><title>راصد</title><p dir="rtl">راصد قيد البناء. النتائج: <a href="results.json">results.json</a></p>' > site/index.html
-          uv run python -m rasid.privacy_guard --state site/results.json
+          uv run --no-dev python -m rasid.privacy_guard --state site/results.json
           cd site
           git init -q -b site
           git add -A

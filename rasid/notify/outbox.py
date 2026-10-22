@@ -26,6 +26,11 @@ class Outbox:
         if msg_id not in self.pending:
             self.receipts.setdefault(msg_id, 0)
 
+    def drop(self, msg_id: str) -> None:
+        """رسالة منتظرة لم تعد صحيحة: تُلغى وتُحسب مرسلة حتى لا تعود."""
+        self.pending.pop(msg_id, None)
+        self.receipts.setdefault(msg_id, 0)
+
     def trim(self, cap: int) -> None:
         """الإيصالات تُحفظ بترتيب وصولها؛ يبقى الأحدث فقط حتى لا تكبر الحالة بلا حد."""
         for msg_id in list(self.receipts)[:-cap]:

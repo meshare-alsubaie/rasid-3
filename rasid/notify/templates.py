@@ -1,6 +1,7 @@
 """قوالب الرسائل: نصوص عربية ثابتة مكتوبة مسبقاً، والبيانات تعبّئ الخانات فقط."""
 from __future__ import annotations
 
+import re
 from datetime import date
 
 from hijridate import Gregorian
@@ -20,6 +21,13 @@ def fmt_date(iso: str) -> str:
     d = date.fromisoformat(iso)
     h = Gregorian(d.year, d.month, d.day).to_hijri()
     return f"{d.day} {GREG_MONTHS[d.month - 1]} {d.year} ({h.day} {h.month_name('ar')} {h.year}هـ)"
+
+
+def update_detail(detail: str) -> str:
+    """«تغيّر closes: من 2026-10-24 إلى 2026-11-01» بالعربية والتاريخ المقروء."""
+    for en, ar in FIELD_AR.items():
+        detail = detail.replace(en, ar)
+    return re.sub(r"\d{4}-\d{2}-\d{2}", lambda m: fmt_date(m.group()), detail)
 
 
 def days_ar(n: int) -> str:
@@ -59,10 +67,7 @@ def render(change: Change, p: Program, entity_name: str, today: date | None = No
            agg_sites: frozenset[str] = frozenset()) -> str:
     today = today or riyadh_now().date()
     if change.kind == "important_update":
-        detail = change.detail_ar
-        for en, ar in FIELD_AR.items():
-            detail = detail.replace(en, ar)
-        lines = [f"✏️ تحديث مهم: {entity_name}", detail]
+        lines = [f"✏️ تحديث مهم: {entity_name}", update_detail(change.detail_ar)]
     elif change.kind == "dates":
         lines = [f"📅 أعلنت المواعيد: {entity_name}", f"{KIND_AR.get(p.kind, 'فرصة')}"
                  + (f"، {_val(p, 'title')}" if _val(p, "title") else "")]
@@ -105,7 +110,8 @@ def render(change: Change, p: Program, entity_name: str, today: date | None = No
 
 
 def reminders(programs: list[Program], today: date, names: dict[str, str]) -> list[tuple[str, str]]:
-    """تذكير قبل الفتح بيوم ويوم الفتح، وقبل الإغلاق بـ٣ أيام وبيوم. المعرّف يمنع التكرار في الصندوق."""
+    """تذكير قبل الفتح بيوم ويوم الفتح، وقبل الإغلاق بـ٣ أيام وبيوم. المعرّف يمنع التكرار في الصندوق،
+    وفيه التاريخ: الموعد الممدّد أو المؤجّل يأتي معه تذكير جديد."""
     out: list[tuple[str, str]] = []
     for p in programs:
         if p.family != "student":
@@ -115,7 +121,7 @@ def reminders(programs: list[Program], today: date, names: dict[str, str]) -> li
         apply = f"\n🔗 التقديم الرسمي: {_val(p, 'apply_url')}" if _val(p, "apply_url") else ""
         if opens and (date.fromisoformat(opens) - today).days in (0, 1):
             today_opens = date.fromisoformat(opens) == today
-            out.append((f"{'open0' if today_opens else 'open1'}:{p.key}",
+            out.append((f"{'open0' if today_opens else 'open1'}:{p.key}:{opens}",
                         f"🔔 {'اليوم' if today_opens else 'بكرة'} يفتح التسجيل: {name}\nيفتح: {fmt_date(opens)}"
                         + (f"\nيقفل: {fmt_date(closes)}" if closes else "") + apply))
         if not closes:
@@ -127,7 +133,7 @@ def reminders(programs: list[Program], today: date, names: dict[str, str]) -> li
             tag, txt = "rem1", "آخر يوم" if left == 0 else "باقي يوم واحد"
         else:
             continue
-        out.append((f"{tag}:{p.key}", f"⏰ {txt} على إغلاق {name}\nيقفل: {fmt_date(closes)}" + apply))
+        out.append((f"{tag}:{p.key}:{closes}", f"⏰ {txt} على إغلاق {name}\nيقفل: {fmt_date(closes)}" + apply))
     return out
 
 

@@ -31,7 +31,7 @@ const byRank = (a, b) => (RANK[a.status] ?? 9) - (RANK[b.status] ?? 9)
 const listed = ents.filter(e => !e.outside);  // جهات قائمة راصد فقط، بلا ما وصل من مواقع التجميع
 const label = e => esc(e.name) + (e.outside ? " (من خارج القائمة)" : "");
 const FALLBACK = { closing_soon: "يقفل قريباً", open: "مفتوح الآن", announced: "أعلنت، وقريباً يفتح", listed: "صفحة البرنامج متاحة" };
-const when = e => countdown(e.prog.opens, e.prog.closes, TODAY) || FALLBACK[e.status] || "";
+const when = e => (e.status !== "listed" && countdown(e.prog.opens, e.prog.closes, TODAY)) || FALLBACK[e.status] || "";
 document.getElementById("n-ent").textContent = listed.length;
 document.getElementById("ring-labels").innerHTML = Object.entries(SECTORS).map(([k, s]) =>
   `<div><b>${listed.filter(e => e.sector === k).length}</b><span>${s.name}</span></div>`).join("");

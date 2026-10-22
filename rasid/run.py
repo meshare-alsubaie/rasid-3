@@ -22,7 +22,7 @@ from rasid.entities import Aggregator, Channel, Entity, agg_sites, official_firs
 from rasid.fetch import Block, FetchResult, block_hash
 from rasid.match import find_entity, outside_id
 from rasid.notify.outbox import Outbox
-from rasid.notify.templates import KIND_AR, countdown, days_ar, reminders, render
+from rasid.notify.templates import KIND_AR, countdown, days_ar, reminders, render, update_detail
 from rasid.notify.webpush import push_payload
 from rasid.programs import FAMILY, Change, Program, Programs, program_status
 from rasid.queue import QueueItem, RetryQueue
@@ -116,7 +116,6 @@ class Ctx:
     over: Callable[[], bool]
     follows_left: int = FOLLOW_RUN_MAX
     agg_sites: frozenset[str] = frozenset()
-    alerted: set[str] = field(default_factory=set)  # برامج نُبّه عنها في هذه الجولة
 
     @cached_property
     def names(self) -> dict[str, str]:
@@ -158,7 +157,7 @@ def _push_text(change: Change, p: Program, name: str, stars: int, today) -> str:
     if change.kind == "new":
         head = f"{KIND_AR.get(p.kind, 'فرصة')} جديد"
     cd = countdown((p.fields.get("opens") or {}).get("value"), (p.fields.get("closes") or {}).get("value"), today)
-    body = (cd or "").replace("⏱️ ", "") or change.detail_ar or "اضغط لتفاصيل البرنامج ورابط التقديم"
+    body = (cd or "").replace("⏱️ ", "") or update_detail(change.detail_ar) or "اضغط لتفاصيل البرنامج ورابط التقديم"
     return push_payload(name, p.entity_id, stars, head, body)
 
 
@@ -166,7 +165,6 @@ def _alert(c: Ctx, change: Change, p: Program) -> None:
     name = c.name_of(p)
     msg_id = f"{change.kind}:{p.key}:{_id(change.detail_ar)}"
     c.st.outbox.enqueue(msg_id, "group", render(change, p, name, c.now.date(), c.agg_sites), c.now)
-    c.alerted.add(p.key)
     c.st.outbox.enqueue("push:" + msg_id, "push", _push_text(change, p, name, c.stars_of(p.entity_id), c.now.date()),
                         c.now)
     c.st.meta["new_since_digest"].append(p.key)
@@ -416,6 +414,40 @@ def _safety_net(c: Ctx) -> None:
         _alert(c, Change("dates" if has_dates else "opened", p.key), p)
 
 
+REMINDER_TAGS = ("open0", "open1", "rem3", "rem1")
+
+
+def _pending_program(msg_id: str, items: dict[str, Program]) -> tuple[str, str] | None:
+    """(نوع الرسالة، مفتاح البرنامج) لتنبيه أو تذكير في الصندوق، وإلا None. المعرّف: النوع:المفتاح:بصمة أو تاريخ."""
+    kind, _, rest = msg_id.removeprefix("push:").partition(":")
+    if kind not in HEADLINE and kind not in REMINDER_TAGS:
+        return None
+    key = rest if rest in items else rest.rsplit(":", 1)[0]
+    return (kind, key) if key in items else None
+
+
+def _refresh_pending(c: Ctx) -> None:
+    """قبل الإرسال (الرسائل تنتظر ساعات الهدوء): نص التنبيه المنتظر يُكتب من بيانات البرنامج الآن، والتذكير يُلغى
+    إذا كان تنبيه نفس البرنامج منتظراً (فيه العدّ التنازلي)، وتنبيه المواعيد أو الفتح يُلغى إذا لم يعد البرنامج
+    مفتوحاً أو قادماً."""
+    ob, items, today = c.st.outbox, c.st.programs.items, c.now.date()
+    refs = {m: r for m in ob.pending if (r := _pending_program(m, items))}
+    alerted = {key for kind, key in refs.values() if kind in HEADLINE}
+    for msg_id, (kind, key) in refs.items():
+        p = items[key]
+        if kind in REMINDER_TAGS:
+            if key in alerted:
+                ob.drop(msg_id)
+        elif kind in ("dates", "opened") and program_status(p, today) not in LIVE:
+            ob.drop(msg_id)
+            c.st.meta["new_since_digest"] = [k for k in c.st.meta["new_since_digest"] if k != key]
+        elif kind in ("new", "dates", "opened"):  # هذه بلا تفاصيل في المعرّف، فإعادة كتابتها لا تغيّر معناها
+            change, name = Change(kind, key), c.name_of(p)
+            ob.pending[msg_id]["text"] = (
+                _push_text(change, p, name, c.stars_of(p.entity_id), today) if msg_id.startswith("push:")
+                else render(change, p, name, today, c.agg_sites))
+
+
 def _digests(c: Ctx, aggregators: list[Aggregator]) -> None:
     st, now, today = c.st, c.now, c.now.date()
     if now.hour < DIGEST_HOUR or st.meta.get("last_digest") == today.isoformat():
@@ -522,11 +554,10 @@ def run_once(now: datetime, entities: list[Entity], st: State, deps: Deps,
                 resolve=resolve if it.entity_id == AGG else None)
     _safety_net(c)
     for msg_id, text in reminders(list(st.programs.items.values()), now.date(), c.names):
-        p = st.programs.items[msg_id.split(":", 1)[1]]
-        if p.key in c.alerted:  # تنبيهه في هذه الجولة فيه العدّ التنازلي، فالتذكير الآن تكرار
-            st.outbox.skip(msg_id)
-            st.outbox.skip("push:" + msg_id)
+        legacy = msg_id.rsplit(":", 1)[0]  # معرّف قديم بلا تاريخ، أُرسل أو ينتظر قبل إضافة التاريخ
+        if legacy in st.outbox.receipts or legacy in st.outbox.pending:
             continue
+        p = st.programs.items[legacy.split(":", 1)[1]]
         st.outbox.enqueue(msg_id, "group", text, now)
         st.outbox.enqueue("push:" + msg_id, "push",
                           push_payload(c.name_of(p), p.entity_id, c.stars_of(p.entity_id), "تذكير",
@@ -535,6 +566,7 @@ def run_once(now: datetime, entities: list[Entity], st: State, deps: Deps,
         st.outbox.enqueue(f"stuck:{it.id}", "owner",
                           f"⚠️ عالق في طابور الإعادة: {c.names.get(it.entity_id, it.entity_id)}\n"
                           f"المحاولات: {it.attempts}\nالسبب: {it.reason_ar}", now)
+    _refresh_pending(c)
     _digests(c, aggregators)
     c.rep.sent = st.outbox.flush(now, deps.send)
     return c.rep

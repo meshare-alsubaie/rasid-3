@@ -13,6 +13,7 @@ FAMILY = {"coop": "student", "university": "student", "hint": "student",
 ATTACH_WINDOW = timedelta(days=90)
 CLOSING_SOON = 3
 ACCEPTING_FRESH_DAYS = 30  # «التسجيل مفتوح» بلا تواريخ يُصدَّق شهراً من آخر مرة قيل فيها
+OPENS_ONLY_DAYS = 21       # فتح بلا إغلاق: «مفتوح» ثلاثة أسابيع، وبعدها لا نعرف، فهو صفحة برنامج
 
 
 @dataclass
@@ -67,23 +68,32 @@ def _accepting(fields: dict, today: date) -> bool:
 def program_status(p: Program, today: date) -> str:
     """الحالة المعروضة: بالتواريخ إن وُجدت، وإلا «مفتوح» إذا قال المصدر حديثاً إن التسجيل مفتوح، وإلا «صفحة برنامج»."""
     dates = {k: v["value"] for k, v in p.fields.items() if k in ("opens", "closes") and v.get("value")}
+    accepting = _accepting(p.fields, today)
     if dates:
-        return status_of(dates, today)
-    return "open" if _accepting(p.fields, today) else "listed"
+        s = status_of(dates, today)
+        stale = (s == "open" and "closes" not in dates
+                 and (today - date.fromisoformat(dates["opens"])).days > OPENS_ONLY_DAYS)
+        return "listed" if stale and not accepting else s
+    return "open" if accepting else "listed"
 
 
 class Programs:
     def __init__(self) -> None:
         self.items: dict[str, Program] = {}
 
-    def _find(self, entity_id: str, family: str, cycle: str | None, now: datetime) -> Program | None:
+    def _find(self, entity_id: str, family: str, cycle: str | None, now: datetime,
+              v_closes: date | None = None) -> Program | None:
         same = [p for p in self.items.values() if p.entity_id == entity_id and p.family == family]
         if cycle:
             for p in same:
                 if p.cycle == cycle:
                     return p
+        closes = v_closes.isoformat() if v_closes else None
         recent = [p for p in same if now - datetime.fromisoformat(p.updated) <= ATTACH_WINDOW
-                  and (cycle is None or not p.fields.get("opens"))]
+                  and (cycle is None or not p.fields.get("opens"))
+                  # إغلاق قادم لا يُلصق ببرنامج أقفل: هذه دورة جديدة
+                  and not (closes and closes > now.date().isoformat()
+                           and program_status(p, now.date()) == "closed")]
         return max(recent, key=lambda p: p.updated) if recent else None
 
     def merge(self, entity_id: str, v: Verdict, source_url: str,
@@ -93,7 +103,8 @@ class Programs:
             return None, None
         opens = v.fields.get("opens")
         cycle = opens.value.strftime("%Y-%m") if opens else None
-        p = self._find(entity_id, family, cycle, now)
+        closes = v.fields.get("closes")
+        p = self._find(entity_id, family, cycle, now, closes.value if closes else None)
         stamp = now.isoformat()
         new_fields = {k: {"value": _jsonable(f.value), "quote": f.quote} for k, f in v.fields.items()}
         if "accepting_now" in new_fields:
