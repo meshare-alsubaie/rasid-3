@@ -21,6 +21,16 @@ class Outbox:
         self.pending[msg_id] = {"chat": chat, "text": text, "created": now.isoformat(),
                                 "urgent": urgent, "errors": []}
 
+    def skip(self, msg_id: str) -> None:
+        """تُحسب كأنها أُرسلت (إيصال صفر) فلا تُرسل لاحقاً."""
+        if msg_id not in self.pending:
+            self.receipts.setdefault(msg_id, 0)
+
+    def trim(self, cap: int) -> None:
+        """الإيصالات تُحفظ بترتيب وصولها؛ يبقى الأحدث فقط حتى لا تكبر الحالة بلا حد."""
+        for msg_id in list(self.receipts)[:-cap]:
+            del self.receipts[msg_id]
+
     def flush(self, now: datetime, sender: Sender) -> int:
         sent = 0
         quiet = in_quiet_hours(now)

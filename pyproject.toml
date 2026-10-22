@@ -10,6 +10,7 @@ dependencies = [
     "pyyaml>=6.0",
     "tzdata>=2026.5",
     "pywebpush>=2.5.0",
+    "cryptography>=43",
 ]
 
 [dependency-groups]

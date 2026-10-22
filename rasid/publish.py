@@ -7,7 +7,7 @@ from __future__ import annotations
 from collections import Counter
 from datetime import date, datetime
 
-from rasid.entities import Entity
+from rasid.entities import Entity, site_of
 from rasid.programs import Program, program_status
 from rasid.run import State
 
@@ -45,7 +45,13 @@ def _watch(total: int, ok: int) -> str:
     return "none" if total == 0 else "ok" if ok else "blind"
 
 
-def build_results(st: State, entities: list[Entity], now: datetime) -> dict:
+def _official_url(p: Program, agg: frozenset[str]) -> str | None:
+    """رابط التقديم، وإلا أول مصدر رسمي. None إذا لم يصل البرنامج إلا من مواقع التجميع."""
+    urls = [(p.fields.get("apply_url") or {}).get("value"), *p.sources]
+    return next((u for u in urls if isinstance(u, str) and u.startswith("http") and site_of(u) not in agg), None)
+
+
+def build_results(st: State, entities: list[Entity], now: datetime, agg_sites: frozenset[str] = frozenset()) -> dict:
     today = now.date()
     student = [p for p in st.programs.items.values() if p.family == "student"]
     latest = {}
@@ -84,6 +90,7 @@ def build_results(st: State, entities: list[Entity], now: datetime) -> dict:
         "title": (p.fields.get("title") or {}).get("value"),
         "opens": (p.fields.get("opens") or {}).get("value"), "closes": (p.fields.get("closes") or {}).get("value"),
         "status": _status(p, today), "fields": p.fields, "majors": p.majors, "sources": p.sources,
+        "official_url": _official_url(p, agg_sites),
         "models": p.models, "uncertain": p.uncertain, "first_seen": p.first_seen, "updated": p.updated,
     } for p in st.programs.items.values()]
     ok = sum(1 for h in st.health.values() if h["consecutive_failures"] == 0 and h["last_success"])

@@ -81,7 +81,7 @@ def _first_valid(role: str, text: str, providers: list[Provider], budget: Budget
         if p.role != role or not budget.available(p, day):
             continue
         budget.spend(p, day)
-        r = call(p, SYSTEM_PROMPT, text)
+        r = call(p, f"{SYSTEM_PROMPT}\n\nتاريخ اليوم: {day.isoformat()}", text)
         if not r.ok:
             errors.append(r.message or f"{p.name}: {r.error_kind}")
             if r.error_kind in ("rate_day", "auth"):
@@ -102,15 +102,15 @@ def classify(text: str, providers: list[Provider], budget: Budget, call: Caller,
     kw = strong_keywords(text)
     reader = _first_valid("reader", text, providers, budget, call, day, errors)
     if reader is not None and reader.kind not in RELEVANT and kw is None:
-        reader.notes = errors
+        reader.notes = errors + reader.notes
         return reader
     confirmed = _first_valid("confirmer", text, providers, budget, call, day, errors)
     if confirmed is not None:
-        confirmed.notes = errors
+        confirmed.notes = errors + confirmed.notes
         return confirmed
     if reader is not None:
         reader.needs_recheck = True
-        reader.notes = errors
+        reader.notes = errors + reader.notes
         return reader
     if kw is not None:
         return Verdict(kind=kw, model="keywords", uncertain=True, needs_recheck=True, notes=errors)

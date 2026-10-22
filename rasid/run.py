@@ -9,15 +9,16 @@ from collections import Counter
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from functools import cached_property
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import Callable
 from urllib.parse import urlparse
 
 from rasid.classify.chain import CONTEXT_MARK, Pending
 from rasid.classify.schema import RELEVANT, Verdict
+from rasid.dates import _DIGITS
 from rasid.diff import new_blocks
-from rasid.entities import Aggregator, Channel, Entity
+from rasid.entities import Aggregator, Channel, Entity, agg_sites, official_first, site_of
 from rasid.fetch import Block, FetchResult, block_hash
 from rasid.match import find_entity, outside_id
 from rasid.notify.outbox import Outbox
@@ -34,16 +35,19 @@ DIGEST_HOUR = 7
 FETCH_WORKERS = 8
 FOLLOW_MAX = 3            # روابط تدريب جديدة تُفتح من كل صفحة في الجولة
 FOLLOW_RUN_MAX = 40       # وحد أعلى للجولة كلها حماية لحصة الذكاء
+FOLLOW_TRIES = 12         # رابط متبوع فشل جلبه يُعاد (وجهاز المؤسس يجلبه) يوماً كاملاً قبل تركه
 AGG_MAX = 8               # إعلانات تُقرأ من كل موقع تجميع في الجولة
+AGG_STALE_DAYS = 14       # منشور تجميع أقدم من هذا: «التسجيل مفتوح» فيه خبر قديم لا يُعتمد
+RECEIPTS_CAP = 5000       # إيصالات الرسائل المحفوظة لمنع التكرار (الأقدم يُحذف)
 QUEUE_MAX_AGE = timedelta(days=7)
 VERDICT_LOG = 400
 AGG = "_agg"              # معرّف مواقع التجميع في الطابور والسجل
 LIVE = ("announced", "open", "closing_soon")
 
 # عنوان رابط يدل على برنامج تدريب أو تخرج يستحق فتح صفحته
-TRAINING = re.compile(r"تعاوني|تدريب|co-?op\b|intern|trainee|تمهير|حديثي التخرج|graduate|خريجين|summer|صيفي",
-                      re.IGNORECASE)
-_YEAR = re.compile(r"\b(?:202[6-9]|144[7-9])\b")
+TRAINING = re.compile(r"تعاوني|تدريب|co-?op\b|intern(?:s|ships?)?\b|trainee|تمهير|حديثي التخرج|graduate|خريجين"
+                      r"|summer|صيفي", re.IGNORECASE)
+_YEAR = re.compile(r"\b(?:202[6-9]|144[7-9])\b")  # يُطبَّق بعد تحويل الأرقام العربية (١٤٤٨)
 _ATS = re.compile(r"hr\.cloud\.sap|successfactors|taleo|oraclecloud|myworkdayjobs|workday|jobs\.|careers?\.",
                   re.IGNORECASE)
 
@@ -111,6 +115,8 @@ class Ctx:
     rep: RunReport
     over: Callable[[], bool]
     follows_left: int = FOLLOW_RUN_MAX
+    agg_sites: frozenset[str] = frozenset()
+    alerted: set[str] = field(default_factory=set)  # برامج نُبّه عنها في هذه الجولة
 
     @cached_property
     def names(self) -> dict[str, str]:
@@ -159,7 +165,8 @@ def _push_text(change: Change, p: Program, name: str, stars: int, today) -> str:
 def _alert(c: Ctx, change: Change, p: Program) -> None:
     name = c.name_of(p)
     msg_id = f"{change.kind}:{p.key}:{_id(change.detail_ar)}"
-    c.st.outbox.enqueue(msg_id, "group", render(change, p, name, c.now.date()), c.now)
+    c.st.outbox.enqueue(msg_id, "group", render(change, p, name, c.now.date(), c.agg_sites), c.now)
+    c.alerted.add(p.key)
     c.st.outbox.enqueue("push:" + msg_id, "push", _push_text(change, p, name, c.stars_of(p.entity_id), c.now.date()),
                         c.now)
     c.st.meta["new_since_digest"].append(p.key)
@@ -187,9 +194,12 @@ Resolver = Callable[[Verdict, str], "tuple[str, str] | None"]
 
 
 def _handle(c: Ctx, entity_id: str, url: str, text: str, item_id: str,
-            queued: QueueItem | None = None, first_sight: bool = False, resolve: Resolver | None = None) -> None:
+            queued: QueueItem | None = None, first_sight: bool = False, resolve: Resolver | None = None,
+            stale: bool = False) -> None:
     st, now = c.st, c.now
     r = _safe_classify(c.deps, text)
+    if stale and not isinstance(r, Pending):  # منشور قديم: «التسجيل مفتوح» فيه خبر مضى
+        r.fields.pop("accepting_now", None)
     recheck_of = queued.recheck_of if queued else None
     if isinstance(r, Pending) or (recheck_of and r.needs_recheck):
         c.rep.pending += 1
@@ -217,6 +227,8 @@ def _handle(c: Ctx, entity_id: str, url: str, text: str, item_id: str,
                           f"🔁 تصحيح: {name}\nالتصنيف السابق «{KIND_AR.get(recheck_of, recheck_of)}» "
                           f"غير دقيق، والصحيح «{KIND_AR.get(r.kind, 'غير ذي صلة')}».", now)
     p, change = st.programs.merge(entity_id, r, url, now)
+    if p is not None:
+        p.sources = official_first(p.sources, c.agg_sites)
     # أول مرة نرى الصفحة: لا ننبّه إلا لنافذة مفتوحة أو قادمة (الصفحات الدائمة والبرامج المنتهية تُحفظ بهدوء)
     closed = p is not None and program_status(p, now.date()) == "closed"
     quiet = closed or (first_sight and p is not None and not _upcoming(p.fields, now.date()))
@@ -279,11 +291,6 @@ def _context_text(name: str, url: str, fresh: list[Block], res: FetchResult) -> 
     return head + body + (f"\n\nروابط الصفحة:\n{links}" if links else "")
 
 
-def _site(host: str) -> str:
-    parts = host.lower().split(".")
-    return ".".join(parts[-3:] if len(parts) > 2 and parts[-2] in ("gov", "com", "org", "edu", "net") else parts[-2:])
-
-
 LINKS_SCANNED = "L*"  # علامة: روابط هذه الصفحة فُحصت مرة، فكل رابط بعدها جديد فعلاً
 
 
@@ -294,7 +301,7 @@ def _link_key(url: str) -> str:
 def _follow_candidates(ch: Channel, res: FetchResult, prev: set[str]) -> tuple[list[tuple[str, str]], list[str]]:
     """روابط تدريب جديدة في الصفحة (نفس الموقع أو بوابة توظيف). أول مرة: ما فيه سنة حالية فقط، والباقي يُحفظ مقروءاً."""
     first = LINKS_SCANNED not in prev
-    home = _site(urlparse(ch.url).netloc)
+    home = site_of(ch.url)
     pairs = list(res.links) + [(b.text, b.link) for b in res.blocks if b.link]
     out, keys, seen_urls = [], [], set()
     for label, link in pairs:
@@ -303,21 +310,24 @@ def _follow_candidates(ch: Channel, res: FetchResult, prev: set[str]) -> tuple[l
         if p.scheme not in ("http", "https") or u in seen_urls or u.rstrip("/") == ch.url.rstrip("/") \
                 or p.path.lower().endswith((".pdf", ".jpg", ".png", ".docx")) or not TRAINING.search(label):
             continue
-        if _site(p.netloc) != home and not _ATS.search(p.netloc):
+        if site_of(u) != home and not _ATS.search(p.netloc):
             continue
         seen_urls.add(u)
         key = _link_key(u)
         if key in prev:
             continue
         keys.append(key)
-        if not first or _YEAR.search(label):
+        if not first or _YEAR.search(label.translate(_DIGITS)):
             out.append((label[:200], u))
     return out, keys
 
 
 def _follow(c: Ctx, e: Entity, ch: Channel, res: FetchResult, prev: set[str], first_sight: bool) -> list[str]:
-    """يفتح صفحات روابط التدريب الجديدة ويصنّفها لنفس الجهة. يرجع بصمات الروابط التي انتهى منها."""
+    """يفتح صفحات روابط التدريب الجديدة ويصنّفها لنفس الجهة. يرجع بصمات الروابط التي انتهى منها.
+    الرابط الذي فشل جلبه لا يُعلَّم مقروءاً: يُعاد كل جولة، ويدخل قائمة جهاز المؤسس، حتى يُقرأ أو تنتهي محاولاته."""
+    fails = c.st.meta.setdefault("follow_fail", {})
     cands, keys = _follow_candidates(ch, res, prev)
+    cands.sort(key=lambda x: x[1] in fails)  # الجديد قبل ما فشل سابقاً
     wanted = {u for _, u in cands}
     first_links = LINKS_SCANNED not in prev
     done = [k for k in keys if k not in {_link_key(u) for u in wanted}]  # روابط عادية تُحفظ مقروءة
@@ -331,9 +341,15 @@ def _follow(c: Ctx, e: Entity, ch: Channel, res: FetchResult, prev: set[str], fi
         c.follows_left -= 1
         c.rep.followed += 1
         d = _safe_fetch(c.deps, Channel("web", u), e.name_ar)
-        done.append(_link_key(u))
         if not d.ok:
+            n, first = fails.get(u, [0, c.now.isoformat()])
+            fails[u] = [n + 1, first]
+            if n + 1 >= FOLLOW_TRIES:
+                del fails[u]
+                done.append(_link_key(u))
             continue
+        fails.pop(u, None)
+        done.append(_link_key(u))
         body = "\n".join(b.text for b in d.blocks)[:MAX_INPUT]
         text = f"الجهة: {e.name_ar}\nالرابط: {u}\n\nعنوان الرابط في صفحة الجهة: {label}\n\nالنص:\n{body}"
         _handle(c, e.id, u, text, _id(u, body), first_sight=first_sight or first_links)
@@ -380,9 +396,13 @@ def _process_aggregator(c: Ctx, agg: Aggregator, res: FetchResult, resolve: Reso
         c.rep.new_items += 1
         d = _safe_fetch(c.deps, Channel("web", b.link), agg.name)
         body = "\n".join(x.text for x in d.blocks)[:MAX_INPUT] if d.ok else b.text
-        text = (f"المصدر: موقع تجميع ({agg.name})\nالرابط: {b.link}\n\nعنوان الإعلان: {b.text[:300]}\n\n"
-                f"النص:\n{body}")
-        _handle(c, AGG, b.link, text, _id(b.link, b.text), first_sight=first_sight, resolve=resolve)
+        text = (f"المصدر: موقع تجميع ({agg.name})\nالرابط: {b.link}\n"
+                + (f"تاريخ النشر: {b.date}\n" if b.date else "")
+                + f"\nعنوان الإعلان: {b.text[:300]}\n\nالنص:\n{body}")
+        stale = bool(b.date) and (c.now.date() - date.fromisoformat(b.date)).days > AGG_STALE_DAYS
+        # منشور قديم يُحفظ بهدوء مثل أول مرة: لا تنبيه إلا لموعد قادم صريح
+        _handle(c, AGG, b.link, text, _id(b.link, b.text), first_sight=first_sight or stale, resolve=resolve,
+                stale=stale)
         done.append(b.hash)
     c.st.seen[agg.url] = (prev + done)[-SEEN_CAP:]
 
@@ -454,8 +474,10 @@ def _healthy(h: dict | None) -> bool:
 
 
 def saudi_list(st: State) -> list[str]:
-    """المصادر التي يجلبها جهاز المؤسس: كل ما فشل من السحابة، وما يُقرأ أصلاً عبر الجهاز."""
-    return sorted(u for u, h in st.health.items() if h["consecutive_failures"] > 0 or h.get("via") == "home")
+    """المصادر التي يجلبها جهاز المؤسس: كل ما فشل من السحابة، وما يُقرأ أصلاً عبر الجهاز، وروابط التدريب المتبوعة التي فشلت."""
+    channels = {u for u, h in st.health.items() if h["consecutive_failures"] > 0 or h.get("via") == "home"}
+    follows = list(st.meta.get("follow_fail", {}))[:FOLLOW_RUN_MAX]
+    return sorted(channels | set(follows))
 
 
 def run_once(now: datetime, entities: list[Entity], st: State, deps: Deps,
@@ -465,7 +487,7 @@ def run_once(now: datetime, entities: list[Entity], st: State, deps: Deps,
     checkpoint: حفظ دوري أثناء الجولة حتى لا يضيع شيء لو قُتلت."""
     aggregators = aggregators or []
     st.meta.setdefault("new_since_digest", [])
-    c = Ctx(st, deps, now, entities, RunReport(), deadline or (lambda: False))
+    c = Ctx(st, deps, now, entities, RunReport(), deadline or (lambda: False), agg_sites=agg_sites(aggregators))
     resolve = _resolver(entities)
     jobs = [(e, ch) for e in entities for ch in e.channels if ch.kind in ("web", "rss")]
     feeds = [Channel(a.kind, a.url) for a in aggregators]
@@ -473,6 +495,12 @@ def run_once(now: datetime, entities: list[Entity], st: State, deps: Deps,
     current = {ch.url for _, ch in jobs} | {ch.url for ch in feeds}
     for url in [u for u in st.health if u not in current]:
         del st.health[url]
+    fails = st.meta.setdefault("follow_fail", {})  # رابط متبوع اختفى من صفحته لا يبقى في قائمة الجهاز للأبد
+    for url in [u for u, (_, first) in fails.items() if now - datetime.fromisoformat(first) > timedelta(days=3)]:
+        del fails[url]
+    for p in st.programs.items.values():  # المصدر الرسمي أولاً في الرسائل والموقع
+        p.sources = official_first(p.sources, c.agg_sites)
+    st.outbox.trim(RECEIPTS_CAP)
     # الجلب بالتوازي (المواقع المحجوبة بطيئة)، والمعالجة بالترتيب حتى تبقى الحالة متسقة
     with ThreadPoolExecutor(max_workers=FETCH_WORKERS) as pool:
         results = list(pool.map(lambda j: _safe_fetch(deps, j[1], j[0].name_ar), jobs))
@@ -495,6 +523,10 @@ def run_once(now: datetime, entities: list[Entity], st: State, deps: Deps,
     _safety_net(c)
     for msg_id, text in reminders(list(st.programs.items.values()), now.date(), c.names):
         p = st.programs.items[msg_id.split(":", 1)[1]]
+        if p.key in c.alerted:  # تنبيهه في هذه الجولة فيه العدّ التنازلي، فالتذكير الآن تكرار
+            st.outbox.skip(msg_id)
+            st.outbox.skip("push:" + msg_id)
+            continue
         st.outbox.enqueue(msg_id, "group", text, now)
         st.outbox.enqueue("push:" + msg_id, "push",
                           push_payload(c.name_of(p), p.entity_id, c.stars_of(p.entity_id), "تذكير",

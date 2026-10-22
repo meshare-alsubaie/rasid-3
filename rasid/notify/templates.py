@@ -6,6 +6,7 @@ from datetime import date
 from hijridate import Gregorian
 
 from rasid.dates import riyadh_now
+from rasid.entities import site_of
 from rasid.programs import Change, Program
 
 GREG_MONTHS = ["يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو", "يوليو", "أغسطس",
@@ -54,7 +55,8 @@ def _quote(p: Program, name: str) -> str | None:
     return (p.fields.get(name) or {}).get("quote")
 
 
-def render(change: Change, p: Program, entity_name: str, today: date | None = None) -> str:
+def render(change: Change, p: Program, entity_name: str, today: date | None = None,
+           agg_sites: frozenset[str] = frozenset()) -> str:
     today = today or riyadh_now().date()
     if change.kind == "important_update":
         detail = change.detail_ar
@@ -96,8 +98,9 @@ def render(change: Change, p: Program, entity_name: str, today: date | None = No
                 or (p.fields.get("title") or {}).get("quote"))
     if evidence:
         lines.append(f"📌 الدليل: «{evidence}»")
-    if p.sources:
-        lines.append(f"المصدر: {p.sources[0]}")
+    if p.sources:  # المصادر مرتبة: الرسمي قبل مواقع التجميع
+        src = p.sources[0]
+        lines.append(f"المصدر (موقع تجميع): {src}" if site_of(src) in agg_sites else f"المصدر: {src}")
     return "\n".join(lines)
 
 
@@ -119,7 +122,7 @@ def reminders(programs: list[Program], today: date, names: dict[str, str]) -> li
             continue
         left = (date.fromisoformat(closes) - today).days
         if 1 < left <= 3:
-            tag, txt = "rem3", f"باقي {left} أيام"
+            tag, txt = "rem3", f"باقي {days_ar(left)}"
         elif 0 <= left <= 1:
             tag, txt = "rem1", "آخر يوم" if left == 0 else "باقي يوم واحد"
         else:

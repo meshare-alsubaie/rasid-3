@@ -60,7 +60,8 @@ def status_of(fields: dict, today: date) -> str:
 
 def _accepting(fields: dict, today: date) -> bool:
     f = fields.get("accepting_now") or {}
-    return f.get("value") is True and bool(f.get("at")) and         (today - date.fromisoformat(f["at"][:10])).days <= ACCEPTING_FRESH_DAYS
+    return (f.get("value") is True and bool(f.get("at"))
+            and (today - date.fromisoformat(f["at"][:10])).days <= ACCEPTING_FRESH_DAYS)
 
 
 def program_status(p: Program, today: date) -> str:
@@ -114,7 +115,8 @@ class Programs:
         if change is None and not had_dates and gets_dates:
             change = Change("dates", p.key)  # برنامج معروف نزلت مواعيده لأول مرة: هذا هو الإعلان الفعلي
         was_open = _accepting(p.fields, now.date())
-        if change is None and not had_dates and not gets_dates and not was_open                 and (new_fields.get("accepting_now") or {}).get("value") is True:
+        if (change is None and not had_dates and not gets_dates and not was_open
+                and (new_fields.get("accepting_now") or {}).get("value") is True):
             change = Change("opened", p.key)  # صفحة برنامج دائمة صارت تقول «التسجيل مفتوح»
         for name in ("opens", "closes"):
             old, new = p.fields.get(name, {}).get("value"), new_fields.get(name, {}).get("value")

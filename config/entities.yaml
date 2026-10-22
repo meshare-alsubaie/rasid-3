@@ -1104,7 +1104,7 @@
   fulltime_history: unknown
   channels:
   - kind: web
-    url: https://talent.mc.gov.sa/
+    url: https://mc.gov.sa/ar/mediacenter/News/Pages/default.aspx
 - id: mecca_health
   name_ar: تجمع مكة المكرمة الصحي
   aliases:

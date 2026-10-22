@@ -99,6 +99,10 @@ def check_verdict(d: Any, input_text: str, model: str) -> tuple[Verdict | None, 
         if not isinstance(f, dict) or f.get("value") in (None, "", []):
             continue
         quote, value = f.get("quote"), f["value"]
+        if name not in DATE_FIELDS and (not _quoted(quote, hay) or name in BOOL_FIELDS and not isinstance(value, bool)):
+            # حقل جانبي بلا دليل صحيح يسقط وحده؛ الحكم والتواريخ تبقى (التاريخ المختلق يُسقط الحكم كله)
+            v.notes.append(f"أُسقط {name}: دليله غير موجود في النص أو قيمته غير صالحة")
+            continue
         if not _quoted(quote, hay):
             return None, f"اقتباس {name} غير موجود في النص: {str(quote)[:80]}"
         if name in DATE_FIELDS:
@@ -107,13 +111,12 @@ def check_verdict(d: Any, input_text: str, model: str) -> tuple[Verdict | None, 
                 return None, f"صيغة تاريخ {name} غير صالحة: {f['value']}"
             if not _date_mentioned(value, quote):
                 return None, f"تاريخ {name}={value} لا يطابق اقتباسه: {quote[:80]}"
-        elif name in BOOL_FIELDS and not isinstance(value, bool):
-            return None, f"{name} لازم صح أو خطأ"
         v.fields[name] = Field(value, quote)
     for m in d.get("majors") or []:
         if not isinstance(m, dict) or not m.get("name"):
             continue
         if m.get("quote") and not _quoted(m["quote"], hay):
-            return None, f"اقتباس التخصص {m['name']} غير موجود في النص"
+            v.notes.append(f"أُسقط التخصص {m['name']}: دليله غير موجود في النص")
+            continue
         v.majors.append({"name": m["name"], "seats": m.get("seats"), "quote": m.get("quote")})
     return v, ""

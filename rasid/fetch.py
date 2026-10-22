@@ -1,18 +1,27 @@
 """الجالب: يجيب صفحة أو موجز ويحوّله لكتل نصية. لا يرمي استثناءً أبداً؛ الفشل يرجع برسالة عربية."""
 from __future__ import annotations
 
+import functools
 import hashlib
 import json
 import os
 import re
+import ssl
+import warnings
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass, field
 from datetime import datetime
+from email.utils import parsedate_to_datetime
+from pathlib import Path
 from urllib.parse import urljoin, urlparse
 
+import certifi
 import httpx
 import lxml.html
 import trafilatura
+from cryptography import x509
+from cryptography.hazmat.primitives.serialization import Encoding
+from cryptography.x509.verification import PolicyBuilder, Store, VerificationError
 
 from rasid.dates import riyadh_now
 from rasid.entities import Channel
@@ -37,7 +46,7 @@ def set_inbox(inbox: dict[str, dict]) -> None:
     _INBOX.update(inbox)
 
 
-def _from_inbox(url: str) -> tuple["FetchResult | None", str]:
+def _from_inbox(url: str, rss: bool = False) -> tuple["FetchResult | None", str]:
     e = _INBOX.get(url)
     if not e:
         return None, "ولم يصل من جهاز المؤسس بعد"
@@ -46,9 +55,11 @@ def _from_inbox(url: str) -> tuple["FetchResult | None", str]:
         return None, f"ونسخة جهاز المؤسس قديمة (منذ {int(age)} ساعة، الجهاز مطفي غالباً)"
     if not e.get("ok"):
         return None, f"وجهاز المؤسس فشل أيضاً: {e.get('error_ar', '')}"
-    blocks = [Block(t) for t in e.get("blocks", []) if not _is_boilerplate(t)]
+    texts, hrefs, days = e.get("blocks", []), e.get("block_links") or [], e.get("block_dates") or []
+    blocks = [Block(t, hrefs[i] if i < len(hrefs) else None, days[i] if i < len(days) else None)
+              for i, t in enumerate(texts) if not _is_boilerplate(t)]
     links = [tuple(x) for x in e.get("links", [])]
-    junk = junk_reason(blocks, url, e.get("final_url") or url)
+    junk = None if rss else junk_reason(blocks, url, e.get("final_url") or url)
     if junk:
         return None, f"ونسخة جهاز المؤسس غير صالحة: {junk}"
     return FetchResult(True, url, blocks, links, via="home", final_url=e.get("final_url") or url), ""
@@ -137,6 +148,7 @@ def block_hash(text: str) -> str:
 class Block:
     text: str
     link: str | None = None
+    date: str | None = None  # تاريخ نشر عنصر الموجز (YYYY-MM-DD)، لا يدخل في البصمة
 
     @property
     def hash(self) -> str:
@@ -156,11 +168,66 @@ class FetchResult:
     junk: bool = False  # الصفحة وصلت لكنها غير صالحة (خطأ، دخول، فارغة): جهاز المؤسس لن يفيد فيها
 
 
+# بعض المواقع (نورنت، حلول من stc) ترسل شهادة وسيطة خاطئة. المتصفح يكمل السلسلة بتنزيل الوسيط من الرابط
+# المكتوب في شهادة الموقع، وراصد يفعل مثله. الوسيط يُستعمل لبناء السلسلة فقط، والجذر يبقى من القائمة الموثوقة.
+SSL_CTX = ssl.create_default_context(cafile=certifi.where())
+SSL_CTX.verify_flags &= ~ssl.VERIFY_X509_PARTIAL_CHAIN
+_CA_ISSUERS = bytes.fromhex("06082b0601050507300286")  # معرّف «رابط شهادة المُصدِر» ثم وسم نص الرابط
+_issuer_tried: set[str] = set()
+
+
+def make_client() -> httpx.Client:
+    return httpx.Client(verify=SSL_CTX)
+
+
+def _issuer_url(der: bytes) -> str | None:
+    i = der.find(_CA_ISSUERS)
+    if i < 0:
+        return None
+    start = i + len(_CA_ISSUERS) + 1
+    n = der[start - 1]
+    return der[start:start + n].decode("ascii", "replace") if n < 0x80 else None
+
+
+@functools.cache
+def _roots() -> Store:
+    with warnings.catch_warnings():  # جذر قديم في القائمة برقم تسلسلي غير قياسي؛ تحذير لا يهمنا
+        warnings.simplefilter("ignore")
+        return Store(x509.load_pem_x509_certificates(Path(certifi.where()).read_bytes()))
+
+
+def _add_missing_issuer(host: str) -> bool:
+    """مرة لكل موقع في الجولة: يُنزَّل الوسيط الناقص، ولا يُضاف إلا إذا صارت سلسلة الموقع معه سليمة حتى جذر
+    موثوق ولنفس اسم الموقع. يرجع True إذا أُضيف فتستحق إعادة المحاولة."""
+    if host in _issuer_tried:
+        return False
+    _issuer_tried.add(host)
+    try:
+        leaf = ssl.PEM_cert_to_DER_cert(ssl.get_server_certificate((host, 443), timeout=15))
+        url = _issuer_url(leaf)
+        if not url:
+            return False
+        body = httpx.get(url, timeout=15, follow_redirects=True).content
+        issuer = (x509.load_pem_x509_certificate(body) if body.startswith(b"-----BEGIN")
+                  else x509.load_der_x509_certificate(body))
+        PolicyBuilder().store(_roots()).build_server_verifier(x509.DNSName(host)).verify(
+            x509.load_der_x509_certificate(leaf), [issuer])
+        SSL_CTX.load_verify_locations(cadata=issuer.public_bytes(Encoding.PEM).decode("ascii"))
+        return True
+    except (OSError, ValueError, httpx.HTTPError, VerificationError):
+        return False
+
+
 def _get(client: httpx.Client, url: str) -> tuple[httpx.Response | None, str]:
     last = ""
     for headers in IDENTITIES:
         try:
             r = client.get(url, headers=headers, timeout=TIMEOUT, follow_redirects=True)
+        except httpx.ConnectError as e:
+            if "unable to get local issuer certificate" in str(e) and _add_missing_issuer(urlparse(url).hostname or ""):
+                return _get(client, url)
+            last = f"تعذّر الاتصال ({type(e).__name__})"
+            continue
         except httpx.HTTPError as e:
             last = f"تعذّر الاتصال ({type(e).__name__})"
             continue
@@ -240,9 +307,25 @@ def _rss_blocks(xml: str) -> list[Block]:
         href = (link.text or link.get("href")) if link is not None else None
         parts = [" ".join(_plain(n.text).split()) for n in (title, desc) if n is not None and n.text]
         text = " — ".join(t for t in parts if t)
+        when = next((n.text for n in map(get, ("pubDate", "published", "updated", "date"))
+                     if n is not None and n.text), None)
         if text:
-            out.append(Block(text.strip(), href))
+            out.append(Block(text.strip(), href, _iso_day(when)))
     return out
+
+
+def _iso_day(s: str | None) -> str | None:
+    """تاريخ النشر في الموجز (RFC 822 أو ISO) إلى YYYY-MM-DD، أو None إذا لم يُفهم."""
+    if not s:
+        return None
+    try:
+        return parsedate_to_datetime(s.strip()).date().isoformat()
+    except (TypeError, ValueError, IndexError):
+        pass
+    try:
+        return datetime.fromisoformat(s.strip().replace("Z", "+00:00")).date().isoformat()
+    except ValueError:
+        return None
 
 
 def _via_relay(client: httpx.Client, url: str) -> tuple[str | None, str, str]:
@@ -273,7 +356,7 @@ def fetch(channel: Channel, client: httpx.Client) -> FetchResult:
             return parsed
         junk = parsed
         err = f"{junk}"
-    home, home_err = _from_inbox(channel.url)
+    home, home_err = _from_inbox(channel.url, channel.kind == "rss")
     if home is not None:
         return home
     if junk is None:

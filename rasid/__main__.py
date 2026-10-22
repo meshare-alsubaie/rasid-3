@@ -19,8 +19,8 @@ import httpx
 from rasid.classify.chain import Budget, classify
 from rasid.classify.providers import call_provider, load_providers
 from rasid.dates import riyadh_now
-from rasid.entities import EntityFileError, load_aggregators, load_entities_safe
-from rasid.fetch import fetch, set_inbox
+from rasid.entities import EntityFileError, agg_sites, load_aggregators, load_entities_safe
+from rasid.fetch import fetch, make_client, set_inbox
 from rasid.notify.telegram import send
 from rasid.notify.webpush import PushConfig, send_push
 from rasid.publish import build_results
@@ -72,7 +72,7 @@ def main() -> int:
 
     providers = load_providers(ROOT / "config/providers.yaml")
     budget = Budget.from_dict(st.meta.get("budget", {}), today=now.date())
-    client = httpx.Client()
+    client = make_client()
     test_mode = env.get("RASID_TEST_MODE") == "1"
     chats = {"owner": env.get("TG_OWNER_CHAT", ""),
              "group": env.get("TG_OWNER_CHAT" if test_mode else "TG_GROUP_CHAT", "")}
@@ -98,7 +98,8 @@ def main() -> int:
                    aggregators=aggregators)
     st.meta["budget"] = budget.to_dict()
     st.save(state_path)
-    (STATE_DIR / "results.json").write_text(json.dumps(build_results(st, entities, now), ensure_ascii=False),
+    (STATE_DIR / "results.json").write_text(json.dumps(build_results(st, entities, now, agg_sites(aggregators)),
+                                                       ensure_ascii=False),
                                             encoding="utf-8")
     (STATE_DIR / "saudi_list.json").write_text(json.dumps(saudi_list(st), ensure_ascii=False, indent=0),
                                                encoding="utf-8")

@@ -24,22 +24,30 @@ const SECTORS = {
 };
 const ents = R.entities.map(e => ({ ...e, sector: SECTOR(e.id), prog: R.programs.find(p => p.key === e.program) }));
 const live = e => e.prog && e.prog.family === "student" && e.status !== "closed";
-document.getElementById("n-ent").textContent = ents.length;
+// المفتوح والقادم قبل صفحات البرامج الدائمة، ثم الأعلى مناسبة (نفس ترتيب اللوحة)
+const RANK = { closing_soon: 0, open: 1, announced: 2, listed: 3 };
+const byRank = (a, b) => (RANK[a.status] ?? 9) - (RANK[b.status] ?? 9)
+  || matchScore(b.prog, b, profile).pct - matchScore(a.prog, a, profile).pct;
+const listed = ents.filter(e => !e.outside);  // جهات قائمة راصد فقط، بلا ما وصل من مواقع التجميع
+const label = e => esc(e.name) + (e.outside ? " (من خارج القائمة)" : "");
+const FALLBACK = { closing_soon: "يقفل قريباً", open: "مفتوح الآن", announced: "أعلنت، وقريباً يفتح", listed: "صفحة البرنامج متاحة" };
+const when = e => countdown(e.prog.opens, e.prog.closes, TODAY) || FALLBACK[e.status] || "";
+document.getElementById("n-ent").textContent = listed.length;
 document.getElementById("ring-labels").innerHTML = Object.entries(SECTORS).map(([k, s]) =>
-  `<div><b>${ents.filter(e => e.sector === k).length}</b><span>${s.name}</span></div>`).join("");
+  `<div><b>${listed.filter(e => e.sector === k).length}</b><span>${s.name}</span></div>`).join("");
 function progRow(e) {
-  const m = matchScore(e.prog, e, profile), cd = countdown(e.prog.opens, e.prog.closes, TODAY) || "صفحة البرنامج متاحة";
-  return `<div class="prog"><span class="n">${esc(e.name)}</span><span class="m">${m.pct}٪</span><span class="c">${esc(cd)}</span>${m.warning ? `<span class="w">${esc(m.warning)}</span>` : ""}</div>`;
+  const m = matchScore(e.prog, e, profile), cd = when(e);
+  return `<div class="prog"><span class="n">${label(e)}</span><span class="m">${m.pct}٪</span><span class="c">${esc(cd)}</span>${m.warning ? `<span class="w">${esc(m.warning)}</span>` : ""}</div>`;
 }
 document.querySelectorAll(".sector").forEach(sec => {
   const k = sec.dataset.sector, s = SECTORS[k];
-  const list = ents.filter(e => e.sector === k && live(e)).sort((a, b) => (matchScore(b.prog, b, profile).pct - matchScore(a.prog, a, profile).pct)).slice(0, 4);
+  const list = ents.filter(e => e.sector === k && live(e)).sort(byRank).slice(0, 4);
   sec.querySelector(".inner").innerHTML = `<h3>${s.name}</h3><p>${s.line}</p>${list.map(progRow).join("") || `<p class="empty">ما فيه برنامج مفتوح فيها الآن. أول ما يُعلن، يوصلك.</p>`}`;
 });
-document.getElementById("cards").innerHTML = ents.filter(live)
-  .sort((a, b) => matchScore(b.prog, b, profile).pct - matchScore(a.prog, a, profile).pct).slice(0, 6)
-  .map(e => { const m = matchScore(e.prog, e, profile);
-    return `<div class="card"><div class="n">${esc(e.name)}</div><div class="c">${esc(countdown(e.prog.opens, e.prog.closes, TODAY) || "صفحة البرنامج متاحة")}</div><div class="m">${m.pct}٪ ${esc(m.reasons[0] || "")}</div></div>`; }).join("");
+const upcoming = ents.filter(e => live(e) && RANK[e.status] < 3).sort(byRank).slice(0, 6);
+document.getElementById("cards").innerHTML = upcoming.map(e => { const m = matchScore(e.prog, e, profile);
+    return `<div class="card"><div class="n">${label(e)}</div><div class="c">${esc(when(e))}</div><div class="m">${m.pct}٪ ${esc(m.reasons[0] || "")}</div></div>`; }).join("")
+  || `<p class="empty">ما فيه برنامج مفتوح أو قادم الآن. أول ما يُعلن، يوصلك.</p>`;
 
 // ---------- لوحة النقاط: مجموعة واحدة تتشكّل من شكل لشكل ----------
 const N = mobile ? 4200 : 8000;

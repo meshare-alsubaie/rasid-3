@@ -67,7 +67,7 @@ function card({ program: p, entity: e, match: m }) {
 function render() {
   const ranked = rankPrograms(results, profile, today());
   $("#live").innerHTML = ranked.length ? ranked.map(card).join("")
-    : `<p class="empty">ما فيه برامج مفتوحة أو قادمة الآن حسب ظروفك. راصد يراقب ${results.entities.length} جهة ويرسل لك أول ما يُعلن.</p>`;
+    : `<p class="empty">ما فيه برامج مفتوحة أو قادمة الآن حسب ظروفك. راصد يتابع ${results.entities.filter(e => !e.outside).length} جهة ويرسل لك أول ما يُعلن.</p>`;
   const q = $("#search").value.trim();
   $("#all").innerHTML = results.entities
     .filter(e => !q || e.name.includes(q))
@@ -87,12 +87,16 @@ function entityView(id) {
   const p = results.programs.find(x => x.key === e.program);
   const m = p ? matchScore(p, e, profile) : null;
   const f = k => p?.fields?.[k];
-  const apply = f("apply_url")?.value || p?.sources?.[0];
-  const evidence = ["opens", "closes", "no_courses_allowed", "title"].map(k => f(k)).filter(x => x?.quote);
+  // زر «الرسمي» فقط لرابط رسمي؛ البرنامج الذي وصل من مواقع التجميع وحدها يُفتح إعلانه باسمه الصحيح
+  const apply = p?.official_url || p?.sources?.[0];
+  const evidence = [...new Set(["opens", "closes", "no_courses_allowed", "title"].map(k => f(k)?.quote).filter(Boolean))];
+  const hosts = [...new Map((p?.sources || []).map(u => [new URL(u).hostname, u])).entries()];
+  const cd = p ? countdown(p.opens, p.closes, today()) : "";
   return `
     <h2 id="e-name">${esc(e.name)}</h2>
-    <p class="st st-${esc(e.status)}">${esc(STATUS[e.status])}${p?.opens ? "، " + esc(countdown(p.opens, p.closes, today())) : ""}</p>
-    ${apply ? `<a class="primary" href="${esc(apply)}" target="_blank" rel="noopener">قدّم من الموقع الرسمي</a>` : ""}
+    <p class="st st-${esc(e.status)}">${esc(cd || STATUS[e.status])}</p>
+    ${apply ? `<a class="primary" href="${esc(apply)}" target="_blank" rel="noopener">${p.official_url ? "قدّم من الموقع الرسمي" : "افتح الإعلان"}</a>` : ""}
+    ${apply && !p.official_url && !e.outside ? `<p class="hint">وصل هذا البرنامج من مواقع التجميع فقط. ابحث عن رابط التقديم الرسمي داخل الإعلان.</p>` : ""}
     ${p ? `<button class="ghost" id="mark-applied" data-key="${esc(p.key)}">${applied.has(p.key) ? "ألغِ «قدّمت»" : "قدّمت"}</button>` : ""}
     ${m ? `<p class="match"><b>${m.pct}٪</b> ${m.reasons.map(esc).join("، ")}</p>` : ""}
     ${m?.warning ? `<p class="warn">${esc(m.warning)}</p>` : ""}
@@ -101,8 +105,8 @@ function entityView(id) {
     ${e.fulltime_history === "no" ? `<p class="good">ما اشترطت التفرّغ نصاً، فرصتك أعلى</p>` : ""}
     ${!p && e.expected_month ? `<p>المتوقع أن تفتح تقريباً في ${MONTHS[e.expected_month - 1]}</p>` : ""}
     ${!p && !e.expected_month ? `<p class="hint">موعد فتحها المعتاد غير معروف بعد.</p>` : ""}
-    ${evidence.length ? `<h3>الدليل من المصدر</h3>${evidence.map(x => `<blockquote dir="auto">${esc(x.quote)}</blockquote>`).join("")}` : ""}
-    ${p?.sources?.length ? `<p class="hint">المصادر: ${p.sources.map(u => `<a href="${esc(u)}" target="_blank" rel="noopener">${esc(new URL(u).hostname)}</a>`).join("، ")}</p>` : ""}
+    ${evidence.length ? `<h3>الدليل من المصدر</h3>${evidence.map(q => `<blockquote dir="auto">${esc(q)}</blockquote>`).join("")}` : ""}
+    ${hosts.length ? `<p class="hint">المصادر: ${hosts.map(([h, u]) => `<a href="${esc(u)}" target="_blank" rel="noopener">${esc(h)}</a>`).join("، ")}</p>` : ""}
     ${e.watch === "none" ? `<p class="hint">راصد لا يقرأ موقع هذه الجهة بعد، ويلتقط إعلاناتها من مواقع التجميع فقط. تابع موقعها بنفسك احتياطاً.</p>` : ""}
     ${e.watch === "blind" ? `<p class="warn">مواقع هذه الجهة لا تُقرأ الآن، فقد يفوت راصد إعلانها. تابع موقعها بنفسك احتياطاً.</p>` : ""}
     ${e.outside ? `<p class="hint">جهة خارج قائمة راصد، وصل إعلانها من موقع تجميع. تأكّد من الرابط الرسمي قبل التقديم.</p>` : ""}

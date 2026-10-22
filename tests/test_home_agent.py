@@ -88,24 +88,61 @@ def test_watchdog_alerts_when_engine_never_ran():
     assert {c for c, _ in watchdog_alerts(None, NOW, None)} == {"owner"}
 
 
-def test_upload_creates_inbox_branch_when_missing(monkeypatch):
-    """خطأ حقيقي: عند غياب الفرع يطبع غيت هاب رسالة خطأ، فقُرئت كأنها معرّف ملف ولم يُنشأ الفرع."""
+def _fake_gh(calls, ref_exists):
     import subprocess
-    from relay import home_agent
-    calls = []
 
     def fake_gh(*args, stdin=None):
-        calls.append(args)
-        if "contents/inbox.json?ref=inbox" in args[1]:
-            return subprocess.CompletedProcess(args, 1, '{"message":"No commit found for the ref inbox"}', "404")
-        if args[1].endswith("git/ref/heads/main"):
-            return subprocess.CompletedProcess(args, 0, "abc123\n", "")
-        return subprocess.CompletedProcess(args, 0, "{}", "")
-    monkeypatch.setattr(home_agent, "_gh", fake_gh)
+        calls.append((args, stdin))
+        if "PATCH" in args and not ref_exists:
+            return subprocess.CompletedProcess(args, 1, '{"message":"Reference does not exist"}', "422")
+        return subprocess.CompletedProcess(args, 0, f"sha-{len(calls)}\n", "")
+    return fake_gh
+
+
+def test_upload_replaces_inbox_with_one_commit_without_history(monkeypatch):
+    """الفرع لا يكبر: كل رفع التزام جديد بلا أب يحل محل السابق بالقوة."""
+    from relay import home_agent
+    calls = []
+    monkeypatch.setattr(home_agent, "_gh", _fake_gh(calls, ref_exists=True))
     assert home_agent.upload({"u": {"ok": True}}) == "تم"
-    assert any(a[1].endswith("git/refs") for a in calls)
-    put = next(a for a in calls if "-X" in a)
-    assert '"sha"' not in json.dumps(put)
+    commit = json.loads(next(stdin for a, stdin in calls if a[3].endswith("git/commits")))
+    assert commit["parents"] == [] and commit["tree"] == "sha-2"
+    patch = next((a, stdin) for a, stdin in calls if "PATCH" in a)
+    assert json.loads(patch[1]) == {"sha": "sha-3", "force": True}
+
+
+def test_upload_creates_inbox_branch_when_missing(monkeypatch):
+    """خطأ حقيقي سابق: غياب الفرع أول مرة. يُنشأ الفرع على الالتزام الجديد."""
+    from relay import home_agent
+    calls = []
+    monkeypatch.setattr(home_agent, "_gh", _fake_gh(calls, ref_exists=False))
+    assert home_agent.upload({"u": {"ok": True}}) == "تم"
+    create = json.loads(calls[-1][1])
+    assert calls[-1][0][3].endswith("git/refs") and create == {"ref": "refs/heads/inbox", "sha": "sha-3"}
+
+
+def test_upload_reports_failure(monkeypatch):
+    import subprocess
+    from relay import home_agent
+    monkeypatch.setattr(home_agent, "_gh", lambda *a, stdin=None: subprocess.CompletedProcess(a, 1, "", "boom"))
+    assert home_agent.upload({}).startswith("فشل الرفع")
+
+
+@respx.mock
+def test_agent_reads_feed_as_feed_and_keeps_item_links_and_dates():
+    """موقع تجميع دخل قائمة الجهاز: يُقرأ موجزاً، ورابط كل إعلان وتاريخه يصلان للمحرّك."""
+    feed = ("<?xml version='1.0'?><rss><channel><item><title>شركة علم تعلن برنامج التدريب التعاوني</title>"
+            "<link>https://agg.example/1</link><pubDate>Tue, 20 Oct 2026 08:00:00 +0300</pubDate></item>"
+            "</channel></rss>")
+    respx.get("https://agg.example/feed").mock(return_value=httpx.Response(200, text=feed))
+    inbox = build_inbox(["https://agg.example/feed"], httpx.Client(), NOW, resolve=lambda h: "93.184.216.34")
+    e = inbox["https://agg.example/feed"]
+    assert e["ok"] and e["block_links"] == ["https://agg.example/1"] and e["block_dates"] == ["2026-10-20"]
+    set_inbox({"https://agg.example/feed": {**e, "fetched_at": datetime.now(RIYADH).isoformat()}})
+    respx.get("https://agg.example/feed").mock(return_value=httpx.Response(403))
+    res = fetch(Channel("rss", "https://agg.example/feed"), httpx.Client())
+    assert res.ok and res.via == "home" and res.blocks[0].link == "https://agg.example/1"
+    assert res.blocks[0].date == "2026-10-20"
 
 
 @respx.mock

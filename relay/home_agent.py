@@ -20,7 +20,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 from rasid.dates import riyadh_now  # noqa: E402
 from rasid.entities import Channel  # noqa: E402
-from rasid.fetch import _get, _parse  # noqa: E402
+from rasid.fetch import _get, _parse, make_client  # noqa: E402
 from relay.server import _public  # noqa: E402
 
 REPO = "meshare-alsubaie/rasid-3"
@@ -37,12 +37,16 @@ def _one(url: str, client: httpx.Client, now: datetime, resolve) -> dict:
         if resp is None:
             entry["error_ar"] = err
         else:
-            got = _parse(Channel("web", url), resp.text, str(resp.url))
+            head = resp.text.lstrip()[:500].lower()
+            kind = "rss" if "<rss" in head or "<feed" in head else "web"  # موجز مواقع التجميع ليس صفحة
+            got = _parse(Channel(kind, url), resp.text, str(resp.url))
             if isinstance(got, str):  # وصلت لكنها غير صالحة (خطأ، دخول، فارغة)
                 entry.update(error_ar=got, final_url=str(resp.url))
             else:
                 entry.update(ok=True, blocks=[b.text for b in got.blocks], links=got.links[:40],
                              error_ar=None, final_url=str(resp.url))
+                if any(b.link or b.date for b in got.blocks):  # رابط كل إعلان وتاريخه في الموجز
+                    entry.update(block_links=[b.link for b in got.blocks], block_dates=[b.date for b in got.blocks])
     return entry
 
 
@@ -121,25 +125,31 @@ def _gh(*args: str, stdin: str | None = None) -> subprocess.CompletedProcess:
 
 
 def upload(inbox: dict) -> str:
-    """يرفع inbox.json لفرع inbox (ينشئ الفرع أول مرة)."""
+    """يرفع inbox.json لفرع inbox في التزام واحد بلا تاريخ يحل محل السابق، فالفرع لا يكبر مع الأيام."""
     content = base64.b64encode(json.dumps(inbox, ensure_ascii=False).encode("utf-8")).decode()
-    got = _gh("api", f"repos/{REPO}/contents/inbox.json?ref=inbox", "--jq", ".sha")
-    # نعتمد على نجاح الطلب لا على النص: عند الفشل يطبع غيت هاب رسالة خطأ في المخرجات
-    sha = got.stdout.strip() if got.returncode == 0 else ""
-    if not sha:
-        main_sha = _gh("api", f"repos/{REPO}/git/ref/heads/main", "--jq", ".object.sha").stdout.strip()
-        _gh("api", f"repos/{REPO}/git/refs", "-f", "ref=refs/heads/inbox", "-f", f"sha={main_sha}")
-    body = {"message": f"inbox {riyadh_now():%Y-%m-%d %H:%M}", "content": content, "branch": "inbox",
-            "committer": {"name": "rasid-home", "email": "rasid@users.noreply.github.com"}}
-    if sha:
-        body["sha"] = sha
-    r = _gh("api", "-X", "PUT", f"repos/{REPO}/contents/inbox.json", "--input", "-", stdin=json.dumps(body))
+    # نعتمد على نجاح كل طلب لا على النص: عند الفشل يطبع غيت هاب رسالة خطأ في المخرجات
+    steps = [("git/blobs", {"content": content, "encoding": "base64"}),
+             ("git/trees", lambda sha: {"tree": [{"path": "inbox.json", "mode": "100644", "type": "blob", "sha": sha}]}),
+             ("git/commits", lambda sha: {"message": f"inbox {riyadh_now():%Y-%m-%d %H:%M}", "tree": sha, "parents": [],
+                                          "author": {"name": "rasid-home", "email": "rasid@users.noreply.github.com"}})]
+    sha = ""
+    for path, body in steps:
+        r = _gh("api", "-X", "POST", f"repos/{REPO}/{path}", "--input", "-", "--jq", ".sha",
+                stdin=json.dumps(body(sha) if callable(body) else body))
+        if r.returncode != 0:
+            return f"فشل الرفع: {r.stderr.strip()[:200]}"
+        sha = r.stdout.strip()
+    r = _gh("api", "-X", "PATCH", f"repos/{REPO}/git/refs/heads/inbox", "--input", "-",
+            stdin=json.dumps({"sha": sha, "force": True}))
+    if r.returncode != 0:  # الفرع غير موجود (أول مرة)
+        r = _gh("api", "-X", "POST", f"repos/{REPO}/git/refs", "--input", "-",
+                stdin=json.dumps({"ref": "refs/heads/inbox", "sha": sha}))
     return "تم" if r.returncode == 0 else f"فشل الرفع: {r.stderr.strip()[:200]}"
 
 
 def main() -> int:
     now = riyadh_now()
-    client = httpx.Client()
+    client = make_client()
     try:
         urls = client.get(LIST_URL, timeout=30).json()
     except (httpx.HTTPError, ValueError) as e:

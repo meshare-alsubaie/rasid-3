@@ -157,3 +157,18 @@ def load_aggregators(path: Path) -> list[Aggregator]:
             raise EntityFileError(d["__line__"], "نوع موقع التجميع لازم rss أو web")
         out.append(Aggregator(d["name"].strip(), d["url"].strip(), kind))
     return out
+
+
+def site_of(url: str) -> str:
+    """الموقع الأساسي للرابط: careers.elm.sa ← elm.sa، وwww.sdaia.gov.sa ← sdaia.gov.sa."""
+    parts = urlparse(url).netloc.lower().split(":")[0].split(".")
+    return ".".join(parts[-3:] if len(parts) > 2 and parts[-2] in ("gov", "com", "org", "edu", "net") else parts[-2:])
+
+
+def agg_sites(aggregators: list[Aggregator]) -> frozenset[str]:
+    return frozenset(site_of(a.url) for a in aggregators)
+
+
+def official_first(urls: list[str], sites: frozenset[str]) -> list[str]:
+    """المصادر الرسمية قبل مواقع التجميع، مع حفظ ترتيب كل فئة."""
+    return sorted(urls, key=lambda u: site_of(u) in sites)
