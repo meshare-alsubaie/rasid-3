@@ -469,6 +469,10 @@ def run_once(now: datetime, entities: list[Entity], st: State, deps: Deps,
     resolve = _resolver(entities)
     jobs = [(e, ch) for e in entities for ch in e.channels if ch.kind in ("web", "rss")]
     feeds = [Channel(a.kind, a.url) for a in aggregators]
+    # رابط حُذف من الملفات لا يبقى في الصحة: لا يُعدّ ميتاً في التقرير، ولا يجلبه جهاز المؤسس
+    current = {ch.url for _, ch in jobs} | {ch.url for ch in feeds}
+    for url in [u for u in st.health if u not in current]:
+        del st.health[url]
     # الجلب بالتوازي (المواقع المحجوبة بطيئة)، والمعالجة بالترتيب حتى تبقى الحالة متسقة
     with ThreadPoolExecutor(max_workers=FETCH_WORKERS) as pool:
         results = list(pool.map(lambda j: _safe_fetch(deps, j[1], j[0].name_ar), jobs))

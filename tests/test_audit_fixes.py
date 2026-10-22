@@ -197,6 +197,16 @@ def test_dead_source_is_reported_in_daily_report_not_nightly_alerts():
     assert any(c == "owner" and "لا تُقرأ منذ ٣ أيام" in t for c, t in w.sent)
 
 
+def test_source_removed_from_file_leaves_health_report_and_home_list():
+    from rasid.run import saudi_list
+    w = World(); w.broken.add("https://aramco/x")
+    st = State()
+    run_once(T0, [ARAMCO], st, w.deps())
+    assert "https://aramco/x" in saudi_list(st)
+    run_once(T0 + timedelta(hours=2), [Entity("aramco", "أرامكو السعودية", 5, 1, [])], st, w.deps())
+    assert st.health == {} and saudi_list(st) == []
+
+
 # ---------- الطابور والسجل ----------
 
 def test_queue_item_older_than_a_week_is_dropped_and_logged():
