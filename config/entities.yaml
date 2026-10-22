@@ -1183,17 +1183,11 @@
   fulltime_history: unknown
   channels:
   - kind: web
-    url: https://www.mof.gov.sa/Pages/default.aspx
+    url: https://www.mof.gov.sa/ar/
   - kind: web
-    url: https://www.mof.gov.sa/mediacenter/events/Pages/CalEvent.aspx
+    url: https://www.mof.gov.sa/ar/employment
   - kind: web
-    url: https://www.mof.gov.sa/mediacenter/circulars/Pages/default.aspx
-  - kind: web
-    url: https://www.mof.gov.sa/GFS/TrainingProgram/Pages/TrainingManual.aspx
-  - kind: web
-    url: https://www.mof.gov.sa/docslibrary/TrainingManuals/Pages/default.aspx
-  - kind: web
-    url: https://www.mof.gov.sa/eservices/Loans/Pages/Lending_Educational_Projects.aspx
+    url: https://www.mof.gov.sa/ar/news
 - id: mofa
   name_ar: وزارة الخارجية
   stars_manual: 2

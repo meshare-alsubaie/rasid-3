@@ -13,6 +13,7 @@ import sys
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from pathlib import Path
+from urllib.parse import urlparse
 
 import httpx
 
@@ -28,10 +29,18 @@ LIST_URL = f"https://raw.githubusercontent.com/{REPO}/state/saudi_list.json"
 LOG = ROOT / "state" / "home_agent.log"
 
 
+def _resolves(url: str, resolve) -> bool:
+    try:
+        resolve(urlparse(url).hostname or "")
+        return True
+    except (OSError, UnicodeError):
+        return False
+
+
 def _one(url: str, client: httpx.Client, now: datetime, resolve) -> dict:
     entry = {"ok": False, "fetched_at": now.isoformat(), "blocks": [], "links": []}
-    if not _public(url, resolve):
-        entry["error_ar"] = "رابط غير مسموح"
+    if not _public(url, resolve):  # اسم لا يصل لعنوان = موقع معطّل، لا رابط ممنوع
+        entry["error_ar"] = "رابط غير مسموح" if _resolves(url, resolve) else "تعذّر العثور على الموقع (معطّل غالباً)"
     else:
         resp, err = _get(client, url)
         if resp is None:
