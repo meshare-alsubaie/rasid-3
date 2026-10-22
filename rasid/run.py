@@ -425,17 +425,21 @@ def _apply_link(text: str, url: str) -> Field | None:
     return None
 
 
-def _process_aggregator(c: Ctx, agg: Aggregator, res: FetchResult, resolve: Resolver) -> None:
-    """كل إعلان تدريب جديد في موقع التجميع: تُفتح صفحته، ويُصنَّف، ويُنسب لجهته."""
+def _process_aggregator(c: Ctx, agg: Aggregator, res: FetchResult, resolve: Resolver,
+                        shared: set[str] | None = None) -> None:
+    """كل إعلان تدريب جديد في موقع التجميع: تُفتح صفحته، ويُصنَّف، ويُنسب لجهته.
+    shared: بصمات كل خلاصات نفس الموقع؛ المنشور الذي قرأته خلاصة لا تقرؤه أختها (البحثان يتداخلان)."""
     if not _record_health(c, AGG, agg.name, agg.url, res):
         return
+    shared = set() if shared is None else shared
     prev = c.st.seen.get(agg.url, [])
     prev_set = set(prev)
     first_sight = agg.url not in c.st.seen
     done, taken = [], 0
     for b in new_blocks(prev_set, res):
-        if not b.link or not TRAINING.search(b.text):
+        if b.hash in shared or not b.link or not TRAINING.search(b.text):
             done.append(b.hash)
+            shared.add(b.hash)
             continue
         if taken >= AGG_MAX or c.over():
             c.rep.deferred += 1
@@ -454,6 +458,7 @@ def _process_aggregator(c: Ctx, agg: Aggregator, res: FetchResult, resolve: Reso
         _handle(c, AGG, b.link, text, _id(b.link, b.text), first_sight=first_sight or stale, resolve=resolve,
                 stale=stale)
         done.append(b.hash)
+        shared.add(b.hash)
     c.st.seen[agg.url] = (prev + done)[-SEEN_CAP:]
 
 
@@ -597,8 +602,11 @@ def run_once(now: datetime, entities: list[Entity], st: State, deps: Deps,
     with ThreadPoolExecutor(max_workers=FETCH_WORKERS) as pool:
         results = list(pool.map(lambda j: _safe_fetch(deps, j[1], j[0].name_ar), jobs))
         agg_results = list(pool.map(lambda ch: _safe_fetch(deps, ch, "موقع تجميع"), feeds))
+    by_site: dict[str, set[str]] = {}  # ذاكرة مشتركة لخلاصات الموقع الواحد
+    for a in aggregators:
+        by_site.setdefault(site_of(a.url), set()).update(st.seen.get(a.url, []))
     for agg, res in zip(aggregators, agg_results):
-        _process_aggregator(c, agg, res, resolve)
+        _process_aggregator(c, agg, res, resolve, by_site[site_of(agg.url)])
     for i, ((e, ch), res) in enumerate(zip(jobs, results), 1):
         _process_channel(c, e, ch, res)
         if checkpoint and i % checkpoint_every == 0:

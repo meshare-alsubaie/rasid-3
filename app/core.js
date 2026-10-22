@@ -3,6 +3,8 @@
 
 // «حاسب» بشرط ألا تسبقها «م» (المحاسبة والمحاسب ليست علوم حاسب)
 const CS = /(?<!م)حاسب|حاسوب|computer|معلومات|information|برمجيات|software|سيبران|cyber|أمن المعلومات|بيانات|data|ذكاء|artificial|شبكات|network/i;
+// العلوم والتقنية والهندسة والرياضيات تشمل الحاسب؛ بحروف كبيرة فقط (stem cells في الأحياء ليست منها)
+const STEM = /\bSTEM\b|العلوم والت(?:قنية|كنولوجيا) والهندسة والرياضيات/;
 const INTEREST_BONUS = 0.15;
 const FULLTIME_PENALTY = 0.35;
 
@@ -19,7 +21,7 @@ function majorFit(p) {
   if (val(p, "open_to_all_majors") === true) return { fit: 1, reason: "مفتوح لكل التخصصات" };
   const majors = p?.majors ?? [];
   if (!majors.length) return { fit: 0.6, reason: "التخصصات غير مذكورة في الإعلان" };
-  const mine = majors.filter(m => CS.test(m.name));
+  const mine = majors.filter(m => CS.test(m.name) || STEM.test(m.name));
   if (!mine.length) return { fit: 0.12, reason: "ما طلبت تخصصك" };
   if (majors.every(m => Number.isFinite(m.seats))) {
     const total = majors.reduce((s, m) => s + m.seats, 0), got = mine.reduce((s, m) => s + m.seats, 0);

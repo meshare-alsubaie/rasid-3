@@ -74,6 +74,15 @@ test("المحاسبة والمحاسب ليست علوم حاسب، والحا�
   assert.ok(acc.pct < 30 && cs.pct >= 80, `acc=${acc.pct} cs=${cs.pct}`);
 });
 
+test("برامج العلوم والتقنية والهندسة والرياضيات تشمل علوم الحاسب، وخلايا الأحياء الجذعية لا", () => {
+  const opts = { ...ME, hasCourses: false };
+  const en = matchScore(prog({}, [{ name: "science, technology, engineering, and mathematics (STEM)" }]), ent(), opts);
+  const ar = matchScore(prog({}, [{ name: "العلوم والتقنية والهندسة والرياضيات" }]), ent(), opts);
+  const bio = matchScore(prog({}, [{ name: "stem cell biology" }]), ent(), opts);
+  assert.ok(en.pct >= 80 && ar.pct >= 80 && bio.pct < 30, `en=${en.pct} ar=${ar.pct} bio=${bio.pct}`);
+  assert.ok(!en.reasons.includes("ما طلبت تخصصك"));
+});
+
 import { isStale, rankPrograms, DEFAULT_PROFILE } from "./core.js";
 
 const RESULTS = {
