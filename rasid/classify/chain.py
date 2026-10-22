@@ -14,9 +14,10 @@ from typing import Callable
 
 from rasid.classify.providers import CallResult, Provider
 from rasid.classify.schema import RELEVANT, Verdict, check_verdict
-from rasid.dates import riyadh_now
+from rasid.dates import quota_day, riyadh_now
 
 SYSTEM_PROMPT = (Path(__file__).parent / "prompt.md").read_text(encoding="utf-8")
+SHORT_INPUT = 4000  # إعادة النص بهذا الطول لنموذج قال «أطول من حدي»
 Caller = Callable[[Provider, str, str], CallResult]
 
 _COOP = re.compile(r"تعاوني|تدريب\s*ميداني|co-?op\b|cooperative\s+training", re.IGNORECASE)
@@ -76,20 +77,28 @@ class Budget:
 
 
 def _first_valid(role: str, text: str, providers: list[Provider], budget: Budget,
-                 call: Caller, day: date, errors: list[str]) -> Verdict | None:
+                 call: Caller, day: date, qday: date, errors: list[str]) -> Verdict | None:
+    """day: تاريخ اليوم بالرياض في تعليمات المصنّف. qday: يوم الحصة (يتجدد منتصف الليل بتوقيت المحيط الهادئ)."""
+    system = f"{SYSTEM_PROMPT}\n\nتاريخ اليوم: {day.isoformat()}"
     for p in providers:
-        if p.role != role or not budget.available(p, day):
+        if p.role != role or not budget.available(p, qday):
             continue
-        budget.spend(p, day)
-        r = call(p, f"{SYSTEM_PROMPT}\n\nتاريخ اليوم: {day.isoformat()}", text)
+        budget.spend(p, qday)
+        seen = text
+        r = call(p, system, seen)
+        if not r.ok and r.error_kind == "too_large" and len(text) > SHORT_INPUT and budget.available(p, qday):
+            budget.spend(p, qday)  # الجديد في الصفحة أولاً دائماً، فأوله يكفي للحكم
+            seen = text[:SHORT_INPUT]
+            r = call(p, system, seen)
         if not r.ok:
             errors.append(r.message or f"{p.name}: {r.error_kind}")
             if r.error_kind in ("rate_day", "auth"):
-                budget.exhaust(p, day)
+                budget.exhaust(p, qday)
             continue
-        v, why = check_verdict(r.data, text, p.model)
+        v, why = check_verdict(r.data, seen, p.model)
         if v is None:
-            errors.append(f"[المصنّف][{p.name}] جواب مرفوض: {why}")
+            kind = r.data.get("kind") if isinstance(r.data, dict) else None
+            errors.append(f"[المصنّف][{p.name}] جواب مرفوض ({kind}): {why}")
             continue
         return v
     return None
@@ -98,13 +107,14 @@ def _first_valid(role: str, text: str, providers: list[Provider], budget: Budget
 def classify(text: str, providers: list[Provider], budget: Budget, call: Caller,
              today: date | None = None) -> Verdict | Pending:
     day = today or riyadh_now().date()
+    qday = today or quota_day()
     errors: list[str] = []
     kw = strong_keywords(text)
-    reader = _first_valid("reader", text, providers, budget, call, day, errors)
+    reader = _first_valid("reader", text, providers, budget, call, day, qday, errors)
     if reader is not None and reader.kind not in RELEVANT and kw is None:
         reader.notes = errors + reader.notes
         return reader
-    confirmed = _first_valid("confirmer", text, providers, budget, call, day, errors)
+    confirmed = _first_valid("confirmer", text, providers, budget, call, day, qday, errors)
     if confirmed is not None:
         confirmed.notes = errors + confirmed.notes
         return confirmed

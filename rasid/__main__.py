@@ -18,7 +18,7 @@ import httpx
 
 from rasid.classify.chain import Budget, classify
 from rasid.classify.providers import call_provider, load_providers
-from rasid.dates import riyadh_now
+from rasid.dates import quota_day, riyadh_now
 from rasid.entities import EntityFileError, agg_sites, load_aggregators, load_entities_safe
 from rasid.fetch import fetch, make_client, set_inbox
 from rasid.notify.telegram import send
@@ -71,7 +71,7 @@ def main() -> int:
                           f"⚠️ ملف مواقع التجميع فيه خطأ، وتُرك مؤقتاً.\n{err}", now)
 
     providers = load_providers(ROOT / "config/providers.yaml")
-    budget = Budget.from_dict(st.meta.get("budget", {}), today=now.date())
+    budget = Budget.from_dict(st.meta.get("budget", {}), today=quota_day(now))
     client = make_client()
     test_mode = env.get("RASID_TEST_MODE") == "1"
     chats = {"owner": env.get("TG_OWNER_CHAT", ""),

@@ -91,9 +91,14 @@ def check_verdict(d: Any, input_text: str, model: str) -> tuple[Verdict | None, 
         return None, f"نوع غير معروف: {d.get('kind') if isinstance(d, dict) else type(d).__name__}"
     hay = normalize(input_text)
     kq = d.get("kind_quote")
+    dropped = False
     if kq and not _quoted(kq, hay):
-        return None, "اقتباس النوع غير موجود في النص"
+        if d["kind"] != "irrelevant":
+            return None, "اقتباس النوع غير موجود في النص"
+        kq, dropped = None, True  # «غير ذي صلة» لا ينتج تنبيهاً، فرفضه يعيد الصفحة على كل النماذج بلا فائدة
     v = Verdict(kind=d["kind"], model=model, kind_quote=kq)
+    if dropped:
+        v.notes.append("أُسقط اقتباس «غير ذي صلة»: غير موجود في النص")
     for name in DATE_FIELDS | BOOL_FIELDS | TEXT_FIELDS:
         f = d.get(name)
         if not isinstance(f, dict) or f.get("value") in (None, "", []):

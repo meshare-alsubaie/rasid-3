@@ -103,6 +103,14 @@ def riyadh_now() -> datetime:
     return datetime.now(RIYADH)
 
 
+PACIFIC = ZoneInfo("America/Los_Angeles")
+
+
+def quota_day(dt: datetime | None = None) -> date:
+    """يوم حصص الذكاء: جوجل يجدّد الحصة اليومية منتصف الليل بتوقيت المحيط الهادئ."""
+    return (dt or datetime.now(PACIFIC)).astimezone(PACIFIC).date()
+
+
 def in_quiet_hours(dt: datetime) -> bool:
     t = dt.astimezone(RIYADH).time()
     return QUIET_START <= t < QUIET_END
