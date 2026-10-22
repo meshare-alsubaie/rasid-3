@@ -15,7 +15,7 @@ from typing import Callable
 from urllib.parse import urlparse
 
 from rasid.classify.chain import CONTEXT_MARK, Pending
-from rasid.classify.schema import RELEVANT, Verdict
+from rasid.classify.schema import RELEVANT, Field, Verdict
 from rasid.dates import _DIGITS
 from rasid.diff import new_blocks
 from rasid.entities import Aggregator, Channel, Entity, agg_sites, official_first, site_of
@@ -198,6 +198,9 @@ def _handle(c: Ctx, entity_id: str, url: str, text: str, item_id: str,
     r = _safe_classify(c.deps, text)
     if stale and not isinstance(r, Pending):  # منشور قديم: «التسجيل مفتوح» فيه خبر مضى
         r.fields.pop("accepting_now", None)
+    if not isinstance(r, Pending) and r.kind in RELEVANT and "apply_url" not in r.fields:
+        if link := _apply_link(text, url):
+            r.fields["apply_url"] = link
     recheck_of = queued.recheck_of if queued else None
     if isinstance(r, Pending) or (recheck_of and r.needs_recheck):
         c.rep.pending += 1
@@ -205,7 +208,7 @@ def _handle(c: Ctx, entity_id: str, url: str, text: str, item_id: str,
         if queued:
             st.queue.fail(queued.id, reason, now)
         else:
-            st.queue.add(item_id, entity_id, url, text, reason, now)
+            st.queue.add(item_id, entity_id, url, text, reason, now, quiet=first_sight)
         _log(c, entity_id, url, r if isinstance(r, Pending) else Pending(reason))
         return
     c.rep.verdicts += 1
@@ -231,7 +234,7 @@ def _handle(c: Ctx, entity_id: str, url: str, text: str, item_id: str,
         _alert(c, change, p)
     if r.needs_recheck and not recheck_of:
         st.queue.add("re:" + item_id, entity_id if resolve is None else AGG, url, text,
-                     "إعادة فحص بالنموذج الأساسي", now, recheck_of=r.kind)
+                     "إعادة فحص بالنموذج الأساسي", now, recheck_of=r.kind, quiet=first_sight)
 
 
 def _correct(c: Ctx, url: str, item_id: str, was: str, kind: str) -> None:
@@ -394,6 +397,28 @@ def _process_channel(c: Ctx, e: Entity, ch: Channel, res: FetchResult) -> None:
     c.st.seen[ch.url] = (prev + [b.hash for b in fresh] + links_done)[-SEEN_CAP:]
 
 
+_POSTED = re.compile(r"^تاريخ النشر: (\d{4}-\d{2}-\d{2})$", re.MULTILINE)
+_APPLY = re.compile(r"للتقديم|رابط التقديم|قدّ?م الآن|سجّ?ل الآن|\bapply\b", re.IGNORECASE)
+_SOCIAL = re.compile(r"whatsapp|wa\.me|t\.me/|telegram|twitter\.com|//x\.com|facebook|instagram|snapchat|tiktok"
+                     r"|youtube|linkedin\.com/share", re.IGNORECASE)
+_LINK_LINE = re.compile(r"^(.+?): (https?://\S+)$", re.MULTILINE)
+
+
+def _stale(day: str | None, today: date) -> bool:
+    """منشور تجميع أقدم من AGG_STALE_DAYS: «التسجيل مفتوح» فيه خبر قديم لا يُعتمد."""
+    return bool(day) and (today - date.fromisoformat(day)).days > AGG_STALE_DAYS
+
+
+def _apply_link(text: str, url: str) -> Field | None:
+    """رابط التقديم إذا لم يذكره النموذج: أول سطر رابط في النص عنوانه تقديم، لموقع غير موقع الصفحة وغير المشاركة."""
+    home = site_of(url)
+    for m in _LINK_LINE.finditer(text):
+        label, link = m.groups()
+        if _APPLY.search(label) and site_of(link) != home and not _SOCIAL.search(link):
+            return Field(link, m.group(0))
+    return None
+
+
 def _process_aggregator(c: Ctx, agg: Aggregator, res: FetchResult, resolve: Resolver) -> None:
     """كل إعلان تدريب جديد في موقع التجميع: تُفتح صفحته، ويُصنَّف، ويُنسب لجهته."""
     if not _record_health(c, AGG, agg.name, agg.url, res):
@@ -413,10 +438,12 @@ def _process_aggregator(c: Ctx, agg: Aggregator, res: FetchResult, resolve: Reso
         c.rep.new_items += 1
         d = _safe_fetch(c.deps, Channel("web", b.link), agg.name)
         body = "\n".join(x.text for x in d.blocks)[:MAX_INPUT] if d.ok else b.text
+        apply = [f"{t}: {u}" for t, u in d.links if _APPLY.search(t)][:5] if d.ok else []
         text = (f"المصدر: موقع تجميع ({agg.name})\nالرابط: {b.link}\n"
                 + (f"تاريخ النشر: {b.date}\n" if b.date else "")
-                + f"\nعنوان الإعلان: {b.text[:300]}\n\nالنص:\n{body}")
-        stale = bool(b.date) and (c.now.date() - date.fromisoformat(b.date)).days > AGG_STALE_DAYS
+                + f"\nعنوان الإعلان: {b.text[:300]}\n\nالنص:\n{body}"
+                + ("\n\nروابط التقديم في الإعلان:\n" + "\n".join(apply) if apply else ""))
+        stale = _stale(b.date, c.now.date())
         # منشور قديم يُحفظ بهدوء مثل أول مرة: لا تنبيه إلا لموعد قادم صريح
         _handle(c, AGG, b.link, text, _id(b.link, b.text), first_sight=first_sight or stale, resolve=resolve,
                 stale=stale)
@@ -453,11 +480,14 @@ def _refresh_pending(c: Ctx) -> None:
     ob, items, today = c.st.outbox, c.st.programs.items, c.now.date()
     refs = {m: r for m in ob.pending if (r := _pending_program(m, items))}
     alerted = {key for kind, key in refs.values() if kind in HEADLINE}
+    firm = {key for kind, key in refs.values() if kind in ("new", "dates", "opened")}
     for msg_id, (kind, key) in refs.items():
         p = items[key]
         if kind in REMINDER_TAGS:
             if key in alerted:
                 ob.drop(msg_id)
+        elif kind == "hint" and key in firm:  # التلميح يغطيه تنبيه مؤكد لنفس البرنامج في نفس الدفعة
+            ob.drop(msg_id)
         elif kind in ("dates", "opened") and program_status(p, today) not in LIVE:
             ob.drop(msg_id)
             c.st.meta["new_since_digest"] = [k for k in c.st.meta["new_since_digest"] if k != key]
@@ -571,8 +601,10 @@ def run_once(now: datetime, entities: list[Entity], st: State, deps: Deps,
             _log(c, it.entity_id, it.url, Pending(f"انتهت مهلة الطابور بعد {it.attempts} محاولات: {it.reason_ar}"))
             st.queue.mark_done(it.id)
             continue
-        _handle(c, it.entity_id, it.url, it.text, it.id, queued=it,
-                resolve=resolve if it.entity_id == AGG else None)
+        posted = _POSTED.search(it.text)  # القِدم من تاريخ النشر في نص العنصر نفسه
+        stale = _stale(posted and posted.group(1), now.date())
+        _handle(c, it.entity_id, it.url, it.text, it.id, queued=it, first_sight=it.quiet or stale,
+                resolve=resolve if it.entity_id == AGG else None, stale=stale)
     _safety_net(c)
     for msg_id, text in reminders(list(st.programs.items.values()), now.date(), c.names):
         legacy = msg_id.rsplit(":", 1)[0]  # معرّف قديم بلا تاريخ من قبل إضافة التاريخ

@@ -8,3 +8,8 @@
   url: https://linkedksa.com/?s=%D8%AA%D8%AF%D8%B1%D9%8A%D8%A8+%D8%AA%D8%B9%D8%A7%D9%88%D9%86%D9%8A&feed=rss2
 - name: وظائف تي إم، بحث تدريب تعاوني
   url: https://www.tm.com.sa/?s=%D8%AA%D8%AF%D8%B1%D9%8A%D8%A8+%D8%AA%D8%B9%D8%A7%D9%88%D9%86%D9%8A&feed=rss2
+# بحث «للطلاب»: برامج الجامعيين التي لا تسمي نفسها تعاونياً (مثل برنامج الأمن السيبراني للمرحلة الجامعية)
+- name: لينكد السعودية، بحث للطلاب
+  url: https://linkedksa.com/?s=%D9%84%D9%84%D8%B7%D9%84%D8%A7%D8%A8&feed=rss2
+- name: وظائف تي إم، بحث للطلاب
+  url: https://www.tm.com.sa/?s=%D9%84%D9%84%D8%B7%D9%84%D8%A7%D8%A8&feed=rss2

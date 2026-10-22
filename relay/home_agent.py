@@ -75,7 +75,7 @@ def watchdog_alerts(last_state_iso: str | None, now: datetime, last_alert_day: s
             ("group", f"⚠️ راصد متوقف مؤقتاً من {hours} ساعات. تابعوا مواقع الجهات بأنفسكم احتياطاً حتى يرجع.")]
 
 
-TRIGGER_AFTER_MIN = 170  # المحرّك كل ١٢٠ دقيقة، وتأخر جدولة غيت هاب يصل لساعة أحياناً
+TRIGGER_AFTER_MIN = 100  # المحرّك كل ساعة: مرور ١٠٠ دقيقة بلا جولة يعني موعداً ساقطاً على الأقل
 
 
 def should_trigger_engine(last_run_iso: str | None, now: datetime) -> bool:

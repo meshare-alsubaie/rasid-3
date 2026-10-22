@@ -19,6 +19,7 @@ class QueueItem:
     attempts: int = 1
     last_try: datetime | None = None
     recheck_of: str | None = None  # نوع الحكم السابق إن كانت هذه إعادة فحص بالنموذج الأساسي
+    quiet: bool = False  # رُئي أول مرة أو منشور قديم: لا تنبيه عند الحكم إلا لموعد قادم
 
 
 class RetryQueue:
@@ -26,11 +27,11 @@ class RetryQueue:
         self.items: dict[str, QueueItem] = {}
 
     def add(self, item_id: str, entity_id: str, url: str, text: str, reason_ar: str,
-            now: datetime, recheck_of: str | None = None) -> None:
+            now: datetime, recheck_of: str | None = None, quiet: bool = False) -> None:
         if item_id in self.items:
             return
         self.items[item_id] = QueueItem(item_id, entity_id, url, text, reason_ar, now,
-                                        last_try=now, recheck_of=recheck_of)
+                                        last_try=now, recheck_of=recheck_of, quiet=quiet)
 
     def fail(self, item_id: str, reason_ar: str, now: datetime) -> None:
         it = self.items[item_id]
