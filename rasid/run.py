@@ -198,8 +198,11 @@ def _handle(c: Ctx, entity_id: str, url: str, text: str, item_id: str,
     r = _safe_classify(c.deps, text)
     if stale and not isinstance(r, Pending):  # منشور قديم: «التسجيل مفتوح» فيه خبر مضى
         r.fields.pop("accepting_now", None)
-    if not isinstance(r, Pending) and r.kind in RELEVANT and "apply_url" not in r.fields:
-        if link := _apply_link(text, url):
+    if not isinstance(r, Pending):
+        if _SOCIAL.search(str(getattr(r.fields.get("apply_url"), "value", ""))):
+            del r.fields["apply_url"]
+            r.notes.append("أُسقط رابط التقديم: موقع تواصل لا بوابة تقديم")
+        if r.kind in RELEVANT and "apply_url" not in r.fields and (link := _apply_link(text, url)):
             r.fields["apply_url"] = link
     recheck_of = queued.recheck_of if queued else None
     if isinstance(r, Pending) or (recheck_of and r.needs_recheck):
@@ -399,7 +402,7 @@ def _process_channel(c: Ctx, e: Entity, ch: Channel, res: FetchResult) -> None:
 
 _POSTED = re.compile(r"^تاريخ النشر: (\d{4}-\d{2}-\d{2})$", re.MULTILINE)
 _APPLY = re.compile(r"للتقديم|رابط التقديم|قدّ?م الآن|سجّ?ل الآن|\bapply\b", re.IGNORECASE)
-_SOCIAL = re.compile(r"whatsapp|wa\.me|t\.me/|telegram|twitter\.com|//x\.com|facebook|instagram|snapchat|tiktok"
+_SOCIAL = re.compile(r"whatsapp|wa\.me|t\.me/|telegram|twitter\.com|//(?:www\.)?x\.com|facebook|instagram|snapchat|tiktok"
                      r"|youtube|linkedin\.com/share", re.IGNORECASE)
 _LINK_LINE = re.compile(r"^(.+?): (https?://\S+)$", re.MULTILINE)
 
@@ -409,13 +412,16 @@ def _stale(day: str | None, today: date) -> bool:
     return bool(day) and (today - date.fromisoformat(day)).days > AGG_STALE_DAYS
 
 
+def _good_apply(label: str, link: str, page_url: str) -> bool:
+    """رابط عنوانه تقديم، لموقع غير موقع الصفحة نفسها وغير مواقع التواصل (مواقع التجميع تضع «للتقديم» لقنواتها)."""
+    return bool(_APPLY.search(label)) and site_of(link) != site_of(page_url) and not _SOCIAL.search(link)
+
+
 def _apply_link(text: str, url: str) -> Field | None:
-    """رابط التقديم إذا لم يذكره النموذج: أول سطر رابط في النص عنوانه تقديم، لموقع غير موقع الصفحة وغير المشاركة."""
-    home = site_of(url)
+    """رابط التقديم إذا لم يذكره النموذج: أول سطر رابط صالح في النص."""
     for m in _LINK_LINE.finditer(text):
-        label, link = m.groups()
-        if _APPLY.search(label) and site_of(link) != home and not _SOCIAL.search(link):
-            return Field(link, m.group(0))
+        if _good_apply(*m.groups(), url):
+            return Field(m.group(2), m.group(0))
     return None
 
 
@@ -438,7 +444,7 @@ def _process_aggregator(c: Ctx, agg: Aggregator, res: FetchResult, resolve: Reso
         c.rep.new_items += 1
         d = _safe_fetch(c.deps, Channel("web", b.link), agg.name)
         body = "\n".join(x.text for x in d.blocks)[:MAX_INPUT] if d.ok else b.text
-        apply = [f"{t}: {u}" for t, u in d.links if _APPLY.search(t)][:5] if d.ok else []
+        apply = [f"{t}: {u}" for t, u in d.links if _good_apply(t, u, b.link)][:5] if d.ok else []
         text = (f"المصدر: موقع تجميع ({agg.name})\nالرابط: {b.link}\n"
                 + (f"تاريخ النشر: {b.date}\n" if b.date else "")
                 + f"\nعنوان الإعلان: {b.text[:300]}\n\nالنص:\n{body}"
@@ -570,6 +576,9 @@ def run_once(now: datetime, entities: list[Entity], st: State, deps: Deps,
     checkpoint: حفظ دوري أثناء الجولة حتى لا يضيع شيء لو قُتلت."""
     aggregators = aggregators or []
     st.meta.setdefault("new_since_digest", [])
+    for p in st.programs.items.values():  # رابط تواصل حُفظ رابطاً للتقديم (قبل الفحص السابع) لا يبقى
+        if _SOCIAL.search(str((p.fields.get("apply_url") or {}).get("value", ""))):
+            del p.fields["apply_url"]
     c = Ctx(st, deps, now, entities, RunReport(), deadline or (lambda: False), agg_sites=agg_sites(aggregators))
     resolve = _resolver(entities)
     jobs = [(e, ch) for e in entities for ch in e.channels if ch.kind in ("web", "rss")]
