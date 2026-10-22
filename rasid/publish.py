@@ -8,7 +8,7 @@ from collections import Counter
 from datetime import date, datetime
 
 from rasid.entities import Entity
-from rasid.programs import Program, status_of
+from rasid.programs import Program, program_status
 from rasid.run import State
 
 # أوزان المؤسس للنجوم المحسوبة (حين لا يضع نجوماً يدوية): الاسم ثم التوظيف ثم الأمن السيبراني ثم المزايا
@@ -37,17 +37,21 @@ def expected_month(e: Entity, past_opens: list[str]) -> int | None:
 
 
 def _status(p: Program | None, today: date) -> str:
-    if p is None:
-        return "not_announced"
-    dates = {k: v["value"] for k, v in p.fields.items() if k in ("opens", "closes")}
-    return status_of(dates, today) if dates else "listed"
+    return "not_announced" if p is None else program_status(p, today)
+
+
+def _watch(total: int, ok: int) -> str:
+    """هل راصد يرى هذه الجهة فعلاً؟ «none» بلا مصادر، «blind» مصادرها لا تُقرأ الآن، «ok» يُقرأ منها شيء."""
+    return "none" if total == 0 else "ok" if ok else "blind"
 
 
 def build_results(st: State, entities: list[Entity], now: datetime) -> dict:
     today = now.date()
     student = [p for p in st.programs.items.values() if p.family == "student"]
     latest = {}
-    for p in sorted(student, key=lambda p: p.updated):
+    rank = {"closing_soon": 0, "open": 1, "announced": 2, "listed": 3, "closed": 4}
+    # البطاقة تعرض أهم برنامج للجهة: المفتوح ثم القادم ثم الأحدث
+    for p in sorted(student, key=lambda p: (-rank[program_status(p, today)], p.updated)):
         latest[p.entity_id] = p
     out_entities = []
     for e in entities:
@@ -55,15 +59,25 @@ def build_results(st: State, entities: list[Entity], now: datetime) -> dict:
         hs = [st.health[u] for u in urls if u in st.health]
         p = latest.get(e.id)
         past = [p2.fields["opens"]["value"] for p2 in student if p2.entity_id == e.id and "opens" in p2.fields]
+        ok = sum(1 for h in hs if h["consecutive_failures"] == 0 and h["last_success"])
         out_entities.append({
             "id": e.id, "name": e.name_ar, "stars": compute_stars(e, p), "cyber": e.cyber,
             "hires_after": e.hires_after, "fulltime_history": e.fulltime_history,
             "fulltime_evidence": e.fulltime_evidence, "expected_month": expected_month(e, past),
             "status": _status(p, today), "program": p.key if p else None,
             "sources_total": len(urls),
-            "sources_ok": sum(1 for h in hs if h["consecutive_failures"] == 0 and h["last_success"]),
+            "sources_ok": ok, "watch": _watch(len(urls), ok), "outside": False,
             "last_success": max((h["last_success"] for h in hs if h["last_success"]), default=None),
             "via_home": any(h.get("via") == "home" for h in hs),
+        })
+    # جهات خارج القائمة وصلت إعلاناتها من مواقع التجميع
+    for eid in sorted({p.entity_id for p in student if p.entity_id.startswith("x:")}):
+        p = latest[eid]
+        out_entities.append({
+            "id": eid, "name": (p.fields.get("entity_name") or {}).get("value") or eid[2:], "stars": 3, "cyber": 0,
+            "hires_after": 0, "fulltime_history": "unknown", "fulltime_evidence": None, "expected_month": None,
+            "status": _status(p, today), "program": p.key, "sources_total": 0, "sources_ok": 0,
+            "watch": "outside", "outside": True, "last_success": None, "via_home": False,
         })
     programs = [{
         "key": p.key, "entity": p.entity_id, "family": p.family, "kind": p.kind,

@@ -75,14 +75,15 @@ export function isStale(generatedAt, now = new Date(), hours = 12) {
   return now - new Date(generatedAt) > hours * 3600000;
 }
 
-const STATUS_ORDER = { closing_soon: 0, open: 1, announced: 2, listed: 3 };
+const STATUS_ORDER = { closing_soon: 0, open: 1, announced: 2 };
 
-// قائمة البطاقات: المفتوح ثم القادم، ثم الأعلى مناسبة. بلا المنتهي، وبحد النجوم، والوظائف اختيارية.
+// قائمة البطاقات: المفتوح ثم القادم، ثم الأعلى مناسبة. بلا المنتهي ولا صفحات البرامج الدائمة بلا موعد، وبحد النجوم، والوظائف اختيارية.
 export function rankPrograms(results, profile, today) {
   const ents = Object.fromEntries(results.entities.map(e => [e.id, e]));
   return results.programs
     .filter(p => p.status !== "closed" && !(p.closes && p.closes < today))
-    .filter(p => p.family === "student" || (profile.showJobs && (p.family === "job" || p.family === "grad")))
+    .filter(p => p.family === "student" ? p.status in STATUS_ORDER
+      : profile.showJobs && (p.family === "job" || p.family === "grad"))
     .filter(p => (ents[p.entity]?.stars ?? 0) >= profile.minStars)
     .map(p => ({ program: p, entity: ents[p.entity], match: matchScore(p, ents[p.entity], profile) }))
     .sort((a, b) => (STATUS_ORDER[a.program.status] ?? 9) - (STATUS_ORDER[b.program.status] ?? 9) || b.match.pct - a.match.pct);

@@ -13,8 +13,9 @@ from rasid.dates import parse_dates
 KINDS = {"coop", "university", "grad_program", "job", "hint", "irrelevant"}
 RELEVANT = {"coop", "university", "grad_program", "hint"}
 DATE_FIELDS = {"opens", "closes", "training_starts"}
-BOOL_FIELDS = {"open_to_all_majors", "stipend", "housing", "medical", "transport", "no_courses_allowed"}
-TEXT_FIELDS = {"title", "min_gpa", "apply_url", "cities"}
+BOOL_FIELDS = {"open_to_all_majors", "stipend", "housing", "medical", "transport", "no_courses_allowed",
+               "accepting_now"}
+TEXT_FIELDS = {"title", "min_gpa", "apply_url", "cities", "entity_name"}
 
 
 @dataclass(frozen=True)
@@ -32,6 +33,7 @@ class Verdict:
     kind_quote: str | None = None
     uncertain: bool = False
     needs_recheck: bool = False
+    notes: list[str] = field(default_factory=list)  # أسباب رفض النماذج قبل هذا الحكم، للسجل
 
 
 def normalize(s: str) -> str:

@@ -25,6 +25,8 @@ class World:
         self.pages = {"https://aramco/x": ["برنامج التدريب التعاوني يفتح 26 أكتوبر"],
                       "https://sdaia/x": ["خبر عن مبنى"]}
         self.broken = set()
+        self.links = {}
+        self.fetched = []
         self.verdicts = {}
         self.sent = []
         self.classified = []
@@ -32,7 +34,9 @@ class World:
     def fetch(self, ch):
         if ch.url in self.broken:
             raise RuntimeError("انهيار مفاجئ")
-        return FetchResult(True, ch.url, [Block(t) for t in self.pages[ch.url]])
+        self.fetched.append(ch.url)
+        blocks = [b if isinstance(b, Block) else Block(b) for b in self.pages[ch.url]]
+        return FetchResult(True, ch.url, blocks, self.links.get(ch.url, []))
 
     def classify(self, text):
         self.classified.append(text)
@@ -104,14 +108,15 @@ def test_dead_source_for_three_days_alerts_owner():
     assert any(c == "owner" and "سدايا" in t for c, t in w.sent)
 
 
-def test_daily_digest_at_seven_once_says_alive_when_nothing_new():
+def test_daily_digest_at_seven_once_says_honestly_what_it_reads():
     w = World()
     st = State()
     morning = datetime(2026, 10, 27, 7, 5, tzinfo=RIYADH)
     run_once(morning, [SDAIA], st, w.deps())
     run_once(morning + timedelta(hours=3), [SDAIA], st, w.deps())
     group = [t for c, t in w.sent if c == "group"]
-    assert len(group) == 1 and "راصد شغّال" in group[0]
+    assert len(group) == 1 and "يقرأ راصد الآن مواقع 1 جهة من 1" in group[0]
+    assert "شغّال ✅" not in group[0]
     assert any(c == "owner" and "تقرير" in t for c, t in w.sent)
 
 

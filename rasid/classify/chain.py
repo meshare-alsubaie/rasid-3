@@ -23,7 +23,12 @@ _COOP = re.compile(r"تعاوني|تدريب\s*ميداني|co-?op\b|cooperative
 _UNIV = re.compile(r"تدريب\s*(?:ال)?(?:صيفي|جامعي)|internship", re.IGNORECASE)
 
 
+CONTEXT_MARK = "بقية نص الصفحة (سياق فقط):"
+
+
 def strong_keywords(text: str) -> str | None:
+    """تُفحص الأجزاء الجديدة فقط؛ السياق المرفق لا يصعّد كل تغيير صغير في صفحة تعاوني."""
+    text = text.split(CONTEXT_MARK, 1)[0]
     if _COOP.search(text):
         return "coop"
     if _UNIV.search(text):
@@ -97,13 +102,16 @@ def classify(text: str, providers: list[Provider], budget: Budget, call: Caller,
     kw = strong_keywords(text)
     reader = _first_valid("reader", text, providers, budget, call, day, errors)
     if reader is not None and reader.kind not in RELEVANT and kw is None:
+        reader.notes = errors
         return reader
     confirmed = _first_valid("confirmer", text, providers, budget, call, day, errors)
     if confirmed is not None:
+        confirmed.notes = errors
         return confirmed
     if reader is not None:
         reader.needs_recheck = True
+        reader.notes = errors
         return reader
     if kw is not None:
-        return Verdict(kind=kw, model="keywords", uncertain=True, needs_recheck=True)
+        return Verdict(kind=kw, model="keywords", uncertain=True, needs_recheck=True, notes=errors)
     return Pending("كل نماذج الذكاء غير متاحة الآن: " + " | ".join(errors[-3:]))

@@ -5,7 +5,9 @@ import { PUSH_URL, VAPID_PUBLIC } from "./config.js";
 const KIND = { coop: "تدريب تعاوني", university: "تدريب جامعي", hint: "تلميح لبرنامج قادم",
                grad_program: "برنامج لحديثي التخرج", job: "وظيفة" };
 const STATUS = { not_announced: "لم تعلن بعد", announced: "أعلنت، وقريباً يفتح", open: "مفتوح الآن",
-                 closing_soon: "يقفل قريباً", closed: "أقفل", listed: "صفحة البرنامج متاحة" };
+                 closing_soon: "يقفل قريباً", closed: "أقفل", listed: "لها صفحة برنامج، بلا موعد معلن" };
+// هل راصد يرى الجهة فعلاً؟ حتى لا تُفهم «لم تعلن بعد» وهو لا يقرأ موقعها أصلاً
+const WATCH = { none: "لا نراقب موقعها بعد", blind: "موقعها لا يُقرأ الآن", outside: "من خارج القائمة" };
 const MONTHS = ["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"];
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -73,8 +75,9 @@ function render() {
     .map(e => `<li><button data-entity="${esc(e.id)}">
         <span class="name">${esc(e.name)}</span>
         <span class="stars" aria-label="${e.stars} نجوم">${"★".repeat(e.stars)}</span>
-        <span class="st st-${esc(e.status)}">${esc(STATUS[e.status])}</span>
-        ${e.sources_ok < e.sources_total ? `<span class="health">${e.sources_ok} من ${e.sources_total} مصادر تُقرأ</span>` : ""}
+        <span class="st st-${esc(e.status)}">${esc(e.watch === "none" && e.status === "not_announced" ? WATCH.none : STATUS[e.status])}</span>
+        ${WATCH[e.watch] && !(e.watch === "none" && e.status === "not_announced") ? `<span class="health">${esc(WATCH[e.watch])}</span>`
+          : e.sources_ok < e.sources_total ? `<span class="health">${e.sources_ok} من ${e.sources_total} مصادر تُقرأ</span>` : ""}
       </button></li>`).join("");
 }
 
@@ -100,7 +103,10 @@ function entityView(id) {
     ${!p && !e.expected_month ? `<p class="hint">موعد فتحها المعتاد غير معروف بعد.</p>` : ""}
     ${evidence.length ? `<h3>الدليل من المصدر</h3>${evidence.map(x => `<blockquote dir="auto">${esc(x.quote)}</blockquote>`).join("")}` : ""}
     ${p?.sources?.length ? `<p class="hint">المصادر: ${p.sources.map(u => `<a href="${esc(u)}" target="_blank" rel="noopener">${esc(new URL(u).hostname)}</a>`).join("، ")}</p>` : ""}
-    <p class="hint">مصادر تُقرأ: ${e.sources_ok} من ${e.sources_total}${e.last_success ? "، آخر قراءة ناجحة " + fmt(e.last_success.slice(0, 10)) : ""}</p>`;
+    ${e.watch === "none" ? `<p class="hint">راصد لا يقرأ موقع هذه الجهة بعد، ويلتقط إعلاناتها من مواقع التجميع فقط. تابع موقعها بنفسك احتياطاً.</p>` : ""}
+    ${e.watch === "blind" ? `<p class="warn">مواقع هذه الجهة لا تُقرأ الآن، فقد يفوت راصد إعلانها. تابع موقعها بنفسك احتياطاً.</p>` : ""}
+    ${e.outside ? `<p class="hint">جهة خارج قائمة راصد، وصل إعلانها من موقع تجميع. تأكّد من الرابط الرسمي قبل التقديم.</p>` : ""}
+    ${e.sources_total ? `<p class="hint">مصادر تُقرأ: ${e.sources_ok} من ${e.sources_total}${e.last_success ? "، آخر قراءة ناجحة " + fmt(e.last_success.slice(0, 10)) : ""}</p>` : ""}`;
 }
 
 function openEntity(id) {

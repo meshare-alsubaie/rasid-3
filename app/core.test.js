@@ -92,10 +92,11 @@ const RESULTS = {
     { key: "w", entity: "weak", family: "student", kind: "coop", status: "open", fields: {}, majors: [] },
     { key: "o", entity: "old", family: "student", kind: "coop", closes: "2025-01-01", status: "closed", fields: {}, majors: [] },
     { key: "j", entity: "sdaia", family: "job", kind: "job", status: "listed", fields: {}, majors: [] },
+    { key: "l", entity: "aramco", family: "student", kind: "coop", status: "listed", fields: {}, majors: [] },
   ],
 };
 
-test("الترتيب: المفتوح أولاً ثم القادم، وبالنسبة، بلا المنتهي ولا الوظائف ولا الأقل من حد النجوم", () => {
+test("الترتيب: المفتوح أولاً ثم القادم، وبالنسبة، بلا المنتهي ولا صفحات البرامج بلا موعد ولا الوظائف ولا الأقل من حد النجوم", () => {
   const r = rankPrograms(RESULTS, { ...DEFAULT_PROFILE, minStars: 3 }, "2026-10-05");
   assert.deepEqual(r.map(x => x.program.key), ["s", "a"]);
   assert.ok(r[0].match.pct >= 95);

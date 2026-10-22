@@ -7,11 +7,12 @@ from typing import Literal
 
 from rasid.classify.schema import Verdict
 
-ChangeKind = Literal["new", "hint", "dates", "important_update"]
+ChangeKind = Literal["new", "hint", "dates", "opened", "important_update"]
 FAMILY = {"coop": "student", "university": "student", "hint": "student",
           "grad_program": "grad", "job": "job"}
 ATTACH_WINDOW = timedelta(days=90)
 CLOSING_SOON = 3
+ACCEPTING_FRESH_DAYS = 30  # «التسجيل مفتوح» بلا تواريخ يُصدَّق شهراً من آخر مرة قيل فيها
 
 
 @dataclass
@@ -35,6 +36,7 @@ class Program:
     majors: list[dict] = field(default_factory=list)
     models: list[str] = field(default_factory=list)
     uncertain: bool = False
+    alerted: bool = False  # وصل القروب تنبيه فيه موعد أو «فتح التسجيل»؛ شبكة الأمان تنبّه لما فاته
 
 
 def _jsonable(v):
@@ -54,6 +56,19 @@ def status_of(fields: dict, today: date) -> str:
     if opens or closes:
         return "open"
     return "announced"
+
+
+def _accepting(fields: dict, today: date) -> bool:
+    f = fields.get("accepting_now") or {}
+    return f.get("value") is True and bool(f.get("at")) and         (today - date.fromisoformat(f["at"][:10])).days <= ACCEPTING_FRESH_DAYS
+
+
+def program_status(p: Program, today: date) -> str:
+    """الحالة المعروضة: بالتواريخ إن وُجدت، وإلا «مفتوح» إذا قال المصدر حديثاً إن التسجيل مفتوح، وإلا «صفحة برنامج»."""
+    dates = {k: v["value"] for k, v in p.fields.items() if k in ("opens", "closes") and v.get("value")}
+    if dates:
+        return status_of(dates, today)
+    return "open" if _accepting(p.fields, today) else "listed"
 
 
 class Programs:
@@ -80,6 +95,8 @@ class Programs:
         p = self._find(entity_id, family, cycle, now)
         stamp = now.isoformat()
         new_fields = {k: {"value": _jsonable(f.value), "quote": f.quote} for k, f in v.fields.items()}
+        if "accepting_now" in new_fields:
+            new_fields["accepting_now"]["at"] = stamp
         if p is None:
             key = f"{entity_id}:{family}:{cycle or now.strftime('seen-%Y-%m-%d')}"
             p = Program(key, entity_id, family, v.kind, cycle or "", stamp, stamp, [source_url],
@@ -96,6 +113,9 @@ class Programs:
         gets_dates = any(new_fields.get(k, {}).get("value") for k in ("opens", "closes"))
         if change is None and not had_dates and gets_dates:
             change = Change("dates", p.key)  # برنامج معروف نزلت مواعيده لأول مرة: هذا هو الإعلان الفعلي
+        was_open = _accepting(p.fields, now.date())
+        if change is None and not had_dates and not gets_dates and not was_open                 and (new_fields.get("accepting_now") or {}).get("value") is True:
+            change = Change("opened", p.key)  # صفحة برنامج دائمة صارت تقول «التسجيل مفتوح»
         for name in ("opens", "closes"):
             old, new = p.fields.get(name, {}).get("value"), new_fields.get(name, {}).get("value")
             if change is None and old and new and old != new:

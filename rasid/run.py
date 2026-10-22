@@ -4,35 +4,55 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
+from collections import Counter
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
+from functools import cached_property
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Callable
+from urllib.parse import urlparse
 
-from rasid.classify.chain import Pending
+from rasid.classify.chain import CONTEXT_MARK, Pending
 from rasid.classify.schema import RELEVANT, Verdict
 from rasid.diff import new_blocks
-from rasid.entities import Channel, Entity
-from rasid.fetch import FetchResult
+from rasid.entities import Aggregator, Channel, Entity
+from rasid.fetch import Block, FetchResult, block_hash
+from rasid.match import find_entity, outside_id
 from rasid.notify.outbox import Outbox
-from rasid.notify.templates import KIND_AR, countdown, reminders, render
+from rasid.notify.templates import KIND_AR, countdown, days_ar, reminders, render
 from rasid.notify.webpush import push_payload
-from rasid.programs import Programs, status_of
+from rasid.programs import FAMILY, Change, Program, Programs, program_status
 from rasid.queue import QueueItem, RetryQueue
 
 MAX_INPUT = 9000          # حد طول النص المرسل للمصنّف
+MAX_FRESH = 6000          # حصة الجديد منه، والباقي سياق من بقية الصفحة
 SEEN_CAP = 3000           # أقصى بصمات محفوظة لكل قناة
 DEAD_AFTER = timedelta(hours=72)
 DIGEST_HOUR = 7
 FETCH_WORKERS = 8
+FOLLOW_MAX = 3            # روابط تدريب جديدة تُفتح من كل صفحة في الجولة
+FOLLOW_RUN_MAX = 40       # وحد أعلى للجولة كلها حماية لحصة الذكاء
+AGG_MAX = 8               # إعلانات تُقرأ من كل موقع تجميع في الجولة
+QUEUE_MAX_AGE = timedelta(days=7)
+VERDICT_LOG = 400
+AGG = "_agg"              # معرّف مواقع التجميع في الطابور والسجل
+LIVE = ("announced", "open", "closing_soon")
+
+# عنوان رابط يدل على برنامج تدريب أو تخرج يستحق فتح صفحته
+TRAINING = re.compile(r"تعاوني|تدريب|co-?op\b|intern|trainee|تمهير|حديثي التخرج|graduate|خريجين|summer|صيفي",
+                      re.IGNORECASE)
+_YEAR = re.compile(r"\b(?:202[6-9]|144[7-9])\b")
+_ATS = re.compile(r"hr\.cloud\.sap|successfactors|taleo|oraclecloud|myworkdayjobs|workday|jobs\.|careers?\.",
+                  re.IGNORECASE)
 
 
 @dataclass
 class Deps:
     fetch: Callable[[Channel], FetchResult]
     classify: Callable[[str], Verdict | Pending]
-    send: Callable[[str, str], int]  # (group|owner, نص) -> رقم الرسالة
+    send: Callable[[str, str], int]  # (group|owner|push, نص) -> رقم الرسالة
 
 
 @dataclass
@@ -44,6 +64,8 @@ class RunReport:
     pending: int = 0
     sent: int = 0
     deferred: int = 0
+    followed: int = 0
+    kinds: Counter = field(default_factory=Counter)
     errors: list[str] = field(default_factory=list)
 
 
@@ -79,6 +101,28 @@ class State:
         return st
 
 
+@dataclass
+class Ctx:
+    """ما تحتاجه الجولة كلها: الحالة، الأدوات، الوقت، الجهات، والتقرير."""
+    st: State
+    deps: Deps
+    now: datetime
+    entities: list[Entity]
+    rep: RunReport
+    over: Callable[[], bool]
+    follows_left: int = FOLLOW_RUN_MAX
+
+    @cached_property
+    def names(self) -> dict[str, str]:
+        return {e.id: e.name_ar for e in self.entities}
+
+    def name_of(self, p: Program) -> str:
+        return self.names.get(p.entity_id) or (p.fields.get("entity_name") or {}).get("value") or p.entity_id
+
+    def stars_of(self, entity_id: str) -> int:
+        return next((e.stars_manual or 3 for e in self.entities if e.id == entity_id), 3)
+
+
 def _id(*parts: str) -> str:
     return hashlib.sha256("|".join(parts).encode("utf-8")).hexdigest()[:16]
 
@@ -91,15 +135,18 @@ def _safe_classify(deps: Deps, text: str) -> Verdict | Pending:
 
 
 def _upcoming(fields: dict, today) -> bool:
-    """فيه نافذة تقديم مفتوحة أو قادمة بتاريخ صريح."""
+    """فيه نافذة تقديم مفتوحة أو قادمة بتاريخ صريح، أو قال المصدر إن التسجيل مفتوح الآن."""
     dates = [v["value"] for k, v in fields.items() if k in ("opens", "closes") and v.get("value")]
-    return any(datetime.fromisoformat(d).date() >= today for d in dates)
+    if dates:
+        return any(datetime.fromisoformat(d).date() >= today for d in dates)
+    return (fields.get("accepting_now") or {}).get("value") is True
 
 
-HEADLINE = {"new": "جديد", "dates": "أعلنت المواعيد", "hint": "تلميح غير مؤكّد", "important_update": "تحديث مهم"}
+HEADLINE = {"new": "جديد", "dates": "أعلنت المواعيد", "opened": "فتح التسجيل", "hint": "تلميح غير مؤكّد",
+            "important_update": "تحديث مهم"}
 
 
-def _push_text(change, p, name: str, stars: int, today) -> str:
+def _push_text(change: Change, p: Program, name: str, stars: int, today) -> str:
     """نص التنبيه المباشر للجوال: سطران، والضغط يفتح بطاقة الجهة (entity)."""
     head = HEADLINE.get(change.kind, "جديد")
     if change.kind == "new":
@@ -109,108 +156,301 @@ def _push_text(change, p, name: str, stars: int, today) -> str:
     return push_payload(name, p.entity_id, stars, head, body)
 
 
-def _handle(st: State, deps: Deps, now: datetime, entity_id: str, name: str, url: str, text: str,
-            item_id: str, rep: RunReport, queued: QueueItem | None = None, first_sight: bool = False,
-            stars: int = 3) -> None:
-    r = _safe_classify(deps, text)
+def _alert(c: Ctx, change: Change, p: Program) -> None:
+    name = c.name_of(p)
+    msg_id = f"{change.kind}:{p.key}:{_id(change.detail_ar)}"
+    c.st.outbox.enqueue(msg_id, "group", render(change, p, name, c.now.date()), c.now)
+    c.st.outbox.enqueue("push:" + msg_id, "push", _push_text(change, p, name, c.stars_of(p.entity_id), c.now.date()),
+                        c.now)
+    c.st.meta["new_since_digest"].append(p.key)
+    if program_status(p, c.now.date()) in LIVE:
+        p.alerted = True
+
+
+def _log(c: Ctx, entity_id: str, url: str, r: Verdict | Pending, note: str = "") -> None:
+    """سجل الأحكام: لماذا رأى راصد ما رأى. يبقى آخر ٤٠٠ في الحالة."""
+    if isinstance(r, Pending):
+        row = {"kind": "pending", "why": r.reason_ar[:200]}
+    else:
+        f = lambda k: (r.fields.get(k).value if r.fields.get(k) else None)  # noqa: E731
+        row = {"kind": r.kind, "model": r.model, "title": f("title"), "opens": str(f("opens") or "") or None,
+               "closes": str(f("closes") or "") or None, "open_now": f("accepting_now"),
+               "why": " | ".join(r.notes[-2:])[:300] or None}
+    c.rep.kinds[row["kind"]] += 1
+    log = c.st.meta.setdefault("verdicts", [])
+    log.append({"at": c.now.isoformat(timespec="minutes"), "entity": entity_id, "url": url, **row,
+                **({"note": note} if note else {})})
+    del log[:-VERDICT_LOG]
+
+
+Resolver = Callable[[Verdict, str], "tuple[str, str] | None"]
+
+
+def _handle(c: Ctx, entity_id: str, url: str, text: str, item_id: str,
+            queued: QueueItem | None = None, first_sight: bool = False, resolve: Resolver | None = None) -> None:
+    st, now = c.st, c.now
+    r = _safe_classify(c.deps, text)
     recheck_of = queued.recheck_of if queued else None
     if isinstance(r, Pending) or (recheck_of and r.needs_recheck):
-        rep.pending += 1
+        c.rep.pending += 1
         reason = r.reason_ar if isinstance(r, Pending) else "المؤكّد ما زال غير متاح"
         if queued:
             st.queue.fail(queued.id, reason, now)
         else:
             st.queue.add(item_id, entity_id, url, text, reason, now)
+        _log(c, entity_id, url, r if isinstance(r, Pending) else Pending(reason))
         return
-    rep.verdicts += 1
+    c.rep.verdicts += 1
     if queued:
         st.queue.mark_done(queued.id)
+    if resolve is not None:  # إعلان من موقع تجميع: صاحبه يُعرف من نصه
+        who = resolve(r, text) if r.kind != "irrelevant" else None
+        _log(c, who[0] if who else entity_id, url, r, note="من موقع تجميع")
+        if who is None:
+            return
+        entity_id, name = who
+    else:
+        _log(c, entity_id, url, r)
+        name = c.names.get(entity_id, entity_id)
     if recheck_of and r.kind != recheck_of and recheck_of in RELEVANT:
         st.outbox.enqueue(f"fix:{item_id}", "group",
                           f"🔁 تصحيح: {name}\nالتصنيف السابق «{KIND_AR.get(recheck_of, recheck_of)}» "
                           f"غير دقيق، والصحيح «{KIND_AR.get(r.kind, 'غير ذي صلة')}».", now)
     p, change = st.programs.merge(entity_id, r, url, now)
     # أول مرة نرى الصفحة: لا ننبّه إلا لنافذة مفتوحة أو قادمة (الصفحات الدائمة والبرامج المنتهية تُحفظ بهدوء)
-    closes = (p.fields.get("closes") or {}).get("value") if p else None
-    already_closed = bool(closes) and datetime.fromisoformat(closes).date() < now.date()
-    quiet = already_closed or (first_sight and p is not None and not _upcoming(p.fields, now.date()))
+    closed = p is not None and program_status(p, now.date()) == "closed"
+    quiet = closed or (first_sight and p is not None and not _upcoming(p.fields, now.date()))
     if change and p and p.family == "student" and not quiet:
-        msg_id = f"{change.kind}:{p.key}:{_id(change.detail_ar)}"
-        st.outbox.enqueue(msg_id, "group", render(change, p, name, now.date()), now)
-        st.outbox.enqueue("push:" + msg_id, "push", _push_text(change, p, name, stars, now.date()), now)
-        st.meta["new_since_digest"].append(p.key)
+        _alert(c, change, p)
     if r.needs_recheck and not recheck_of:
-        st.queue.add("re:" + item_id, entity_id, url, text, "إعادة فحص بالنموذج الأساسي", now, recheck_of=r.kind)
+        st.queue.add("re:" + item_id, entity_id if resolve is None else AGG, url, text,
+                     "إعادة فحص بالنموذج الأساسي", now, recheck_of=r.kind)
 
 
-def _safe_fetch(deps: Deps, e: Entity, ch: Channel) -> FetchResult:
+def _resolver(entities: list[Entity]) -> Resolver:
+    """صاحب الإعلان: اسم الجهة الذي استخرجه المصنّف، ثم عنوان الإعلان. جهة خارج القائمة تُقبل للبرامج الطلابية فقط."""
+    def resolve(v: Verdict, text: str) -> tuple[str, str] | None:
+        named = (v.fields.get("entity_name").value if v.fields.get("entity_name") else "") or ""
+        title = next((l.split(":", 1)[1] for l in text.splitlines() if l.startswith("عنوان الإعلان:")), "")
+        e = find_entity(named, entities) or find_entity(title, entities)
+        if e is not None:
+            return e.id, e.name_ar
+        oid = outside_id(named) if named else None
+        if oid and FAMILY.get(v.kind) == "student":
+            return oid, named
+        return None
+    return resolve
+
+
+def _safe_fetch(deps: Deps, ch: Channel, label: str) -> FetchResult:
     try:
         return deps.fetch(ch)
     except Exception as ex:  # noqa: BLE001 — مصدر واحد لا يسقط الجولة
-        return FetchResult(False, ch.url, error_ar=f"[الجالب][{e.name_ar}][{ch.url}] انهيار: {ex}")
+        return FetchResult(False, ch.url, error_ar=f"[الجالب][{label}][{ch.url}] انهيار: {ex}")
 
 
-def _fetch_channel(st: State, deps: Deps, now: datetime, e: Entity, ch: Channel, rep: RunReport,
-                   res: FetchResult, defer: bool = False) -> None:
-    h = st.health.setdefault(ch.url, {"entity": e.id, "name": e.name_ar, "last_success": None,
-                                      "last_error_ar": None, "consecutive_failures": 0, "first_failure": None})
+def _record_health(c: Ctx, entity_id: str, name: str, url: str, res: FetchResult) -> bool:
+    h = c.st.health.setdefault(url, {"entity": entity_id, "name": name, "last_success": None,
+                                     "last_error_ar": None, "consecutive_failures": 0, "first_failure": None})
     if not res.ok:
-        rep.fetch_fail += 1
+        c.rep.fetch_fail += 1
         h["consecutive_failures"] += 1
-        h["first_failure"] = h["first_failure"] or now.isoformat()
-        h["last_error_ar"] = res.error_ar
-        rep.errors.append(res.error_ar or "")
-        return
-    rep.fetch_ok += 1
-    h.update(last_success=now.isoformat(), consecutive_failures=0, first_failure=None, last_error_ar=None,
-             via=res.via)
-    prev = st.seen.get(ch.url, [])
-    fresh = new_blocks(set(prev), res)
-    if not fresh:
-        return
-    if defer:  # انتهت ميزانية الوقت: يُترك للجولة التالية ولا يُعلَّم مقروءاً
-        rep.deferred += 1
-        return
-    rep.new_items += 1
-    body = "\n".join(b.text for b in fresh)[:MAX_INPUT]
+        h["first_failure"] = h["first_failure"] or c.now.isoformat()
+        h.update(last_error_ar=res.error_ar, junk=res.junk)
+        c.rep.errors.append(res.error_ar or "")
+        return False
+    c.rep.fetch_ok += 1
+    h.update(last_success=c.now.isoformat(), consecutive_failures=0, first_failure=None, last_error_ar=None,
+             via=res.via, junk=False)
+    return True
+
+
+def _context_text(name: str, url: str, fresh: list[Block], res: FetchResult) -> str:
+    """الجديد أولاً، ثم بقية الصفحة سياقاً: سطر «التقديم من ٢٦ أكتوبر» وحده لا يكفي ليُفهم."""
+    fresh_ids = {id(b) for b in fresh}
+    new = "\n".join(b.text for b in fresh)[:MAX_FRESH]
+    rest = "\n".join(b.text for b in res.blocks if id(b) not in fresh_ids)
+    head = f"الجهة: {name}\nالرابط: {url}\n\n"
+    if rest:
+        body = f"الجديد في الصفحة:\n{new}\n\n{CONTEXT_MARK}\n{rest[:max(0, MAX_INPUT - len(new))]}"
+    else:
+        body = f"النص:\n{new}"
     links = "\n".join(f"{t}: {u}" for t, u in res.links[:40])
-    text = f"الجهة: {e.name_ar}\nالرابط: {ch.url}\n\nالنص:\n{body}" + (f"\n\nروابط الصفحة:\n{links}" if links else "")
-    _handle(st, deps, now, e.id, e.name_ar, ch.url, text, _id(ch.url, body), rep, first_sight=ch.url not in st.seen,
-            stars=e.stars_manual or 3)
+    return head + body + (f"\n\nروابط الصفحة:\n{links}" if links else "")
+
+
+def _site(host: str) -> str:
+    parts = host.lower().split(".")
+    return ".".join(parts[-3:] if len(parts) > 2 and parts[-2] in ("gov", "com", "org", "edu", "net") else parts[-2:])
+
+
+LINKS_SCANNED = "L*"  # علامة: روابط هذه الصفحة فُحصت مرة، فكل رابط بعدها جديد فعلاً
+
+
+def _link_key(url: str) -> str:
+    return "L" + block_hash(url)
+
+
+def _follow_candidates(ch: Channel, res: FetchResult, prev: set[str]) -> tuple[list[tuple[str, str]], list[str]]:
+    """روابط تدريب جديدة في الصفحة (نفس الموقع أو بوابة توظيف). أول مرة: ما فيه سنة حالية فقط، والباقي يُحفظ مقروءاً."""
+    first = LINKS_SCANNED not in prev
+    home = _site(urlparse(ch.url).netloc)
+    pairs = list(res.links) + [(b.text, b.link) for b in res.blocks if b.link]
+    out, keys, seen_urls = [], [], set()
+    for label, link in pairs:
+        u = link.split("#")[0]
+        p = urlparse(u)
+        if p.scheme not in ("http", "https") or u in seen_urls or u.rstrip("/") == ch.url.rstrip("/") \
+                or p.path.lower().endswith((".pdf", ".jpg", ".png", ".docx")) or not TRAINING.search(label):
+            continue
+        if _site(p.netloc) != home and not _ATS.search(p.netloc):
+            continue
+        seen_urls.add(u)
+        key = _link_key(u)
+        if key in prev:
+            continue
+        keys.append(key)
+        if not first or _YEAR.search(label):
+            out.append((label[:200], u))
+    return out, keys
+
+
+def _follow(c: Ctx, e: Entity, ch: Channel, res: FetchResult, prev: set[str], first_sight: bool) -> list[str]:
+    """يفتح صفحات روابط التدريب الجديدة ويصنّفها لنفس الجهة. يرجع بصمات الروابط التي انتهى منها."""
+    cands, keys = _follow_candidates(ch, res, prev)
+    wanted = {u for _, u in cands}
+    first_links = LINKS_SCANNED not in prev
+    done = [k for k in keys if k not in {_link_key(u) for u in wanted}]  # روابط عادية تُحفظ مقروءة
+    if first_links:
+        done.append(LINKS_SCANNED)
+    taken = 0
+    for label, u in cands:
+        if taken >= FOLLOW_MAX or c.follows_left <= 0 or c.over():
+            break  # الباقي يُفتح في الجولة التالية
+        taken += 1
+        c.follows_left -= 1
+        c.rep.followed += 1
+        d = _safe_fetch(c.deps, Channel("web", u), e.name_ar)
+        done.append(_link_key(u))
+        if not d.ok:
+            continue
+        body = "\n".join(b.text for b in d.blocks)[:MAX_INPUT]
+        text = f"الجهة: {e.name_ar}\nالرابط: {u}\n\nعنوان الرابط في صفحة الجهة: {label}\n\nالنص:\n{body}"
+        _handle(c, e.id, u, text, _id(u, body), first_sight=first_sight or first_links)
+    return done
+
+
+def _process_channel(c: Ctx, e: Entity, ch: Channel, res: FetchResult) -> None:
+    if not _record_health(c, e.id, e.name_ar, ch.url, res):
+        return
+    prev = c.st.seen.get(ch.url, [])
+    prev_set = set(prev)
+    first_sight = ch.url not in c.st.seen
+    if c.over():  # انتهت ميزانية الوقت: يُترك للجولة التالية ولا يُعلَّم مقروءاً
+        if new_blocks(prev_set, res):
+            c.rep.deferred += 1
+        return
+    links_done = _follow(c, e, ch, res, prev_set, first_sight)
+    fresh = new_blocks(prev_set, res)
+    if fresh:
+        c.rep.new_items += 1
+        body = "\n".join(b.text for b in fresh)[:MAX_INPUT]
+        _handle(c, e.id, ch.url, _context_text(e.name_ar, ch.url, fresh, res), _id(ch.url, body),
+                first_sight=first_sight)
     # تُعلَّم مقروءة فقط بعد حكم أو دخول الطابور (النص محفوظ فيه، فلا ضياع)
-    st.seen[ch.url] = (prev + [b.hash for b in fresh])[-SEEN_CAP:]
+    c.st.seen[ch.url] = (prev + [b.hash for b in fresh] + links_done)[-SEEN_CAP:]
 
 
-def _digests(st: State, now: datetime, entities: list[Entity]) -> None:
-    today = now.date()
+def _process_aggregator(c: Ctx, agg: Aggregator, res: FetchResult, resolve: Resolver) -> None:
+    """كل إعلان تدريب جديد في موقع التجميع: تُفتح صفحته، ويُصنَّف، ويُنسب لجهته."""
+    if not _record_health(c, AGG, agg.name, agg.url, res):
+        return
+    prev = c.st.seen.get(agg.url, [])
+    prev_set = set(prev)
+    first_sight = agg.url not in c.st.seen
+    done, taken = [], 0
+    for b in new_blocks(prev_set, res):
+        if not b.link or not TRAINING.search(b.text):
+            done.append(b.hash)
+            continue
+        if taken >= AGG_MAX or c.over():
+            c.rep.deferred += 1
+            continue
+        taken += 1
+        c.rep.new_items += 1
+        d = _safe_fetch(c.deps, Channel("web", b.link), agg.name)
+        body = "\n".join(x.text for x in d.blocks)[:MAX_INPUT] if d.ok else b.text
+        text = (f"المصدر: موقع تجميع ({agg.name})\nالرابط: {b.link}\n\nعنوان الإعلان: {b.text[:300]}\n\n"
+                f"النص:\n{body}")
+        _handle(c, AGG, b.link, text, _id(b.link, b.text), first_sight=first_sight, resolve=resolve)
+        done.append(b.hash)
+    c.st.seen[agg.url] = (prev + done)[-SEEN_CAP:]
+
+
+def _safety_net(c: Ctx) -> None:
+    """برنامج مفتوح أو بموعد قادم ولم يصل القروب تنبيهه (خلل سابق أو أُضيف بهدوء): يُنبَّه مرة واحدة."""
+    for p in c.st.programs.items.values():
+        if p.family != "student" or p.alerted or program_status(p, c.now.date()) not in LIVE:
+            continue
+        has_dates = any((p.fields.get(k) or {}).get("value") for k in ("opens", "closes"))
+        _alert(c, Change("dates" if has_dates else "opened", p.key), p)
+
+
+def _digests(c: Ctx, aggregators: list[Aggregator]) -> None:
+    st, now, today = c.st, c.now, c.now.date()
     if now.hour < DIGEST_HOUR or st.meta.get("last_digest") == today.isoformat():
         return
-    names = {e.id: e.name_ar for e in entities}
-    open_now, closing = [], []
+    open_now, closing, soon = [], [], []
     for p in st.programs.items.values():
         if p.family != "student":
             continue
-        s = status_of({k: v["value"] for k, v in p.fields.items() if k in ("opens", "closes")}, today)
-        (closing if s == "closing_soon" else open_now if s == "open" else []).append(names.get(p.entity_id, p.entity_id))
-    new = len(set(st.meta["new_since_digest"]))
+        s, name = program_status(p, today), c.name_of(p)
+        opens = (p.fields.get("opens") or {}).get("value")
+        if s == "closing_soon":
+            closing.append(name)
+        elif s == "open":
+            open_now.append(name)
+        elif s == "announced" and opens:
+            soon.append((opens, f"{name} (بعد {days_ar((datetime.fromisoformat(opens).date() - today).days)})"))
     lines = ["☀️ ملخّص راصد الصباحي"]
-    if open_now:
-        lines.append("🟢 مفتوح الآن: " + "، ".join(open_now))
     if closing:
-        lines.append("⏳ يقفل قريباً: " + "، ".join(closing))
-    lines.append(f"🆕 جديد منذ أمس: {new}" if new else "ما فيه جديد.")
-    lines.append("راصد شغّال ✅")
+        lines.append("⏳ يقفل قريباً: " + "، ".join(sorted(set(closing))))
+    if open_now:
+        lines.append("🟢 مفتوح الآن: " + "، ".join(sorted(set(open_now))))
+    if soon:
+        lines.append("📅 يفتح قريباً: " + "، ".join(x for _, x in sorted(set(soon))))
+    new = len(set(st.meta["new_since_digest"]))
+    lines.append(f"🆕 جديد منذ أمس: {new}" if new else "ما فيه جديد منذ أمس.")
+    watched = [e for e in c.entities if e.channels]
+    readable = sum(1 for e in watched if any(_healthy(st.health.get(ch.url)) for ch in e.channels))
+    agg_ok = sum(1 for a in aggregators if _healthy(st.health.get(a.url)))
+    lines.append(f"👁️ يقرأ راصد الآن مواقع {readable} جهة من {len(c.entities)}"
+                 + (f"، ومواقع التجميع {agg_ok} من {len(aggregators)}." if aggregators else "."))
     st.outbox.enqueue(f"digest:{today}", "group", "\n".join(lines), now)
+
     total = len(st.health)
     bad = [h for h in st.health.values() if h["consecutive_failures"]]
+    dead = [h for u, h in st.health.items() if h["first_failure"]
+            and now - datetime.fromisoformat(h["first_failure"]) >= DEAD_AFTER]
+    day_ago = (now - timedelta(days=1)).isoformat()
+    kinds = Counter(v["kind"] for v in st.meta.get("verdicts", []) if v["at"] >= day_ago[:16])
     owner = [f"🛠️ تقرير المحرّك اليومي ({today})",
-             f"المصادر السليمة: {total - len(bad)} من {total}",
+             f"المصادر السليمة: {total - len(bad)} من {total} (غير صالحة: {sum(1 for h in bad if h.get('junk'))}، "
+             f"محجوبة أو معطلة: {sum(1 for h in bad if not h.get('junk'))})",
+             f"جهات تُقرأ: {readable} من {len(c.entities)}، بلا أي مصدر: {len(c.entities) - len(watched)}",
+             "أحكام آخر ٢٤ ساعة: " + ("، ".join(f"{KIND_AR.get(k, k)} {n}" for k, n in kinds.most_common()) or "لا شيء"),
              f"طابور الإعادة: {len(st.queue.items)} (العالق: {len(st.queue.stuck(now))})",
              f"رسائل تنتظر الإرسال: {len(st.outbox.pending)}"]
-    owner += [f"• {h['name']}: {h['last_error_ar']}" for h in bad[:8]]
-    st.outbox.enqueue(f"owner-digest:{today}", "owner", "\n".join(owner), now, urgent=True)
+    if dead:
+        owner.append(f"مصادر لا تُقرأ منذ ٣ أيام أو أكثر: {len(dead)}")
+        owner += [f"• {h['name']}: {(h['last_error_ar'] or '')[-120:]}" for h in dead[:10]]
+    st.outbox.enqueue(f"owner-digest:{today}", "owner", "\n".join(owner), now)
     st.meta["last_digest"] = today.isoformat()
     st.meta["new_since_digest"] = []
+
+
+def _healthy(h: dict | None) -> bool:
+    return bool(h) and h["consecutive_failures"] == 0 and bool(h["last_success"])
 
 
 def saudi_list(st: State) -> list[str]:
@@ -220,40 +460,45 @@ def saudi_list(st: State) -> list[str]:
 
 def run_once(now: datetime, entities: list[Entity], st: State, deps: Deps,
              deadline: Callable[[], bool] | None = None, checkpoint: Callable[[], None] | None = None,
-             checkpoint_every: int = 25) -> RunReport:
+             checkpoint_every: int = 25, aggregators: list[Aggregator] | None = None) -> RunReport:
     """deadline: إذا رجعت True يتوقف التصنيف بنظافة ويُترك الباقي للجولة التالية.
     checkpoint: حفظ دوري أثناء الجولة حتى لا يضيع شيء لو قُتلت."""
-    rep = RunReport()
-    over = deadline or (lambda: False)
-    names = {e.id: e.name_ar for e in entities}
-    stars = {e.id: e.stars_manual or 3 for e in entities}
+    aggregators = aggregators or []
+    st.meta.setdefault("new_since_digest", [])
+    c = Ctx(st, deps, now, entities, RunReport(), deadline or (lambda: False))
+    resolve = _resolver(entities)
     jobs = [(e, ch) for e in entities for ch in e.channels if ch.kind in ("web", "rss")]
+    feeds = [Channel(a.kind, a.url) for a in aggregators]
     # الجلب بالتوازي (المواقع المحجوبة بطيئة)، والمعالجة بالترتيب حتى تبقى الحالة متسقة
     with ThreadPoolExecutor(max_workers=FETCH_WORKERS) as pool:
-        results = list(pool.map(lambda j: _safe_fetch(deps, *j), jobs))
+        results = list(pool.map(lambda j: _safe_fetch(deps, j[1], j[0].name_ar), jobs))
+        agg_results = list(pool.map(lambda ch: _safe_fetch(deps, ch, "موقع تجميع"), feeds))
+    for agg, res in zip(aggregators, agg_results):
+        _process_aggregator(c, agg, res, resolve)
     for i, ((e, ch), res) in enumerate(zip(jobs, results), 1):
-        _fetch_channel(st, deps, now, e, ch, rep, res, defer=over())
+        _process_channel(c, e, ch, res)
         if checkpoint and i % checkpoint_every == 0:
             checkpoint()
     for it in st.queue.due(now):
-        if over():
+        if c.over():
             break
-        _handle(st, deps, now, it.entity_id, names.get(it.entity_id, it.entity_id), it.url, it.text,
-                it.id, rep, queued=it, stars=stars.get(it.entity_id, 3))
-    for msg_id, text in reminders(list(st.programs.items.values()), now.date(), names):
+        if now - it.first_seen > QUEUE_MAX_AGE:  # أسبوع بلا حكم: يُسجَّل ويُرمى بدل الإعادة للأبد
+            _log(c, it.entity_id, it.url, Pending(f"انتهت مهلة الطابور بعد {it.attempts} محاولات: {it.reason_ar}"))
+            st.queue.mark_done(it.id)
+            continue
+        _handle(c, it.entity_id, it.url, it.text, it.id, queued=it,
+                resolve=resolve if it.entity_id == AGG else None)
+    _safety_net(c)
+    for msg_id, text in reminders(list(st.programs.items.values()), now.date(), c.names):
+        p = st.programs.items[msg_id.split(":", 1)[1]]
         st.outbox.enqueue(msg_id, "group", text, now)
-        eid = msg_id.split(":")[1]
         st.outbox.enqueue("push:" + msg_id, "push",
-                          push_payload(names.get(eid, eid), eid, stars.get(eid, 3), "تذكير", text.splitlines()[0].replace("⏰ ", "")), now)
+                          push_payload(c.name_of(p), p.entity_id, c.stars_of(p.entity_id), "تذكير",
+                                       text.splitlines()[0].replace("⏰ ", "").replace("🔔 ", "")), now)
     for it in st.queue.stuck(now):
         st.outbox.enqueue(f"stuck:{it.id}", "owner",
-                          f"⚠️ عالق في طابور الإعادة: {names.get(it.entity_id, it.entity_id)}\n"
-                          f"المحاولات: {it.attempts}\nالسبب: {it.reason_ar}", now, urgent=True)
-    for url, h in st.health.items():
-        if h["first_failure"] and now - datetime.fromisoformat(h["first_failure"]) >= DEAD_AFTER:
-            st.outbox.enqueue(f"dead:{url}:{now.date()}", "owner",
-                              f"🔴 مصدر لا يُقرأ منذ ٣ أيام: {h['name']}\n{url}\nالسبب: {h['last_error_ar']}",
-                              now, urgent=True)
-    _digests(st, now, entities)
-    rep.sent = st.outbox.flush(now, deps.send)
-    return rep
+                          f"⚠️ عالق في طابور الإعادة: {c.names.get(it.entity_id, it.entity_id)}\n"
+                          f"المحاولات: {it.attempts}\nالسبب: {it.reason_ar}", now)
+    _digests(c, aggregators)
+    c.rep.sent = st.outbox.flush(now, deps.send)
+    return c.rep

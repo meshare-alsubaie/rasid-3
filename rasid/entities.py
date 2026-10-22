@@ -38,6 +38,7 @@ class Entity:
     fulltime_history: Literal["yes", "no", "unknown"] = "unknown"
     fulltime_evidence: str | None = None
     usual_months: list[int] = field(default_factory=list)
+    aliases: list[str] = field(default_factory=list)  # أسماء أخرى تُعرف بها الجهة في مواقع التجميع
 
 
 class _LineLoader(yaml.SafeLoader):
@@ -94,8 +95,11 @@ def _parse_entity(d: dict) -> Entity:
     months = d.get("usual_months") or []
     if not all(isinstance(m, int) and 1 <= m <= 12 for m in months):
         raise EntityFileError(d["__lines__"].get("usual_months", d["__line__"]), "الأشهر لازم أرقام من 1 إلى 12")
+    aliases = d.get("aliases") or []
+    if not isinstance(aliases, list) or not all(isinstance(a, str) and a.strip() for a in aliases):
+        raise EntityFileError(d["__lines__"].get("aliases", d["__line__"]), "aliases لازم قائمة أسماء نصية")
     return Entity(
-        id=d["id"].strip(), name_ar=d["name_ar"].strip(),
+        id=d["id"].strip(), name_ar=d["name_ar"].strip(), aliases=[a.strip() for a in aliases],
         cyber=_int_in(d, "cyber", 0, 3, True), hires_after=_int_in(d, "hires_after", 0, 3, True),
         channels=channels, stars_manual=_int_in(d, "stars_manual", 1, 5, False),
         fulltime_history=ft, fulltime_evidence=d.get("fulltime_evidence"), usual_months=list(months),
@@ -129,3 +133,27 @@ def load_entities_safe(path: Path, last_good: Path) -> tuple[list[Entity], str |
         return load_entities(last_good), str(err)
     shutil.copyfile(path, last_good)
     return entities, None
+
+
+@dataclass(frozen=True)
+class Aggregator:
+    """موقع تجميع: ينشر إعلانات جهات كثيرة في يومها، فيغطي الجهات التي لا يُقرأ موقعها."""
+    name: str
+    url: str
+    kind: ChannelKind = "rss"
+
+
+def load_aggregators(path: Path) -> list[Aggregator]:
+    if not Path(path).exists():
+        return []
+    data = yaml.load(Path(path).read_text(encoding="utf-8"), Loader=_LineLoader) or []
+    out = []
+    for d in data:
+        if not isinstance(d, dict) or not isinstance(d.get("name"), str) or not _url_ok(d.get("url")):
+            raise EntityFileError(d.get("__line__", 1) if isinstance(d, dict) else 1,
+                                  "كل موقع تجميع لازم له name ورابط url صالح")
+        kind = d.get("kind", "rss")
+        if kind not in ("rss", "web"):
+            raise EntityFileError(d["__line__"], "نوع موقع التجميع لازم rss أو web")
+        out.append(Aggregator(d["name"].strip(), d["url"].strip(), kind))
+    return out

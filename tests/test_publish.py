@@ -62,3 +62,21 @@ def test_expected_month_from_history_else_usual_else_unknown():
     assert expected_month(ARAMCO, ["2025-10-20", "2024-10-28", "2023-11-01"]) == 10
     assert expected_month(ARAMCO, []) == 10
     assert expected_month(SDAIA, []) is None
+
+
+def test_entities_say_whether_rasid_actually_watches_them():
+    st = state()
+    st.health["https://s/x"].update(consecutive_failures=3, last_success=None)
+    nothing = Entity("site", "الشركة السعودية لتقنية المعلومات", 1, 1, [])
+    r = build_results(st, [ARAMCO, SDAIA, nothing], NOW)
+    watch = {e["id"]: e["watch"] for e in r["entities"]}
+    assert watch == {"aramco": "ok", "sdaia": "blind", "site": "none"}
+
+
+def test_outside_entity_from_aggregator_is_published_with_its_name():
+    st = state()
+    v = Verdict("coop", "m", {"accepting_now": Field(True, "فتح باب التسجيل"), "entity_name": Field("شركة سيمنس", "q")})
+    st.programs.merge("x:سيمنس", v, "https://agg/post", NOW)
+    r = build_results(st, [ARAMCO, SDAIA], NOW)
+    e = next(e for e in r["entities"] if e["id"] == "x:سيمنس")
+    assert e["outside"] and e["name"] == "شركة سيمنس" and e["status"] == "open"

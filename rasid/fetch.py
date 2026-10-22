@@ -2,12 +2,13 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import os
 import re
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass, field
 from datetime import datetime
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlparse
 
 import httpx
 import lxml.html
@@ -45,11 +46,86 @@ def _from_inbox(url: str) -> tuple["FetchResult | None", str]:
         return None, f"ونسخة جهاز المؤسس قديمة (منذ {int(age)} ساعة، الجهاز مطفي غالباً)"
     if not e.get("ok"):
         return None, f"وجهاز المؤسس فشل أيضاً: {e.get('error_ar', '')}"
-    blocks = [Block(t) for t in e.get("blocks", [])]
+    blocks = [Block(t) for t in e.get("blocks", []) if not _is_boilerplate(t)]
     links = [tuple(x) for x in e.get("links", [])]
-    return FetchResult(True, url, blocks, links, via="home"), ""
-_BOILERPLATE = re.compile(r"موقع حكومي مسجل|جميع الحقوق محفوظة|قد تم حظر هذا المحتوى|الرجاء إعطاء الموافقة")
+    junk = junk_reason(blocks, url, e.get("final_url") or url)
+    if junk:
+        return None, f"ونسخة جهاز المؤسس غير صالحة: {junk}"
+    return FetchResult(True, url, blocks, links, via="home", final_url=e.get("final_url") or url), ""
+
+
+# سطور قصيرة تتكرر في كل صفحة (شريط المواقع الحكومية، التقييم، الكوكيز، تاريخ آخر تعديل).
+# حذفها يمنع «جديد» وهمي كل جولة، ويكشف الصفحة الفارغة التي لا تحوي إلا هذه السطور.
+_BOILERPLATE = re.compile(
+    r"موقع حكومي (?:مسجل|رسمي)|جميع الحقوق محفوظة|قد تم حظر هذا المحتوى|الرجاء إعطاء الموافقة"
+    r"|كيف تتحقق|روابط المواقع ال[اإ]لكترونية الرسمية|جميع روابط المواقع الرسمية|المواقع ال[اإ]لكترونية الآمنة"
+    r"|مسجل لدى هيئة الحكومة الرقمية|تحقق من أن الموقع يستخدم|government website registered"
+    r"|official saudi government websites|website belongs to an official"
+    r"|هل (?:كانت هذه الصفحة مفيدة|أعجبك المحتوى|استفدت من المعلومات)|أعجبهم المحتوى|قالوا نعم من|من الزوار أعجبهم"
+    r"|تاريخ آخر (?:تحديث|تعديل)|last modified date|was this page useful|of users said yes"
+    r"|ملفات تعريف الارتباط|\bcookies?\b|skip to main content|skip navigation links"
+    r"|(?:تخطي|الانتقال|انتقل|تجاوز) إلى المحتوى|تكبير حجم الخط|عكس الألوان|الأوامر الصوتية"
+    r"|^حجم النص$|تباين عالي|وضع التدرج الرمادي"
+    r"|(?:تستخدم|يستخدم|use|using)\s*(?:بروتوكول\s*)?https|بروتوكول ?https|https protocol|المواقع ال[اإ]لكترونية الحكومية تستخدم|^https$|للتشفير و ?الأمان|^gov\.sa$|^how to know$|official (?:reliable )?website"
+    r"|secured governments? websites|registered (?:on|with) (?:the )?digital government"
+    r"|^\d{8,}$|^\d{1,3} ?%$|^[-•]?\s*(?:استطلاع الرأي|أدوات التحكم|تصويت)$|قالو(?:ا)? نعم"
+    r"|سيتم قراءة النص|^(?:تحميل|loading)(?:\.{3}| page)?$|^نسخة تجريبية$|^ok cancel$"
+    r"|عزيزي الزائر لضمان|^(?:جوجل كروم|فايرفوكس|سفاري|مايكروسوفت إيدج)$|نسخ رابط الصفحة|page link is copied"
+    r"|لإضافة الصفحة للمفضلة|(?:إرسال|استلام|بتقديم) ملاحظاتك|بيان المشاركة ال[اإ]لكترونية|^التعليقات والاقتراحات$"
+    r"|يرجى إخبارنا بالسبب|شكر\S* لملاحظاتك|^أنا$|add this page as favou?rite|^please select$"
+    r"|^الرجاء الضغط على$|^log ?in$|^home page$|skiptomaincontent|^change language to:?$"
+    r"|links to official saudi websites|^encryption$|^and security\.?$|^للمزيد\s+من المعلومات$",
+    re.IGNORECASE)
 _DIGITS = str.maketrans("٠١٢٣٤٥٦٧٨٩۰۱۲۳۴۵۶۷۸۹", "01234567890123456789")
+
+
+def _is_boilerplate(line: str) -> bool:
+    return len(line) < 250 and bool(_BOILERPLATE.search(line))
+
+
+# صفحة تردّ بنجاح لكنها لا تحمل المحتوى: رسالة خطأ، تسجيل دخول، تحويل للرئيسية، أو تطبيق يحتاج متصفحاً كاملاً
+_ERROR_PAGE = re.compile(
+    r"حدث خطأ ما في طلبك|الصفحة (?:المطلوبة )?غير موجودة|لم يتم العثور على الصفحة|page not found"
+    r"|page (?:was moved|no longer exists|you requested)|the requested url was rejected|access denied"
+    r"|تم رفض الوصول|انتهت صلاحية|لم نستطع إيجاد الصفحة|لم نتمكن من العثور على|no longer available|لم تعد متاحة|404 not found|error 404"
+    r"|something went wrong|support id is|request unsuccessful|attention required|just a moment"
+    r"|checking your browser|think you were a bot|are you a robot|verify you are (?:a )?human|unusual traffic",
+    re.IGNORECASE)
+_NEEDS_JS = re.compile(r"enable javascript|javascript (?:is )?required|requires javascript|without javascript"
+                       r"|يتطلب جافا ?سكريبت|تفعيل (?:ال)?جافا ?سكريبت|\{\{\s*[\w.]+\s*\}\}", re.IGNORECASE)
+_JS_PATH = re.compile(r"^/\S+\.js(?:\?\S*)?$")
+_LOGIN = re.compile(r"nafath|/log-?in\b|/sign-?in\b|/sso\b|/auth/|/oauth", re.IGNORECASE)
+_LOGIN_TEXT = re.compile(r"تطبيق نفاذ|رقم الهوية/|sign in to continue", re.IGNORECASE)
+_NOT_FOUND_PATH = re.compile(r"/(?:errors?/)?404\b|/not-?found\b", re.IGNORECASE)
+_HOME_PARTS = {"", "ar", "en", "ar-sa", "en-us", "en-gb", "en-sa", "home", "pages", "default.aspx", "home.aspx",
+               "default1.aspx", "index.html", "index-rtl.html", "index.php", "web", "page"}
+JUNK_TEXT_LIMIT = 800  # رسائل الخطأ قصيرة؛ الصفحة الطويلة لا تُحكم بكلمة عابرة فيها
+NEAR_EMPTY = 20  # بعد حذف السطور المتكررة؛ أقصر نص سليم («لا توجد شواغر») أطول من هذا
+
+
+def _is_home(url: str) -> bool:
+    return all(part.lower() in _HOME_PARTS for part in urlparse(url).path.split("/"))
+
+
+def junk_reason(blocks: list[Block], requested: str, final: str) -> str | None:
+    """سبب عربي إذا كانت الصفحة غير صالحة للقراءة رغم ردها بنجاح، وإلا None."""
+    if _LOGIN.search(final) and not _LOGIN.search(requested):
+        return "تحوّلت لصفحة تسجيل دخول"
+    if _NOT_FOUND_PATH.search(final) and not _NOT_FOUND_PATH.search(requested):
+        return "تحوّلت لصفحة «غير موجودة»"
+    if _is_home(final) and not _is_home(requested):
+        return "تحوّلت للصفحة الرئيسية (الرابط القديم انتهى غالباً)"
+    text = "\n".join(b.text for b in blocks)
+    if len(text) < JUNK_TEXT_LIMIT:
+        if _LOGIN_TEXT.search(text):
+            return "الصفحة صفحة تسجيل دخول"
+        if m := _ERROR_PAGE.search(text):
+            return f"الصفحة رسالة خطأ: «{m.group(0)}»"
+        if _NEEDS_JS.search(text) or (len(text) < 400 and any(_JS_PATH.match(b.text) for b in blocks)):
+            return "الصفحة تحتاج متصفحاً كاملاً (جافاسكربت)، ونصها لا يظهر"
+    if len(text) < NEAR_EMPTY:
+        return "الصفحة شبه فارغة (غالباً محتواها يُحمَّل بجافاسكربت)"
+    return None
 
 
 def block_hash(text: str) -> str:
@@ -76,6 +152,8 @@ class FetchResult:
     error_ar: str | None = None
     fetched_at: datetime = field(default_factory=riyadh_now)
     via: str = "direct"
+    final_url: str | None = None
+    junk: bool = False  # الصفحة وصلت لكنها غير صالحة (خطأ، دخول، فارغة): جهاز المؤسس لن يفيد فيها
 
 
 def _get(client: httpx.Client, url: str) -> tuple[httpx.Response | None, str]:
@@ -95,9 +173,14 @@ def _get(client: httpx.Client, url: str) -> tuple[httpx.Response | None, str]:
 
 
 def _html_blocks(html: str, base: str) -> tuple[list[Block], list[tuple[str, str]]]:
+    if html.lstrip()[:1] in ("[", "{"):  # بعض المواقع ترد ببيانات خام بدل صفحة (أخبار الإسكان)
+        try:
+            return _json_blocks(json.loads(html)), []
+        except ValueError:
+            pass
     text = trafilatura.extract(html, include_comments=False, favor_recall=True) or ""
     blocks = [Block(l.strip()) for l in text.splitlines()
-              if len(l.strip()) > 1 and not _BOILERPLATE.search(l)]
+              if len(l.strip()) > 1 and not _is_boilerplate(l.strip())]
     links: list[tuple[str, str]] = []
     try:
         doc = lxml.html.fromstring(html)
@@ -108,6 +191,39 @@ def _html_blocks(html: str, base: str) -> tuple[list[Block], list[tuple[str, str
     except (ValueError, lxml.etree.ParserError):
         pass
     return blocks, links
+
+
+_JSON_TEXT_KEYS = {"title", "name", "content", "description", "summary", "body", "text", "details"}
+
+
+def _plain(x: str) -> str:
+    """نص بلا وسوم HTML (أوصاف الموجزات وحقول الردود الخام تحمل وسوماً أحياناً)."""
+    if "<" not in x:
+        return x
+    try:
+        return lxml.html.fromstring(x).text_content()
+    except (ValueError, lxml.etree.ParserError):
+        return x
+
+
+def _json_blocks(data) -> list[Block]:
+    """نصوص الحقول المقروءة فقط من رد خام، بلا وسوم HTML داخلها."""
+    out: list[Block] = []
+
+    def walk(x, key=None):
+        if isinstance(x, dict):
+            for k, v in x.items():
+                walk(v, str(k).lower())
+        elif isinstance(x, list):
+            for v in x:
+                walk(v, key)
+        elif isinstance(x, str) and key in _JSON_TEXT_KEYS and x.strip():
+            for line in _plain(x).splitlines():
+                if len(line.strip()) > 1 and not _is_boilerplate(line.strip()):
+                    out.append(Block(" ".join(line.split())))
+
+    walk(data)
+    return out
 
 
 def _rss_blocks(xml: str) -> list[Block]:
@@ -122,8 +238,8 @@ def _rss_blocks(xml: str) -> list[Block]:
         if desc is None:
             desc = get("summary")
         href = (link.text or link.get("href")) if link is not None else None
-        text = " — ".join(t for t in [(title.text if title is not None else ""),
-                                       (desc.text if desc is not None else "")] if t and t.strip())
+        parts = [" ".join(_plain(n.text).split()) for n in (title, desc) if n is not None and n.text]
+        text = " — ".join(t for t in parts if t)
         if text:
             out.append(Block(text.strip(), href))
     return out
@@ -146,27 +262,45 @@ def _via_relay(client: httpx.Client, url: str) -> tuple[str | None, str, str]:
 
 
 def fetch(channel: Channel, client: httpx.Client) -> FetchResult:
+    """صفحة غير صالحة من السحابة (خطأ، حجب مقنّع) تُجرَّب نسختها من جهاز المؤسس قبل إعلان الفشل."""
     where = f"[الجالب][{channel.url}]"
     resp, err = _get(client, channel.url)
-    via = "direct"
+    via, junk = "direct", None
     if resp is not None:
         body, final_url = resp.text, str(resp.url)
-    else:
-        home, home_err = _from_inbox(channel.url)
-        if home is not None:
-            return home
+        parsed = _parse(channel, body, final_url)
+        if isinstance(parsed, FetchResult):
+            return parsed
+        junk = parsed
+        err = f"{junk}"
+    home, home_err = _from_inbox(channel.url)
+    if home is not None:
+        return home
+    if junk is None:
         body, final_url, relay_err = _via_relay(client, channel.url)
-        if body is None:
-            return FetchResult(False, channel.url,
-                               error_ar=f"{where} فشل: {err} {home_err} {relay_err}".strip())
-        via = "relay"
+        if body is not None:
+            parsed = _parse(channel, body, final_url, via="relay")
+            if isinstance(parsed, FetchResult):
+                return parsed
+            junk, relay_err = parsed, ""
+            err = junk
+    else:
+        relay_err = ""
+    return FetchResult(False, channel.url, error_ar=f"{where} فشل: {err} {home_err} {relay_err}".strip(),
+                       junk=junk is not None)
+
+
+def _parse(channel: Channel, body: str, final_url: str, via: str = "direct") -> "FetchResult | str":
+    """نتيجة سليمة، أو سبب عربي لعدم صلاحية الصفحة."""
     try:
         if channel.kind == "rss":
             blocks, links = _rss_blocks(body), []
         else:
             blocks, links = _html_blocks(body, final_url)
     except ET.ParseError as e:
-        return FetchResult(False, channel.url, error_ar=f"{where} فشل: صيغة الموجز مكسورة ({e})")
+        return f"صيغة الموجز مكسورة ({e})"
     if not blocks:
-        return FetchResult(False, channel.url, error_ar=f"{where} فشل: المحتوى فارغ (ربما تغيّر تصميم الصفحة)")
-    return FetchResult(True, channel.url, blocks, links, via=via)
+        return "المحتوى فارغ (ربما تغيّر تصميم الصفحة)"
+    if channel.kind != "rss" and (why := junk_reason(blocks, channel.url, final_url)):
+        return why
+    return FetchResult(True, channel.url, blocks, links, via=via, final_url=final_url)

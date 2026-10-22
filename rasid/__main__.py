@@ -19,7 +19,7 @@ import httpx
 from rasid.classify.chain import Budget, classify
 from rasid.classify.providers import call_provider, load_providers
 from rasid.dates import riyadh_now
-from rasid.entities import load_entities_safe
+from rasid.entities import EntityFileError, load_aggregators, load_entities_safe
 from rasid.fetch import fetch, set_inbox
 from rasid.notify.telegram import send
 from rasid.notify.webpush import PushConfig, send_push
@@ -63,6 +63,13 @@ def main() -> int:
     if env.get("RASID_LIMIT"):
         entities = entities[: int(env["RASID_LIMIT"])]
 
+    try:
+        aggregators = load_aggregators(ROOT / "config/aggregators.yaml")
+    except EntityFileError as err:
+        aggregators = []
+        st.outbox.enqueue(f"aggregators-error:{now.date()}", "owner",
+                          f"⚠️ ملف مواقع التجميع فيه خطأ، وتُرك مؤقتاً.\n{err}", now)
+
     providers = load_providers(ROOT / "config/providers.yaml")
     budget = Budget.from_dict(st.meta.get("budget", {}), today=now.date())
     client = httpx.Client()
@@ -87,7 +94,8 @@ def main() -> int:
     budget_min = float(env.get("RASID_BUDGET_MIN", "100"))  # أقل من حد الجولة (١٥٠ دقيقة) بهامش للحفظ والنشر
     rep = run_once(now, entities, st, deps,
                    deadline=lambda: time.monotonic() - started > budget_min * 60,
-                   checkpoint=lambda: (st.meta.__setitem__("budget", budget.to_dict()), st.save(state_path)))
+                   checkpoint=lambda: (st.meta.__setitem__("budget", budget.to_dict()), st.save(state_path)),
+                   aggregators=aggregators)
     st.meta["budget"] = budget.to_dict()
     st.save(state_path)
     (STATE_DIR / "results.json").write_text(json.dumps(build_results(st, entities, now), ensure_ascii=False),
@@ -97,7 +105,8 @@ def main() -> int:
 
     print(f"[راصد] {now:%Y-%m-%d %H:%M} | مصادر سليمة {rep.fetch_ok} | فاشلة {rep.fetch_fail} | "
           f"جديد {rep.new_items} | أحكام {rep.verdicts} | معلّق {rep.pending} | أُرسل {rep.sent} | "
-          f"طابور {len(st.queue.items)} | مؤجل للجولة التالية {rep.deferred}")
+          f"طابور {len(st.queue.items)} | مؤجل للجولة التالية {rep.deferred} | روابط فُتحت {rep.followed}")
+    print("[الأحكام] " + ("، ".join(f"{k} {n}" for k, n in rep.kinds.most_common()) or "لا شيء"))
     if env.get("HC_PING_URL"):
         try:
             client.post(env["HC_PING_URL"], content=f"ok {rep.fetch_ok}/{rep.fetch_ok + rep.fetch_fail}", timeout=15)

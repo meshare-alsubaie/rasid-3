@@ -1,6 +1,6 @@
 """وسيط جهاز المؤسس: يجلب الصفحات السعودية التي ترفض خوادم أمريكا، ويرفع نصها للمستودع ثم يقفل.
 
-لا يفتح أي منفذ على الجهاز، ولا ذكاء، ولا خادم. يعمل ثوانٍ كل ٣ ساعات عبر مجدول ويندوز.
+لا يفتح أي منفذ على الجهاز، ولا ذكاء، ولا خادم. يعمل ثوانٍ كل ساعتين عبر مجدول ويندوز.
 الإيقاف النهائي: زر «أوقف وسيط الجهاز» في مجلد مهام راصد.
 """
 from __future__ import annotations
@@ -19,7 +19,8 @@ import httpx
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 from rasid.dates import riyadh_now  # noqa: E402
-from rasid.fetch import _get, _html_blocks  # noqa: E402
+from rasid.entities import Channel  # noqa: E402
+from rasid.fetch import _get, _parse  # noqa: E402
 from relay.server import _public  # noqa: E402
 
 REPO = "meshare-alsubaie/rasid-3"
@@ -36,9 +37,12 @@ def _one(url: str, client: httpx.Client, now: datetime, resolve) -> dict:
         if resp is None:
             entry["error_ar"] = err
         else:
-            blocks, links = _html_blocks(resp.text, str(resp.url))
-            entry.update(ok=bool(blocks), blocks=[b.text for b in blocks], links=links[:40],
-                         error_ar=None if blocks else "المحتوى فارغ")
+            got = _parse(Channel("web", url), resp.text, str(resp.url))
+            if isinstance(got, str):  # وصلت لكنها غير صالحة (خطأ، دخول، فارغة)
+                entry.update(error_ar=got, final_url=str(resp.url))
+            else:
+                entry.update(ok=True, blocks=[b.text for b in got.blocks], links=got.links[:40],
+                             error_ar=None, final_url=str(resp.url))
     return entry
 
 
@@ -67,7 +71,7 @@ def watchdog_alerts(last_state_iso: str | None, now: datetime, last_alert_day: s
             ("group", f"⚠️ راصد متوقف مؤقتاً من {hours} ساعات. تابعوا مواقع الجهات بأنفسكم احتياطاً حتى يرجع.")]
 
 
-TRIGGER_AFTER_MIN = 200  # الجدولة كل ١٨٠ دقيقة + هامش
+TRIGGER_AFTER_MIN = 170  # المحرّك كل ١٢٠ دقيقة، وتأخر جدولة غيت هاب يصل لساعة أحياناً
 
 
 def should_trigger_engine(last_run_iso: str | None, now: datetime) -> bool:

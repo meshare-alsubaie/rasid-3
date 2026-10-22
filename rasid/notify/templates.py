@@ -64,6 +64,9 @@ def render(change: Change, p: Program, entity_name: str, today: date | None = No
     elif change.kind == "dates":
         lines = [f"📅 أعلنت المواعيد: {entity_name}", f"{KIND_AR.get(p.kind, 'فرصة')}"
                  + (f"، {_val(p, 'title')}" if _val(p, "title") else "")]
+    elif change.kind == "opened":
+        lines = [f"🟢 فتح التسجيل: {entity_name}", f"{KIND_AR.get(p.kind, 'فرصة')}"
+                 + (f"، {_val(p, 'title')}" if _val(p, "title") else "")]
     elif change.kind == "hint" or p.kind == "hint":
         lines = [f"💡 تلميح غير مؤكّد: {entity_name}",
                  "لمّحت الجهة لبرنامج طلابي قادم، والتفاصيل ما نزلت. بنرسل لكم أول ما ينزل الإعلان الرسمي."]
@@ -73,6 +76,8 @@ def render(change: Change, p: Program, entity_name: str, today: date | None = No
             lines.append(str(_val(p, "title")))
     if p.kind == "university":
         lines.append("ℹ️ تدريب جامعي، تأكّد من جامعتك هل يُحتسب تعاونياً.")
+    if p.entity_id.startswith("x:"):
+        lines.append("ℹ️ جهة خارج قائمة راصد، وصل إعلانها من موقع تجميع. تأكّد من الرابط الرسمي قبل التقديم.")
     if p.uncertain:
         lines.append("⚠️ غير مؤكّد: رُصد بالكلمات لأن الذكاء متوقف مؤقتاً، وبيتأكد لاحقاً.")
     opens, closes = _val(p, "opens"), _val(p, "closes")
@@ -87,7 +92,8 @@ def render(change: Change, p: Program, entity_name: str, today: date | None = No
         lines.append("🔴 تشترط التفرّغ: لا يُسمح بتسجيل مواد أثناء التدريب.")
     if _val(p, "apply_url"):
         lines.append(f"🔗 التقديم الرسمي: {_val(p, 'apply_url')}")
-    evidence = _quote(p, "opens") or _quote(p, "closes") or (p.fields.get("title") or {}).get("quote")
+    evidence = (_quote(p, "opens") or _quote(p, "closes") or _quote(p, "accepting_now")
+                or (p.fields.get("title") or {}).get("quote"))
     if evidence:
         lines.append(f"📌 الدليل: «{evidence}»")
     if p.sources:
@@ -96,11 +102,20 @@ def render(change: Change, p: Program, entity_name: str, today: date | None = No
 
 
 def reminders(programs: list[Program], today: date, names: dict[str, str]) -> list[tuple[str, str]]:
-    """تذكيران فقط لكل برنامج: قبل الإغلاق بـ٣ أيام وقبله بيوم. المعرّف يمنع التكرار في الصندوق."""
+    """تذكير قبل الفتح بيوم ويوم الفتح، وقبل الإغلاق بـ٣ أيام وبيوم. المعرّف يمنع التكرار في الصندوق."""
     out: list[tuple[str, str]] = []
     for p in programs:
-        closes = _val(p, "closes")
-        if p.family != "student" or not closes:
+        if p.family != "student":
+            continue
+        opens, closes = _val(p, "opens"), _val(p, "closes")
+        name = names.get(p.entity_id) or _val(p, "entity_name") or p.entity_id
+        apply = f"\n🔗 التقديم الرسمي: {_val(p, 'apply_url')}" if _val(p, "apply_url") else ""
+        if opens and (date.fromisoformat(opens) - today).days in (0, 1):
+            today_opens = date.fromisoformat(opens) == today
+            out.append((f"{'open0' if today_opens else 'open1'}:{p.key}",
+                        f"🔔 {'اليوم' if today_opens else 'بكرة'} يفتح التسجيل: {name}\nيفتح: {fmt_date(opens)}"
+                        + (f"\nيقفل: {fmt_date(closes)}" if closes else "") + apply))
+        if not closes:
             continue
         left = (date.fromisoformat(closes) - today).days
         if 1 < left <= 3:
@@ -109,11 +124,7 @@ def reminders(programs: list[Program], today: date, names: dict[str, str]) -> li
             tag, txt = "rem1", "آخر يوم" if left == 0 else "باقي يوم واحد"
         else:
             continue
-        name = names.get(p.entity_id, p.entity_id)
-        msg = f"⏰ {txt} على إغلاق {name}\nيقفل: {fmt_date(closes)}"
-        if _val(p, "apply_url"):
-            msg += f"\n🔗 التقديم الرسمي: {_val(p, 'apply_url')}"
-        out.append((f"{tag}:{p.key}", msg))
+        out.append((f"{tag}:{p.key}", f"⏰ {txt} على إغلاق {name}\nيقفل: {fmt_date(closes)}" + apply))
     return out
 
 
@@ -128,7 +139,7 @@ def launch_message(programs: list[Program], names: dict[str, str], today: date) 
         line = f"• {names.get(p.entity_id, p.entity_id)}: {KIND_AR.get(p.kind, 'فرصة')}"
         live.append((0 if cd else 1, line + (f"\n  {cd}" if cd else "\n  صفحة البرنامج متاحة")))
     head = ("🚀 أهلاً، راصد بدأ يشتغل للقروب.\n"
-            "يراقب أكثر من ١٣٠ جهة كل ٣ ساعات، ويرسل هنا كل جديد مع رابط التقديم ودليله.\n")
+            "يراقب أكثر من ١٣٠ جهة كل ساعتين، ويرسل هنا كل جديد مع رابط التقديم ودليله.\n")
     if not live:
         return head + "\nما فيه شي مفتوح أو قادم الحين. أول ما يُعلن شي توصلكم رسالة."
     body = "\n".join(x for _, x in sorted(live))
