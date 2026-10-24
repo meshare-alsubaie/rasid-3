@@ -64,3 +64,23 @@ def test_followed_postings_link_to_the_listing_page():
     (p,) = st.programs.items.values()
     assert p.fields["apply_url"]["value"] == LISTING
     assert {m["name"] for m in p.majors} == {"Computer Science", "Legal"}
+
+
+def test_tahakom_is_matched_by_its_name_not_by_the_word_control():
+    from pathlib import Path
+
+    from rasid.entities import load_entities
+    from rasid.match import find_entity
+    es = load_entities(Path("config/entities.yaml"))
+    assert find_entity("شركة تحكم التقنية تعلن التدريب التعاوني", es).id == "tahakom"
+    hit = find_entity("وظيفة مهندس أنظمة تحكم في مصنع", es)
+    assert hit is None or hit.id != "tahakom"
+
+
+def test_new_channels_watch_entities_that_had_none():
+    from pathlib import Path
+
+    from rasid.entities import load_entities
+    es = {e.id: e for e in load_entities(Path("config/entities.yaml"))}
+    assert [c.url for c in es["sama"].channels] == ["https://careers.sama.gov.sa/go/COOP-Training/7723023/"]
+    assert all(es[i].channels for i in ("tahakom", "bahri", "thiqah", "moc", "mcit", "swcc"))

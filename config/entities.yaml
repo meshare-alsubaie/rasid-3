@@ -101,7 +101,9 @@
   cyber: 3
   hires_after: 1
   fulltime_history: unknown
-  channels: []
+  channels:
+  - kind: web
+    url: https://careers.sama.gov.sa/go/COOP-Training/7723023/
 - id: sdaia
   name_ar: الهيئة السعودية للبيانات والذكاء الاصطناعي
   aliases:
@@ -405,7 +407,9 @@
   cyber: 2
   hires_after: 1
   fulltime_history: unknown
-  channels: []
+  channels:
+  - kind: web
+    url: https://www.mcit.gov.sa/ar
 - id: mim
   name_ar: وزارة الصناعة والثروة المعدنية
   aliases:
@@ -608,7 +612,9 @@
   cyber: 1
   hires_after: 1
   fulltime_history: unknown
-  channels: []
+  channels:
+  - kind: web
+    url: https://www.thiqah.sa/careers/
 - id: zatca
   name_ar: هيئة الزكاة والضريبة والجمارك
   aliases:
@@ -858,7 +864,9 @@
   cyber: 1
   hires_after: 1
   fulltime_history: unknown
-  channels: []
+  channels:
+  - kind: web
+    url: https://www.bahri.sa/en/careers/
 - id: derayah
   name_ar: دراية المالية
   aliases:
@@ -1140,7 +1148,9 @@
   cyber: 1
   hires_after: 1
   fulltime_history: unknown
-  channels: []
+  channels:
+  - kind: web
+    url: https://www.moc.gov.sa/ar
 - id: modon
   name_ar: الهيئة السعودية للمدن الصناعية ومناطق التقنية
   aliases:
@@ -1478,7 +1488,9 @@
   cyber: 1
   hires_after: 1
   fulltime_history: unknown
-  channels: []
+  channels:
+  - kind: web
+    url: https://www.swa.gov.sa/
 - id: tawuniya
   name_ar: التعاونية للتأمين
   aliases:
@@ -1537,14 +1549,18 @@
   - kind: web
     url: https://www.sirar.com.sa/about-us/careers/
 - id: tahakom
-  name_ar: تحاكم
+  name_ar: تحكم
   aliases:
   - Tahakom
+  - شركة تحكم
+  - تحكم التقنية
   stars_manual: 5
   cyber: 1
   hires_after: 1
   fulltime_history: unknown
-  channels: []
+  channels:
+  - kind: web
+    url: https://careers.tahakom.com/?locale=ar_SA
 - id: kacst
   name_ar: مدينة الملك عبدالعزيز للعلوم والتقنية
   aliases:
