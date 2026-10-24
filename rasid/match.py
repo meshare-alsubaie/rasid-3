@@ -34,6 +34,8 @@ _ORG_WORDS = {"شركه", "مجموعه", "هيئه", "بنك", "مصرف", "م�
 # كلمة بجوار اسم الجهة تجعله شركة أخرى تابعة لها: «الراجحي المالية»، «تكافل الراجحي»، «أرامكو ديجيتال»
 _SUBSIDIARY = {"ماليه", "كابيتال", "capital", "استثمار", "تامين", "تكافل", "takaful", "ديجيتال", "digital",
                "تجاره", "trading", "تمويل", "finance", "insurance", "ventures", "فنتشرز"}
+# الكلمة الوحيدة التي تسبق اسم الأم في اسم شركتها التابعة؛ «تخصصات المالية | مصرف الراجحي» إعلان المصرف
+_BEFORE = {"تكافل", "takaful"}
 # كلمات عامة تُتخطى بين اسم الجهة وكلمة الشركة التابعة: «Al Rajhi Company for Cooperative Insurance»
 _FILLER = _ORG_WORDS - _SUBSIDIARY | {"of", "cooperative"}
 
@@ -79,7 +81,7 @@ def subsidiary_of(text: str, e: Entity) -> bool:
     للاستثمار» للمصرف."""
     t, sub = norm(text).split(), _SUBSIDIARY - _names_words(e)
 
-    def near(words: list[str]) -> bool:
+    def near(words: list[str], sub: set[str]) -> bool:
         for w in words[:4]:
             if _bare(w) in sub:
                 return True
@@ -89,7 +91,7 @@ def subsidiary_of(text: str, e: Entity) -> bool:
     for k in (n.split() for n in _names(e)):
         for i in range(len(t) - len(k) + 1):
             if k[0] in (t[i], _unprefix(t[i])) and t[i + 1:i + len(k)] == k[1:] and (
-                    near(t[i + len(k):]) or near(t[:i][::-1])):
+                    near(t[i + len(k):], sub) or near(t[:i][::-1], sub & _BEFORE)):
                 return True
     return False
 

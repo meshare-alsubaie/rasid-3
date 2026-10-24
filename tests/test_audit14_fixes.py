@@ -167,3 +167,11 @@ def test_prefixed_or_long_subsidiary_names_are_not_the_parent():
     for named, eid in [("للراجحي", "alrajhi"), ("Al Rajhi Banking and Investment Corporation", "alrajhi"),
                        ("لأرامكو السعودية", "aramco")]:
         assert resolve(_coop(named), _text("تدريب تعاوني"))[0] == eid, named
+
+
+def test_field_of_study_before_the_name_is_not_a_subsidiary():
+    resolve = _resolver(ES)
+    for title, eid in [("التدريب التعاوني لتخصص المالية – أرامكو السعودية", "aramco"),
+                       ("تدريب تعاوني تخصصات المالية والتأمين | مصرف الراجحي", "alrajhi")]:
+        assert resolve(_coop(""), _text(title))[0] == eid, title
+    assert resolve(_coop(""), _text("برنامج تمهير لدى تكافل الراجحي")) is None
