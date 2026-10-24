@@ -1,6 +1,7 @@
 """البرامج: مفتاح السجل هو «البرنامج» لا الرابط، فالبرنامج الواحد من عدة مصادر بطاقة واحدة."""
 from __future__ import annotations
 
+import re
 from dataclasses import asdict, dataclass, field
 from datetime import date, datetime, timedelta
 from typing import Literal
@@ -38,6 +39,23 @@ class Program:
     models: list[str] = field(default_factory=list)
     uncertain: bool = False
     alerted: bool = False  # وصل القروب تنبيه فيه موعد أو «فتح التسجيل»؛ شبكة الأمان تنبّه لما فاته
+
+
+_TRACK_SEP = re.compile(r"\s+[-–—|]\s+")
+
+
+def _track_base(title) -> str:
+    """«برنامج علم (دفعة يناير) - علوم الحاسب» أساسه «برنامج علم (دفعة يناير)»: المسار بعد الفاصل."""
+    return _TRACK_SEP.split(str(title or ""), 1)[0].strip()
+
+
+def _union_majors(old: list[dict], new: list[dict], url) -> list[dict]:
+    """كل مصدر يذكر بعض التخصصات (مسار واحد لكل إعلان مثلاً)، فالتخصصات تُجمع ولا يمحو الأخير ما قبله."""
+    out = {m["name"].strip().lower(): dict(m) for m in old}
+    for m in new:
+        k = m["name"].strip().lower()
+        out[k] = {**out.get(k, {}), **m, **({"url": url} if url else {})}
+    return list(out.values())
 
 
 def _jsonable(v):
@@ -96,8 +114,9 @@ class Programs:
                            and program_status(p, now.date()) == "closed")]
         return max(recent, key=lambda p: p.updated) if recent else None
 
-    def merge(self, entity_id: str, v: Verdict, source_url: str,
-              now: datetime) -> tuple[Program | None, Change | None]:
+    def merge(self, entity_id: str, v: Verdict, source_url: str, now: datetime,
+              listing: str | None = None) -> tuple[Program | None, Change | None]:
+        """listing: صفحة الجهة التي فُتح منها الإعلان (صفحة كل المسارات) إن كان رابطاً متبوعاً."""
         family = FAMILY.get(v.kind)
         if family is None:
             return None, None
@@ -109,10 +128,11 @@ class Programs:
         new_fields = {k: {"value": _jsonable(f.value), "quote": f.quote} for k, f in v.fields.items()}
         if "accepting_now" in new_fields:
             new_fields["accepting_now"]["at"] = stamp
+        track_url = v.fields["apply_url"].value if v.fields.get("apply_url") else None
         if p is None:
             key = f"{entity_id}:{family}:{cycle or now.strftime('seen-%Y-%m-%d')}"
             p = Program(key, entity_id, family, v.kind, cycle or "", stamp, stamp, [source_url],
-                        new_fields, list(v.majors), [v.model], v.uncertain)
+                        new_fields, _union_majors([], v.majors, track_url), [v.model], v.uncertain)
             self.items[key] = p
             return p, Change("hint" if v.kind == "hint" else "new", key)
         change: Change | None = None
@@ -133,11 +153,19 @@ class Programs:
             old, new = p.fields.get(name, {}).get("value"), new_fields.get(name, {}).get("value")
             if change is None and old and new and old != new:
                 change = Change("important_update", p.key, f"تغيّر {name}: من {old} إلى {new}")
+        old_title, new_title = (p.fields.get("title") or {}).get("value"), (new_fields.get("title") or {}).get("value")
+        if old_title and new_title and old_title != new_title and _track_base(old_title) == _track_base(new_title):
+            # مسار آخر من نفس البرنامج: العنوان أساسه، ورابط التقديم العام صفحة كل المسارات لا رابط هذا المسار
+            new_fields["title"] = {**new_fields["title"], "value": _track_base(new_title)}
+            if listing:
+                new_fields["apply_url"] = {"value": listing, "quote": "صفحة برامج التدريب في موقع الجهة"}
+            elif p.fields.get("apply_url"):
+                new_fields.pop("apply_url", None)
         p.fields.update(new_fields)
         if cycle and not p.cycle:
             p.cycle = cycle
         if v.majors:
-            p.majors = list(v.majors)
+            p.majors = _union_majors(p.majors, v.majors, track_url)
         if source_url not in p.sources:
             p.sources.append(source_url)
         if v.model not in p.models:

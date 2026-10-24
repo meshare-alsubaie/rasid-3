@@ -1,5 +1,5 @@
 // لوحة راصد الكاملة: طبقة فوق صفحة الكوكب، تعرض النتائج حسب ظروف المستخدم المحفوظة في جهازه.
-import { DEFAULT_PROFILE, countdown, matchScore, rankPrograms } from "./core.js";
+import { DEFAULT_PROFILE, countdown, matchScore, myTracks, rankPrograms } from "./core.js";
 import { PUSH_URL, VAPID_PUBLIC } from "./config.js";
 
 const KIND = { coop: "تدريب تعاوني", university: "تدريب جامعي", hint: "تلميح لبرنامج قادم",
@@ -89,6 +89,7 @@ function entityView(id) {
   const f = k => p?.fields?.[k];
   // زر «الرسمي» فقط لرابط رسمي؛ البرنامج الذي وصل من مواقع التجميع وحدها يُفتح إعلانه باسمه الصحيح
   const apply = p?.official_url || p?.sources?.[0];
+  const tracks = myTracks(p);
   const evidence = [...new Set(["opens", "closes", "no_courses_allowed", "title"].map(k => f(k)?.quote).filter(Boolean))];
   const hosts = [...new Map((p?.sources || []).map(u => [new URL(u).hostname, u])).entries()];
   const cd = p && p.status !== "listed" ? countdown(p.opens, p.closes, today()) : "";
@@ -97,6 +98,7 @@ function entityView(id) {
     <p class="st st-${esc(e.status)}">${esc(cd || STATUS[e.status])}</p>
     ${apply ? `<a class="primary" href="${esc(apply)}" target="_blank" rel="noopener">${p.official_url ? "قدّم من الموقع الرسمي" : "افتح الإعلان"}</a>` : ""}
     ${apply && !p.official_url && !e.outside ? `<p class="hint">وصل هذا البرنامج من مواقع التجميع فقط. ابحث عن رابط التقديم الرسمي داخل الإعلان.</p>` : ""}
+    ${tracks.length ? `<p>مسارات تخصصك، لكل مسار تقديمه: ${tracks.map(t => `<a href="${esc(t.url)}" target="_blank" rel="noopener" dir="auto">${esc(t.name)}</a>`).join("، ")}</p>` : ""}
     ${p ? `<button class="ghost" id="mark-applied" data-key="${esc(p.key)}">${applied.has(p.key) ? "ألغِ «قدّمت»" : "قدّمت"}</button>` : ""}
     ${m ? `<p class="match"><b>${m.pct}٪</b> ${m.reasons.map(esc).join("، ")}</p>` : ""}
     ${m?.warning ? `<p class="warn">${esc(m.warning)}</p>` : ""}

@@ -193,7 +193,7 @@ Resolver = Callable[[Verdict, str], "tuple[str, str] | None"]
 
 def _handle(c: Ctx, entity_id: str, url: str, text: str, item_id: str,
             queued: QueueItem | None = None, first_sight: bool = False, resolve: Resolver | None = None,
-            stale: bool = False) -> None:
+            stale: bool = False, listing: str | None = None) -> None:
     st, now = c.st, c.now
     r = _safe_classify(c.deps, text)
     if stale and not isinstance(r, Pending):  # منشور قديم: «التسجيل مفتوح» فيه خبر مضى
@@ -227,7 +227,7 @@ def _handle(c: Ctx, entity_id: str, url: str, text: str, item_id: str,
         entity_id = who[0]
     else:
         _log(c, entity_id, url, r)
-    p, change = st.programs.merge(entity_id, r, url, now)
+    p, change = st.programs.merge(entity_id, r, url, now, listing=listing)
     if p is not None:
         p.sources = official_first(p.sources, c.agg_sites)
     # أول مرة نرى الصفحة: لا ننبّه إلا لنافذة مفتوحة أو قادمة (الصفحات الدائمة والبرامج المنتهية تُحفظ بهدوء)
@@ -375,7 +375,7 @@ def _follow(c: Ctx, e: Entity, ch: Channel, res: FetchResult, prev: set[str], fi
         done.append(_link_key(u))
         body = "\n".join(b.text for b in d.blocks)[:MAX_INPUT]
         text = f"الجهة: {e.name_ar}\nالرابط: {u}\n\nعنوان الرابط في صفحة الجهة: {label}\n\nالنص:\n{body}"
-        _handle(c, e.id, u, text, _id(u, body), first_sight=first_sight or first_links)
+        _handle(c, e.id, u, text, _id(u, body), first_sight=first_sight or first_links, listing=ch.url)
     return done
 
 

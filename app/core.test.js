@@ -83,7 +83,16 @@ test("برامج العلوم والتقنية والهندسة والرياضي
   assert.ok(!en.reasons.includes("ما طلبت تخصصك"));
 });
 
-import { isStale, rankPrograms, DEFAULT_PROFILE } from "./core.js";
+import { isStale, rankPrograms, DEFAULT_PROFILE, myTracks } from "./core.js";
+
+test("برنامج علم بعشرة مسارات: مسار القانون لا يخفي مسارات الحاسب، ولكل مسار رابطه", () => {
+  const p = prog({ open_to_all_majors: F(false) }, [
+    { name: "Software Engineering", url: "https://elm/se" }, { name: "Legal", url: "https://elm/legal" },
+    { name: "Computer Science", url: "https://elm/cs" }, { name: "Human Resources", url: "https://elm/hr" }]);
+  assert.deepEqual(myTracks(p).map(t => t.url), ["https://elm/se", "https://elm/cs"]);
+  assert.ok(matchScore(p, ent(), { ...ME, hasCourses: false }).pct >= 80);
+  assert.deepEqual(myTracks(prog({}, [{ name: "علوم الحاسب" }])), []);  // تخصص بلا رابط مسار خاص
+});
 
 const RESULTS = {
   generated_at: "2026-10-05T09:00:00+03:00",

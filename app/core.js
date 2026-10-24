@@ -30,6 +30,9 @@ function majorFit(p) {
   return { fit: 0.85, reason: "طلبت تخصصك" };
 }
 
+// برنامج بعدة مسارات (لكل تخصص إعلانه): مسارات تخصصك ورابط تقديم كل منها
+export const myTracks = p => (p?.majors ?? []).filter(m => m.url && (CS.test(m.name) || STEM.test(m.name)));
+
 export function matchScore(program, entity, profile) {
   const reasons = [];
   const { fit, reason } = majorFit(program);
