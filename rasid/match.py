@@ -34,12 +34,19 @@ _ORG_WORDS = {"شركه", "مجموعه", "هيئه", "بنك", "مصرف", "م�
 # كلمة بجوار اسم الجهة تجعله شركة أخرى تابعة لها: «الراجحي المالية»، «تكافل الراجحي»، «أرامكو ديجيتال»
 _SUBSIDIARY = {"ماليه", "كابيتال", "capital", "استثمار", "تامين", "تكافل", "takaful", "ديجيتال", "digital",
                "تجاره", "trading", "تمويل", "finance", "insurance", "ventures", "فنتشرز"}
+# كلمات عامة تُتخطى بين اسم الجهة وكلمة الشركة التابعة: «Al Rajhi Company for Cooperative Insurance»
+_FILLER = _ORG_WORDS - _SUBSIDIARY | {"of", "cooperative"}
 
 
 def _bare(w: str) -> str:
     """الكلمة بلا «و» و«لـ» و«لل» و«ال» في أولها: «لأرامكو» أرامكو، «للتأمين» تأمين."""
     w = w[2:] if w.startswith("لل") and len(w) > 4 else w[1:] if w[:1] in ("و", "ل") and len(w) > 3 else w
     return w[2:] if w.startswith("ال") and len(w) > 4 else w
+
+
+def _unprefix(w: str) -> str:
+    """الكلمة بلا حرف جر أو عطف ملتصق في أولها: «لأرامكو» أرامكو، «للراجحي» الراجحي، «بشركة» شركة."""
+    return "ال" + w[2:] if w.startswith("لل") and len(w) > 4 else w[1:] if w[:1] in "ولبف" and len(w) > 3 else w
 
 
 def _words(s: str, bare: bool = False) -> set[str]:
@@ -68,11 +75,21 @@ def shares_name(named: str, e: Entity) -> bool:
 
 def subsidiary_of(text: str, e: Entity) -> bool:
     """بجوار اسم الجهة في النص كلمة شركة تابعة ليست في أسمائها: «الراجحي المالية» و«Al Rajhi Takaful» ليستا
-    مصرف الراجحي. الجوار فقط: «مصرف الراجحي يعلن تدريب المالية» و«الراجحي المصرفية للاستثمار» للمصرف."""
+    مصرف الراجحي. الجوار فقط، بعد تخطي الكلمات العامة: «مصرف الراجحي يعلن تدريب المالية» و«الراجحي المصرفية
+    للاستثمار» للمصرف."""
     t, sub = norm(text).split(), _SUBSIDIARY - _names_words(e)
+
+    def near(words: list[str]) -> bool:
+        for w in words[:4]:
+            if _bare(w) in sub:
+                return True
+            if _bare(w) not in _FILLER:
+                return False
+        return False
     for k in (n.split() for n in _names(e)):
         for i in range(len(t) - len(k) + 1):
-            if t[i:i + len(k)] == k and {_bare(w) for w in t[max(i - 1, 0):i] + t[i + len(k):i + len(k) + 1]} & sub:
+            if k[0] in (t[i], _unprefix(t[i])) and t[i + 1:i + len(k)] == k[1:] and (
+                    near(t[i + len(k):]) or near(t[:i][::-1])):
                 return True
     return False
 
@@ -84,8 +101,7 @@ def find_named(named: str, entities: list[Entity]) -> Entity | None:
     w = norm(named).split()
     if not w:
         return None
-    w[0] = "ال" + w[0][2:] if w[0].startswith("لل") else w[0][1:] if w[0][:1] in "ولبف" and len(w[0]) > 3 else w[0]
-    return find_entity(" ".join(w), entities)
+    return find_entity(" ".join([_unprefix(w[0]), *w[1:]]), entities)
 
 
 def find_entity(text: str, entities: list[Entity]) -> Entity | None:

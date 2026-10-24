@@ -156,3 +156,14 @@ def test_prefixed_or_english_name_of_an_entity_without_english_names():
     assert resolve(_coop("Ministry of Finance"), _text("وزارة المالية تفتح التدريب التعاوني"))[0] == "mof"
     assert resolve(_coop("Saudi Pro League"), _text("SPL تعلن التدريب التعاوني"))[0] != "spl"
     assert resolve(_coop("Zain Kuwait"), _text("Zain Kuwait training"))[0] != "zain_ksa"
+
+
+def test_prefixed_or_long_subsidiary_names_are_not_the_parent():
+    resolve = _resolver(ES)
+    for named in ["لأرامكو ديجيتال", "للراجحي المالية", "بالراجحي كابيتال", "والراجحي المالية",
+                  "Al Rajhi Company for Cooperative Insurance", "Al Rajhi Cooperative Insurance Company"]:
+        owner = resolve(_coop(named), _text("تدريب تعاوني"))
+        assert owner is not None and owner[0].startswith("x:"), named
+    for named, eid in [("للراجحي", "alrajhi"), ("Al Rajhi Banking and Investment Corporation", "alrajhi"),
+                       ("لأرامكو السعودية", "aramco")]:
+        assert resolve(_coop(named), _text("تدريب تعاوني"))[0] == eid, named
