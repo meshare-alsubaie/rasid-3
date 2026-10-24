@@ -5,6 +5,7 @@ import re
 
 from rasid.entities import Entity
 
+_ARABIC = re.compile(r"[؀-ۿ]")
 _DIACRITICS = re.compile(r"[ً-ْـ]")
 _LETTERS = str.maketrans("أإآىة", "ااايه")
 _GENERIC = re.compile(r"^(?:ال)?(?:شركه|مجموعه|هيئه|بنك|مصرف|مركز|وزاره)\s+")
@@ -26,9 +27,13 @@ def _names(e: Entity) -> list[str]:
 # كلمات تتكرر في أسماء جهات كثيرة، فاشتراك اسمين فيها لا يعني أنهما جهة واحدة
 _ORG_WORDS = {"شركه", "مجموعه", "هيئه", "بنك", "مصرف", "مركز", "وزاره", "صندوق", "مؤسسه", "اكاديميه",
               "وطنيه", "وطني", "سعوديه", "سعودي", "عامه", "عام", "عربيه", "ملك", "تنميه", "ماليه", "معلومات",
-              "اتصالات", "تقنيه", "خدمات", "تطوير", "استثمار", "صناعيه", "تامين", "تعاونيه", "حلول"}
-# كلمة في الاسم تجعله شركة أخرى تابعة للجهة: «الراجحي المالية»، «تكافل الراجحي»، «أرامكو ديجيتال»
-_SUBSIDIARY = {"ماليه", "كابيتال", "capital", "استثمار", "تامين", "تكافل", "ديجيتال", "digital", "تجاره", "trading"}
+              "اتصالات", "تقنيه", "خدمات", "تطوير", "استثمار", "صناعيه", "تامين", "تعاونيه", "حلول", "طيران",
+              "خطوط", "جويه", "bank", "saudi", "arabia", "arabian", "company", "group", "the", "for", "and",
+              "national", "fund", "authority", "ministry", "general", "corporation", "holding", "ksa",
+              "international", "center", "centre", "development", "services", "solutions"}
+# كلمة بجوار اسم الجهة تجعله شركة أخرى تابعة لها: «الراجحي المالية»، «تكافل الراجحي»، «أرامكو ديجيتال»
+_SUBSIDIARY = {"ماليه", "كابيتال", "capital", "استثمار", "تامين", "تكافل", "takaful", "ديجيتال", "digital",
+               "تجاره", "trading", "تمويل", "finance", "insurance", "ventures", "فنتشرز"}
 
 
 def _bare(w: str) -> str:
@@ -51,15 +56,36 @@ def _names_words(e: Entity) -> set[str]:
 
 
 def shares_name(named: str, e: Entity) -> bool:
-    """الاسم الذي استخرجه المصنّف يشترك مع أسماء الجهة في كلمة مميزة («علم» و«شركة علم»)."""
+    """الاسم الذي استخرجه المصنّف يشترك مع أسماء الجهة في كلمة مميزة («علم» و«شركة علم»). الاسم الإنجليزي
+    يقارَن بأسماء الجهة الإنجليزية («SAFE» ليس «PIF») وبحروفه الأولى («Saudi Electricity Company» هي «SEC»)،
+    وجهة بلا اسم إنجليزي لا يمكن مقارنتها فيُقبل."""
+    if not _ARABIC.search(named) and all(_ARABIC.search(a) for a in e.aliases):
+        return True
     own = set().union(*(_words(n) for n in [e.name_ar, *e.aliases]))
-    return bool(_words(named, bare=True) & own)
+    initials = "".join(w[0] for w in norm(named).split() if w not in ("of", "the", "and", "for"))
+    return bool(_words(named, bare=True) & own) or initials in {norm(a).strip() for a in e.aliases}
 
 
-def subsidiary_of(named: str, e: Entity) -> bool:
-    """الاسم يطابق الجهة لكن فيه كلمة شركة تابعة ليست في أسمائها: «الراجحي المالية» ليست مصرف الراجحي،
-    و«وزارة المالية» و«التعاونية للتأمين» جهتان بأسمائهما."""
-    return bool({_bare(w) for w in norm(named).split()} & _SUBSIDIARY - _names_words(e))
+def subsidiary_of(text: str, e: Entity) -> bool:
+    """بجوار اسم الجهة في النص كلمة شركة تابعة ليست في أسمائها: «الراجحي المالية» و«Al Rajhi Takaful» ليستا
+    مصرف الراجحي. الجوار فقط: «مصرف الراجحي يعلن تدريب المالية» و«الراجحي المصرفية للاستثمار» للمصرف."""
+    t, sub = norm(text).split(), _SUBSIDIARY - _names_words(e)
+    for k in (n.split() for n in _names(e)):
+        for i in range(len(t) - len(k) + 1):
+            if t[i:i + len(k)] == k and {_bare(w) for w in t[max(i - 1, 0):i] + t[i + len(k):i + len(k) + 1]} & sub:
+                return True
+    return False
+
+
+def find_named(named: str, entities: list[Entity]) -> Entity | None:
+    """جهة الاسم الذي استخرجه المصنّف، ولو بحرف جر في أوله: «لوزارة المالية»، «بشركة علم»، «للخطوط السعودية»."""
+    if (e := find_entity(named, entities)) is not None:
+        return e
+    w = norm(named).split()
+    if not w:
+        return None
+    w[0] = "ال" + w[0][2:] if w[0].startswith("لل") else w[0][1:] if w[0][:1] in "ولبف" and len(w[0]) > 3 else w[0]
+    return find_entity(" ".join(w), entities)
 
 
 def find_entity(text: str, entities: list[Entity]) -> Entity | None:

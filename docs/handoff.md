@@ -38,7 +38,7 @@
 - حارس الخصوصية يمنع أي التزام فيه إيميل أو مسار جهاز أو كلمة ممنوعة (`.forbidden.local`).
 
 ## ٤. الاختبارات
-- بايثون: `.venv/Scripts/python.exe -m pytest -q` (٢٥٦).
+- بايثون: `.venv/Scripts/python.exe -m pytest -q` (٢٥٩).
 - جافاسكربت: `tools/node-v24.21.0-win-x64/node.exe --test "app/**/*.test.js" "push/*.test.js"` (٢٨).
 - كلها تعمل تلقائياً على غيت هاب مع كل دفع لفرع main (`tests.yml`).
 

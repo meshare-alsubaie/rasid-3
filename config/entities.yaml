@@ -1589,7 +1589,6 @@
   name_ar: زين السعودية
   aliases:
   - شركة زين
-  - Zain
   stars_manual: 3
   cyber: 1
   hires_after: 1
@@ -1621,8 +1620,6 @@
     url: https://careers.sab.com/ar/
 - id: spl
   name_ar: البريد السعودي
-  aliases:
-  - SPL
   stars_manual: 2
   cyber: 1
   hires_after: 1

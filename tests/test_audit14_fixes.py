@@ -131,3 +131,28 @@ def test_new_short_aliases_resolve():
     for named, eid in [("هيئة حقوق الإنسان", "hrc"), ("الهلال الأحمر", "srca"), ("إي واي", "ey_sa"),
                        ("هيئة تنمية الصادرات", "saudi_exports"), ("شركة زين", "zain_ksa")]:
         assert resolve(_coop(named), _text("تدريب تعاوني"))[0] == eid, named
+
+
+def test_english_subsidiary_names_do_not_go_to_the_parent():
+    resolve = _resolver(ES)
+    safe = _text("شركة سيف إحدى شركات صندوق الاستثمارات العامة تعلن برنامج التدريب التعاوني")
+    for named in ["SAFE", "SAFE Company", "Sela", "Savvy Games Group"]:
+        assert resolve(_coop(named), safe)[0] != "pif", named
+    for named in ["Takaful Al Rajhi", "Al Rajhi Takaful", "Al Rajhi Capital"]:
+        assert resolve(_coop(named), _text("برنامج تمهير لدى تكافل الراجحي"))[0] != "alrajhi", named
+
+
+def test_subsidiary_in_the_title_is_not_the_parent():
+    resolve = _resolver(ES)
+    assert resolve(_coop(""), _text("الراجحي المالية تعلن التدريب التعاوني")) is None
+    assert resolve(_coop(""), _text("أرامكو ديجيتال تعلن التدريب التعاوني")) is None
+    assert resolve(_coop(""), _text("مصرف الراجحي يعلن التدريب التعاوني لتخصصات المالية"))[0] == "alrajhi"
+    assert resolve(_coop("شركة الراجحي المصرفية للاستثمار"), _text("تدريب تعاوني"))[0] == "alrajhi"
+
+
+def test_prefixed_or_english_name_of_an_entity_without_english_names():
+    resolve = _resolver(ES)
+    assert resolve(_coop("لوزارة المالية"), _text("وزارة المالية تفتح التدريب التعاوني"))[0] == "mof"
+    assert resolve(_coop("Ministry of Finance"), _text("وزارة المالية تفتح التدريب التعاوني"))[0] == "mof"
+    assert resolve(_coop("Saudi Pro League"), _text("SPL تعلن التدريب التعاوني"))[0] != "spl"
+    assert resolve(_coop("Zain Kuwait"), _text("Zain Kuwait training"))[0] != "zain_ksa"
