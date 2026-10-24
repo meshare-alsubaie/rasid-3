@@ -26,7 +26,7 @@ def test_track_postings_keep_every_major_with_its_own_link():
         verdict, urls[name] = _track(name)
         p, _ = ps.merge("elm", verdict, urls[name], T0 + timedelta(hours=i), listing=LISTING)
     assert len(ps.items) == 1
-    assert p.fields["title"]["value"] == BASE
+    assert p.fields["title"] == {"value": BASE, "quote": BASE}  # دليل العنوان لا يذكر مساراً واحداً
     assert [(m["name"], m["url"]) for m in p.majors] == [(n, urls[n]) for n in urls]
     assert p.fields["apply_url"]["value"] == LISTING  # رابط التقديم العام: صفحة كل المسارات
 

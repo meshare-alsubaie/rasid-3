@@ -156,7 +156,7 @@ class Programs:
         old_title, new_title = (p.fields.get("title") or {}).get("value"), (new_fields.get("title") or {}).get("value")
         if old_title and new_title and old_title != new_title and _track_base(old_title) == _track_base(new_title):
             # مسار آخر من نفس البرنامج: العنوان أساسه، ورابط التقديم العام صفحة كل المسارات لا رابط هذا المسار
-            new_fields["title"] = {**new_fields["title"], "value": _track_base(new_title)}
+            new_fields["title"] = {"value": _track_base(new_title), "quote": _track_base(new_title)}
             if listing:
                 new_fields["apply_url"] = {"value": listing, "quote": "صفحة برامج التدريب في موقع الجهة"}
             elif p.fields.get("apply_url"):
