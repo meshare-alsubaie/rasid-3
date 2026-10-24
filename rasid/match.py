@@ -23,6 +23,22 @@ def _names(e: Entity) -> list[str]:
     return [norm(n) for n in official + e.aliases if norm(n).strip()]
 
 
+# كلمات تتكرر في أسماء جهات كثيرة، فاشتراك اسمين فيها لا يعني أنهما جهة واحدة
+_ORG_WORDS = {"شركه", "مجموعه", "هيئه", "بنك", "مصرف", "مركز", "وزاره", "صندوق", "مؤسسه", "اكاديميه",
+              "وطنيه", "وطني", "سعوديه", "سعودي", "عامه", "عام", "عربيه", "ملك"}
+
+
+def _words(s: str) -> set[str]:
+    ws = {w[2:] if w.startswith("ال") and len(w) > 4 else w for w in norm(s).split()}
+    return {w for w in ws if len(w) >= 3 and w not in _ORG_WORDS}
+
+
+def shares_name(named: str, e: Entity) -> bool:
+    """الاسم الذي استخرجه المصنّف يشترك مع أسماء الجهة في كلمة مميزة («علم» و«شركة علم»)."""
+    own = set().union(*(_words(n) for n in [e.name_ar, *e.aliases]))
+    return bool(_words(named) & own)
+
+
 def find_entity(text: str, entities: list[Entity]) -> Entity | None:
     t = norm(text)
     best: tuple[int, Entity] | None = None

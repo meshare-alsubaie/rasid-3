@@ -20,7 +20,7 @@ from rasid.dates import _DIGITS
 from rasid.diff import new_blocks
 from rasid.entities import Aggregator, Channel, Entity, agg_sites, official_first, site_of
 from rasid.fetch import Block, FetchResult, block_hash
-from rasid.match import find_entity, outside_id
+from rasid.match import find_entity, outside_id, shares_name
 from rasid.notify.outbox import Outbox
 from rasid.notify.templates import KIND_AR, countdown, days_ar, reminders, render, update_detail
 from rasid.notify.webpush import push_payload
@@ -263,11 +263,15 @@ def _correct(c: Ctx, url: str, item_id: str, was: str, kind: str) -> None:
 
 
 def _resolver(entities: list[Entity]) -> Resolver:
-    """صاحب الإعلان: اسم الجهة الذي استخرجه المصنّف، ثم عنوان الإعلان. جهة خارج القائمة تُقبل للبرامج الطلابية فقط."""
+    """صاحب الإعلان: اسم الجهة الذي استخرجه المصنّف، ثم عنوان الإعلان. جهة خارج القائمة تُقبل للبرامج الطلابية فقط.
+    جهة العنوان تُقبل فقط إذا لم يُسمِّ المصنّف جهة أو شارك اسمُه أسماءها: «سيف إحدى شركات صندوق الاستثمارات»
+    إعلان سيف لا الصندوق."""
     def resolve(v: Verdict, text: str) -> tuple[str, str] | None:
         named = (v.fields.get("entity_name").value if v.fields.get("entity_name") else "") or ""
         title = next((l.split(":", 1)[1] for l in text.splitlines() if l.startswith("عنوان الإعلان:")), "")
-        e = find_entity(named, entities) or find_entity(title, entities)
+        e = find_entity(named, entities)
+        if e is None and (t := find_entity(title, entities)) and (not named.strip() or shares_name(named, t)):
+            e = t
         if e is not None:
             return e.id, e.name_ar
         oid = outside_id(named) if named else None
