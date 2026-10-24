@@ -124,4 +124,15 @@ def check_verdict(d: Any, input_text: str, model: str) -> tuple[Verdict | None, 
             v.notes.append(f"أُسقط التخصص {m['name']}: دليله غير موجود في النص")
             continue
         v.majors.append({"name": m["name"], "seats": m.get("seats"), "quote": m.get("quote")})
+    _start_after_window(v)
     return v, ""
+
+
+def _start_after_window(v: Verdict) -> None:
+    """«مباشرة التدريب: 11 يناير» بلا سنة بعد تقديم في أكتوبر: السنة التي خمّنها النموذج هي التالية لا الحالية."""
+    ts, ref = v.fields.get("training_starts"), v.fields.get("closes") or v.fields.get("opens")
+    if ts and ref and ts.value < ref.value and not re.search(r"\d{4}", normalize(ts.quote)):
+        try:
+            v.fields["training_starts"] = Field(ts.value.replace(year=ts.value.year + 1), ts.quote)
+        except ValueError:  # ٢٩ فبراير
+            pass

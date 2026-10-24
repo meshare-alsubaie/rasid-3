@@ -169,15 +169,9 @@
   fulltime_history: unknown
   channels:
   - kind: web
-    url: https://alinma.com/
-  - kind: web
     url: https://www.alinma.com/
   - kind: web
     url: https://alinma.com/About-the-Bank/The-Bank/News
-  - kind: web
-    url: https://alinma.com/About-the-Bank/The-Bank/News/2026/8/amwal-tech
-  - kind: web
-    url: https://alinma.com/About-the-Bank/The-Bank/News/2026/8/IFN-Awards
 - id: alrajhi
   name_ar: مصرف الراجحي
   aliases:
@@ -322,6 +316,7 @@
 - id: ey_sa
   name_ar: إي واي السعودية
   aliases:
+  - إي واي
   - إرنست ويونغ
   - ارنست ويونغ
   - EY
@@ -460,6 +455,7 @@
 - id: pwc_sa
   name_ar: بي دبليو سي السعودية
   aliases:
+  - بي دبليو سي
   - PwC
   - برايس ووترهاوس
   stars_manual: 4
@@ -597,8 +593,6 @@
     url: https://tetco.sa/ar/latest-news
   - kind: web
     url: https://tetco.sa/ar/digital-education-and-training
-  - kind: web
-    url: http://tetco.sa/ar/careers
 - id: thiqah
   name_ar: ثقة للخدمات التجارية
   aliases:
@@ -963,6 +957,8 @@
     url: https://momah.gov.sa/ar/announcements
 - id: hrc
   name_ar: هيئة حقوق الإنسان السعودية
+  aliases:
+  - هيئة حقوق الإنسان
   stars_manual: 2
   cyber: 1
   hires_after: 1
@@ -1266,12 +1262,6 @@
     url: https://www.nazaha.gov.sa/Jobs
   - kind: web
     url: https://www.nazaha.gov.sa/News
-  - kind: web
-    url: https://www.nazaha.gov.sa/News/Details?q=LDqaftYCK2agKydxrbY5fg==
-  - kind: web
-    url: https://www.nazaha.gov.sa/News/Details?q=+ZUW2RPX/9RAyHyLvILpaw==
-  - kind: web
-    url: https://www.nazaha.gov.sa/News/Details?q=HNQU9DHVnwVHan0Mf562ug==
 - id: ncar
   name_ar: المركز الوطني للوثائق والمحفوظات
   stars_manual: 2
@@ -1397,6 +1387,8 @@
     url: https://www.saso.gov.sa/ar/mediacenter/news/Pages/default.aspx
 - id: saudi_exports
   name_ar: هيئة تنمية الصادرات السعودية
+  aliases:
+  - هيئة تنمية الصادرات
   stars_manual: 2
   cyber: 1
   hires_after: 1
@@ -1456,6 +1448,7 @@
 - id: srca
   name_ar: الهلال الأحمر السعودي
   aliases:
+  - الهلال الأحمر
   - هيئة الهلال الأحمر
   stars_manual: 2
   cyber: 1
@@ -1594,6 +1587,9 @@
     url: https://www.sami.com.sa/careers/
 - id: zain_ksa
   name_ar: زين السعودية
+  aliases:
+  - شركة زين
+  - Zain
   stars_manual: 3
   cyber: 1
   hires_after: 1
@@ -1625,6 +1621,8 @@
     url: https://careers.sab.com/ar/
 - id: spl
   name_ar: البريد السعودي
+  aliases:
+  - SPL
   stars_manual: 2
   cyber: 1
   hires_after: 1

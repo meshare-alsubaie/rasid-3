@@ -20,7 +20,7 @@ from rasid.dates import _DIGITS
 from rasid.diff import new_blocks
 from rasid.entities import Aggregator, Channel, Entity, agg_sites, official_first, site_of
 from rasid.fetch import Block, FetchResult, block_hash
-from rasid.match import find_entity, outside_id, shares_name
+from rasid.match import find_entity, outside_id, shares_name, subsidiary_of
 from rasid.notify.outbox import Outbox
 from rasid.notify.templates import KIND_AR, countdown, days_ar, reminders, render, update_detail
 from rasid.notify.webpush import push_payload
@@ -262,15 +262,21 @@ def _correct(c: Ctx, url: str, item_id: str, was: str, kind: str) -> None:
             st.meta["new_since_digest"] = [k for k in st.meta["new_since_digest"] if k != p.key]
 
 
+_ARABIC = re.compile(r"[؀-ۿ]")
+
+
 def _resolver(entities: list[Entity]) -> Resolver:
     """صاحب الإعلان: اسم الجهة الذي استخرجه المصنّف، ثم عنوان الإعلان. جهة خارج القائمة تُقبل للبرامج الطلابية فقط.
-    جهة العنوان تُقبل فقط إذا لم يُسمِّ المصنّف جهة أو شارك اسمُه أسماءها: «سيف إحدى شركات صندوق الاستثمارات»
-    إعلان سيف لا الصندوق."""
+    جهة العنوان تُقبل فقط إذا لم يُسمِّ المصنّف جهة، أو سمّاها بالإنجليزية، أو شارك اسمُه أسماءها: «سيف إحدى
+    شركات صندوق الاستثمارات» إعلان سيف لا الصندوق. وشركة تابعة باسم أمها («تكافل الراجحي») جهة خارج القائمة."""
     def resolve(v: Verdict, text: str) -> tuple[str, str] | None:
         named = (v.fields.get("entity_name").value if v.fields.get("entity_name") else "") or ""
         title = next((l.split(":", 1)[1] for l in text.splitlines() if l.startswith("عنوان الإعلان:")), "")
         e = find_entity(named, entities)
-        if e is None and (t := find_entity(title, entities)) and (not named.strip() or shares_name(named, t)):
+        if e is not None and subsidiary_of(named, e):
+            e = None
+        elif e is None and (t := find_entity(title, entities)) and (
+                not named.strip() or not _ARABIC.search(named) or shares_name(named, t)):
             e = t
         if e is not None:
             return e.id, e.name_ar

@@ -92,5 +92,17 @@ def test_no_page_is_watched_for_two_entities():
     from pathlib import Path
 
     from rasid.entities import load_entities
-    urls = Counter(c.url for e in load_entities(Path("config/entities.yaml")) for c in e.channels)
+    import re
+    same = lambda u: re.sub(r"^https?://(www\.)?", "", u).rstrip("/").lower()  # noqa: E731 — نفس الصفحة بصيغتين
+    urls = Counter(same(c.url) for e in load_entities(Path("config/entities.yaml")) for c in e.channels)
     assert [u for u, n in urls.items() if n > 1] == []
+
+
+def test_no_one_off_news_article_is_watched():
+    # خبر منشور لا يتغير، فمراقبته جلب بلا فائدة في كل جولة (الفحصان الرابع والرابع عشر)
+    import re
+    from pathlib import Path
+
+    from rasid.entities import load_entities
+    article = re.compile(r"/20\d\d/\d{1,2}/|/News/Details\?", re.IGNORECASE)
+    assert [c.url for e in load_entities(Path("config/entities.yaml")) for c in e.channels if article.search(c.url)] == []

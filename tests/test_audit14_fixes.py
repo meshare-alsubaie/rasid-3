@@ -87,3 +87,47 @@ def test_renamed_entities_match_their_current_names():
                        ("الهيئة السعودية للمياه تعلن التدريب التعاوني", "swcc"),
                        ("وكالة الفضاء السعودية تعلن التدريب التعاوني", "ssc")):
         assert find_entity(text, ES).id == want
+
+
+# ---------- مراجعة مستقلة: شركة تابعة اسمها فيه اسم الأم، واسم بحرف جر أو بالإنجليزية ----------
+
+def test_subsidiary_containing_the_parent_name_is_its_own_entity():
+    resolve = _resolver(ES)
+    for named, title in (("الراجحي للتأمين التعاوني (تكافل الراجحي)", "برنامج تمهير لدى تكافل الراجحي"),
+                         ("الراجحي المالية", "الراجحي المالية تعلن التدريب التعاوني"),
+                         ("أرامكو ديجيتال", "أرامكو ديجيتال تعلن التدريب التعاوني")):
+        owner = resolve(_coop(named), _text(title))
+        assert owner is not None and owner[0].startswith("x:"), named
+    for named, want in (("مصرف الراجحي", "alrajhi"), ("وزارة المالية", "mof"), ("التعاونية للتأمين", "tawuniya"),
+                        ("أرامكو السعودية", "aramco")):
+        assert resolve(_coop(named), _text("التدريب التعاوني"))[0] == want, named
+
+
+def test_prefixed_or_latin_names_still_resolve_through_the_title():
+    resolve = _resolver(ES)
+    assert resolve(_coop("لأرامكو السعودية"), _text("أرامكو السعودية تفتح التدريب التعاوني"))[0] == "aramco"
+    assert resolve(_coop("Saudi Electricity Company"),
+                   _text("الشركة السعودية للكهرباء تعلن التدريب التعاوني"))[0] == "sec"
+    assert not shares_name("صندوق التنمية الصناعية", BY_ID["adf"])  # «التنمية» كلمة عامة
+
+
+def test_training_start_without_a_year_follows_the_application_window():
+    from datetime import date
+
+    from rasid.classify.schema import check_verdict
+    text = "بداية التقديم: 26 أكتوبر 2026. نهاية التقديم: 2 نوفمبر 2026. مباشرة التدريب: 11 يناير"
+    d = {"kind": "coop", "kind_quote": "بداية التقديم",
+         "opens": {"value": "2026-10-26", "quote": "بداية التقديم: 26 أكتوبر 2026"},
+         "closes": {"value": "2026-11-02", "quote": "نهاية التقديم: 2 نوفمبر 2026"},
+         "training_starts": {"value": "2026-01-11", "quote": "مباشرة التدريب: 11 يناير"}}
+    assert check_verdict(d, text, "m")[0].fields["training_starts"].value == date(2027, 1, 11)
+    text += " 2026"  # السنة مكتوبة في الاقتباس: لا تُغيَّر
+    d["training_starts"]["quote"] = "مباشرة التدريب: 11 يناير 2026"
+    assert check_verdict(d, text, "m")[0].fields["training_starts"].value == date(2026, 1, 11)
+
+
+def test_new_short_aliases_resolve():
+    resolve = _resolver(ES)
+    for named, eid in [("هيئة حقوق الإنسان", "hrc"), ("الهلال الأحمر", "srca"), ("إي واي", "ey_sa"),
+                       ("هيئة تنمية الصادرات", "saudi_exports"), ("شركة زين", "zain_ksa")]:
+        assert resolve(_coop(named), _text("تدريب تعاوني"))[0] == eid, named
