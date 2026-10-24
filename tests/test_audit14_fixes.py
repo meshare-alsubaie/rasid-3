@@ -78,3 +78,12 @@ def test_deleted_successfactors_posting_is_an_error_page():
     for text in ("- An error occurred while processing your request. Please go back to your original page.",
                  "This job cannot be viewed at the moment. It has either been deleted or is no longer available."):
         assert junk_reason([Block(text), Block("SuccessFactors")], u, u).startswith("الصفحة رسالة خطأ")
+
+
+def test_renamed_entities_match_their_current_names():
+    from rasid.match import find_entity
+    for text, want in (("المؤسسة العامة للتأمينات الاجتماعية تعلن التدريب التعاوني", "pension"),
+                       ("الهيئة العامة لتنظيم الإعلام تعلن التدريب التعاوني", "gcam"),
+                       ("الهيئة السعودية للمياه تعلن التدريب التعاوني", "swcc"),
+                       ("وكالة الفضاء السعودية تعلن التدريب التعاوني", "ssc")):
+        assert find_entity(text, ES).id == want
