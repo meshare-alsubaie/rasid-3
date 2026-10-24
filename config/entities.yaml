@@ -59,10 +59,6 @@
     url: https://nca.gov.sa/ar/nca-academy/
   - kind: web
     url: https://nca.gov.sa/ar/education-program/
-  - kind: web
-    url: https://nca.gov.sa/ar/careers/
-  - kind: web
-    url: https://nca.gov.sa/en/careers/
 - id: pif
   name_ar: صندوق الاستثمارات العامة
   aliases:

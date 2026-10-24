@@ -84,3 +84,13 @@ def test_safe_load_falls_back_to_last_good(tmp_path):
     es, err = load_entities_safe(path, last_good)
     assert len(es) == 2 and es[1].cyber == 3
     assert err and "السطر" in err
+
+
+def test_no_page_is_watched_for_two_entities():
+    # الجهة الثانية لا ترى جديداً أبداً: ما قرأته الأولى يُعلَّم مقروءاً بالرابط
+    from collections import Counter
+    from pathlib import Path
+
+    from rasid.entities import load_entities
+    urls = Counter(c.url for e in load_entities(Path("config/entities.yaml")) for c in e.channels)
+    assert [u for u, n in urls.items() if n > 1] == []
