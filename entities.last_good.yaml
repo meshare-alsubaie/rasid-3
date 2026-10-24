@@ -1,0 +1,1890 @@
+# ملف الجهات. عدّله بحرية؛ أي خطأ يُرفض آلياً برسالة عربية تسمّي السطر.
+# stars_manual: النجوم من 1 إلى 5 | cyber: القرب من الأمن السيبراني 0-3 | hires_after: التوظيف بعد التدريب 0-3
+# fulltime_history: هل اشترطت التفرغ سابقاً yes/no/unknown | channels: القنوات الرسمية (web/rss/x/linkedin/email)
+
+- id: aramco
+  name_ar: أرامكو السعودية
+  aliases:
+  - أرامكو
+  - Aramco
+  stars_manual: 5
+  cyber: 1
+  hires_after: 1
+  fulltime_history: 'yes'
+  channels:
+  - kind: web
+    url: https://www.aramco.com/en/careers/for-saudi-applicants/student-opportunities
+  - kind: web
+    url: https://www.aramco.com/en/careers/for-saudi-applicants/student-opportunities/apprenticeship-program
+  - kind: web
+    url: https://www.aramco.com/en/careers/for-saudi-applicants/student-opportunities/college-degree-program
+  - kind: web
+    url: https://www.aramco.com/en/careers/for-saudi-applicants/student-opportunities/college-continuation-program
+  - kind: web
+    url: https://www.aramco.com/en/careers/for-saudi-applicants/student-opportunities/university-and-vocational-college-internship-programs
+  - kind: web
+    url: https://www.aramco.com/en/careers/for-saudi-applicants/student-opportunities/university-and-vocational-college-internship-programs/university-internship-program
+  fulltime_evidence: عدم تسجيل أي مواد دراسية خلال فترة التدريب
+- id: nca
+  name_ar: الهيئة الوطنية للأمن السيبراني
+  aliases:
+  - NCA
+  stars_manual: 5
+  cyber: 3
+  hires_after: 1
+  fulltime_history: unknown
+  channels:
+  - kind: web
+    url: https://nca.gov.sa/ar/news/
+  - kind: web
+    url: https://nca.gov.sa/en/news/
+  - kind: web
+    url: https://nca.gov.sa/ar/careers/
+  - kind: web
+    url: https://nca.gov.sa/en/careers/
+  - kind: web
+    url: https://nca.gov.sa/ar/cyber-training-and-qualifications/
+  - kind: web
+    url: https://nca.gov.sa/ar/cyber-training-and-qualifications/cybersecurity-program-3/
+- id: ncac
+  name_ar: الأكاديمية الوطنية للأمن السيبراني
+  stars_manual: 5
+  cyber: 3
+  hires_after: 1
+  fulltime_history: unknown
+  channels:
+  - kind: web
+    url: https://haseen.gov.sa/academy/ar/
+  - kind: web
+    url: https://nca.gov.sa/ar/nca-academy/
+  - kind: web
+    url: https://nca.gov.sa/ar/education-program/
+- id: pif
+  name_ar: صندوق الاستثمارات العامة
+  aliases:
+  - صندوق الاستثمارات
+  - PIF
+  stars_manual: 5
+  cyber: 1
+  hires_after: 1
+  fulltime_history: unknown
+  channels:
+  - kind: web
+    url: https://www.pif.gov.sa/
+- id: sabic
+  name_ar: سابك
+  aliases:
+  - SABIC
+  stars_manual: 5
+  cyber: 1
+  hires_after: 1
+  fulltime_history: unknown
+  channels:
+  - kind: web
+    url: https://www.sabic.com/ar/careers
+  - kind: web
+    url: https://www.sabic.com/ar/careers/middle-east-africa/students-and-fresh-graduates
+  - kind: web
+    url: https://jobs.sabic.com/
+- id: sama
+  name_ar: البنك المركزي السعودي
+  aliases:
+  - ساما
+  - SAMA
+  - مؤسسة النقد العربي السعودي
+  - البنك المركزي
+  stars_manual: 5
+  cyber: 3
+  hires_after: 1
+  fulltime_history: unknown
+  channels:
+  - kind: web
+    url: https://careers.sama.gov.sa/go/COOP-Training/7723023/
+- id: sdaia
+  name_ar: الهيئة السعودية للبيانات والذكاء الاصطناعي
+  aliases:
+  - سدايا
+  - SDAIA
+  stars_manual: 5
+  cyber: 3
+  hires_after: 1
+  fulltime_history: unknown
+  channels:
+  - kind: web
+    url: https://sdaia.gov.sa/ar/MediaCenter/News/Pages/default.aspx
+  - kind: web
+    url: https://sdaia.gov.sa/ar/Sectors/BuildingCapacity/Pages/CooperativeTraining.aspx
+- id: site
+  name_ar: الشركة السعودية لتقنية المعلومات
+  aliases:
+  - سايت
+  - شركة سايت
+  stars_manual: 5
+  cyber: 3
+  hires_after: 1
+  fulltime_history: unknown
+  channels: []
+- id: stc
+  name_ar: stc
+  aliases:
+  - اس تي سي
+  - إس تي سي
+  - الاتصالات السعودية
+  - stc
+  - مجموعة stc
+  stars_manual: 5
+  cyber: 2
+  hires_after: 1
+  fulltime_history: unknown
+  channels:
+  - kind: web
+    url: https://careers.stc.com.sa/content/COOP/?locale=ar_SA
+  - kind: web
+    url: https://careers.stc.com.sa/content/COOP/?locale=en_US
+  - kind: web
+    url: https://careers.stc.com.sa/go/%D8%A7%D9%84%D8%AA%D8%AF%D8%B1%D9%8A%D8%A8-%D8%A7%D9%84%D8%AA%D8%B9%D8%A7%D9%88%D9%86%D9%8A/7736823/
+  - kind: web
+    url: https://careers.stc.com.sa/
+  - kind: web
+    url: https://careers.stc.com.sa/go/Cooperative-Training/7736023/
+- id: albilad
+  name_ar: بنك البلاد
+  stars_manual: 4
+  cyber: 1
+  hires_after: 1
+  fulltime_history: unknown
+  channels:
+  - kind: web
+    url: https://bankalbilad.com/ar/about/Pages/Training.aspx
+  - kind: web
+    url: https://www.bankalbilad.com.sa/en/about/pages/training.aspx
+- id: alinma
+  name_ar: مصرف الإنماء
+  aliases:
+  - بنك الإنماء
+  - الإنماء
+  stars_manual: 4
+  cyber: 1
+  hires_after: 1
+  fulltime_history: unknown
+  channels:
+  - kind: web
+    url: https://www.alinma.com/
+  - kind: web
+    url: https://alinma.com/About-the-Bank/The-Bank/News
+- id: alrajhi
+  name_ar: مصرف الراجحي
+  aliases:
+  - الراجحي
+  - بنك الراجحي
+  - Al Rajhi
+  stars_manual: 4
+  cyber: 1
+  hires_after: 1
+  fulltime_history: unknown
+  channels:
+  - kind: web
+    url: https://careers.alrajhibank.com.sa/
+  - kind: web
+    url: https://careers.alrajhibank.com.sa/ar/page/coop-program/
+  - kind: web
+    url: https://careers.alrajhibank.com.sa/en/page/coop-program/
+  - kind: web
+    url: https://careers.alrajhibank.com.sa/ar/saudi-arabia/jobs/coop-training-%D8%A7%D9%84%D8%AA%D8%AF%D8%B1%D9%8A%D8%A8-%D8%A7%D9%84%D8%AA%D8%B9%D8%A7%D9%88%D9%86%D9%8A-1100037814/
+  - kind: web
+    url: https://www.alrajhibank.com.sa/
+- id: anb
+  name_ar: البنك العربي الوطني
+  aliases:
+  - البنك العربي
+  - ANB
+  stars_manual: 4
+  cyber: 1
+  hires_after: 1
+  fulltime_history: unknown
+  channels:
+  - kind: web
+    url: https://careers.anb.sa/
+  - kind: web
+    url: https://anb.com.sa/web/anb
+  - kind: web
+    url: https://careers.anb.sa/ar/
+- id: bankaljazira
+  name_ar: بنك الجزيرة
+  stars_manual: 4
+  cyber: 1
+  hires_after: 1
+  fulltime_history: unknown
+  channels:
+  - kind: web
+    url: https://www.bankaljazira.com/ar-sa/
+- id: bog
+  name_ar: ديوان المظالم
+  stars_manual: 4
+  cyber: 1
+  hires_after: 1
+  fulltime_history: unknown
+  channels:
+  - kind: web
+    url: https://www.bog.gov.sa/en/EServices/Pages/khabeer.aspx
+  - kind: web
+    url: https://www.bog.gov.sa/en/EServices/judiciaryHiring/Pages/Hiring.aspx
+  - kind: web
+    url: https://www.bog.gov.sa/en/EServices/judiciaryHiring/Pages/default.aspx
+- id: bsf
+  name_ar: البنك السعودي الفرنسي
+  aliases:
+  - BSF
+  stars_manual: 4
+  cyber: 1
+  hires_after: 1
+  fulltime_history: unknown
+  channels:
+  - kind: web
+    url: https://www.alfransi.com.sa/
+- id: citc
+  name_ar: هيئة الاتصالات والفضاء والتقنية
+  aliases:
+  - هيئة الاتصالات
+  - هيئة الاتصالات وتقنية المعلومات
+  - CST
+  stars_manual: 4
+  cyber: 3
+  hires_after: 1
+  fulltime_history: unknown
+  channels:
+  - kind: web
+    url: https://www.cst.gov.sa/
+  - kind: web
+    url: https://www.cst.gov.sa/media-center
+  - kind: web
+    url: https://www.cst.gov.sa/en/media-center
+  - kind: web
+    url: https://www.citc.gov.sa/ar/Pages/default.aspx
+- id: cma
+  name_ar: هيئة السوق المالية
+  aliases:
+  - CMA
+  stars_manual: 4
+  cyber: 1
+  hires_after: 1
+  fulltime_history: unknown
+  channels:
+  - kind: web
+    url: https://cma.gov.sa/Pages/default.aspx
+- id: deloitte_sa
+  name_ar: ديلويت السعودية
+  aliases:
+  - ديلويت
+  - Deloitte
+  stars_manual: 4
+  cyber: 2
+  hires_after: 1
+  fulltime_history: unknown
+  channels:
+  - kind: web
+    url: https://www.deloitte.com/middle-east/en/careers.html
+- id: dga
+  name_ar: هيئة الحكومة الرقمية
+  aliases:
+  - DGA
+  stars_manual: 4
+  cyber: 3
+  hires_after: 1
+  fulltime_history: unknown
+  channels:
+  - kind: web
+    url: https://career.dga.gov.sa/ar/page/coop-program/
+  - kind: web
+    url: https://career.dga.gov.sa/
+  - kind: web
+    url: https://career.dga.gov.sa/ar/
+- id: elm
+  name_ar: شركة علم
+  aliases:
+  - Elm
+  - شركة علم للخدمات
+  stars_manual: 4
+  cyber: 3
+  hires_after: 1
+  fulltime_history: unknown
+  channels:
+  - kind: web
+    url: https://career.elm.sa/elm/go/Coop-Trainee-and-Training-Programs/7792200/
+  - kind: web
+    url: https://career.elm.sa/elm/go/coop-trainee-and-training-program/8486100/
+- id: ey_sa
+  name_ar: إي واي السعودية
+  aliases:
+  - إي واي
+  - إرنست ويونغ
+  - ارنست ويونغ
+  - EY
+  stars_manual: 4
+  cyber: 2
+  hires_after: 1
+  fulltime_history: unknown
+  channels:
+  - kind: web
+    url: https://www.ey.com/en_sa
+  - kind: web
+    url: https://www.ey.com/en_sa/careers
+  - kind: web
+    url: https://www.ey.com/en_sa/careers/assurance
+  - kind: web
+    url: https://www.ey.com/en_sa/careers/parthenon
+  - kind: web
+    url: https://www.ey.com/en_sa/careers/technology
+  - kind: web
+    url: https://www.ey.com/en_sa/careers/consulting
+- id: gastat
+  name_ar: الهيئة العامة للإحصاء
+  aliases:
+  - هيئة الإحصاء
+  stars_manual: 4
+  cyber: 1
+  hires_after: 1
+  fulltime_history: unknown
+  channels:
+  - kind: web
+    url: https://www.stats.gov.sa/en/news
+  - kind: web
+    url: https://www.stats.gov.sa/en/cooperative-training
+  - kind: web
+    url: https://www.stats.gov.sa/ar/cooperative-training
+  - kind: web
+    url: https://www.stats.gov.sa/ar
+  - kind: web
+    url: https://careers.stats.gov.sa/
+- id: kpmg_sa
+  name_ar: كي بي إم جي السعودية
+  aliases:
+  - كي بي إم جي
+  - KPMG
+  stars_manual: 4
+  cyber: 2
+  hires_after: 1
+  fulltime_history: unknown
+  channels:
+  - kind: web
+    url: https://slccareers.kpmg.com/go/All-Jobs/7738123/
+  - kind: web
+    url: https://slccareers.kpmg.com/job/Medina-KPMG-Audit-Internship-Program-Accounting-Graduates/1368374723/
+  - kind: web
+    url: https://slccareers.kpmg.com/job/Riyadh-KPMG-Audit-COOP-Program-(Riyadh,-Jeddah,-and-Khobar)/857222523/
+- id: maaden
+  name_ar: معادن
+  aliases:
+  - شركة معادن
+  - Maaden
+  - 'Ma''aden'
+  stars_manual: 4
+  cyber: 1
+  hires_after: 1
+  fulltime_history: unknown
+  channels:
+  - kind: web
+    url: https://www.maaden.com/ar
+  - kind: web
+    url: https://careers.maaden.com/gb/en
+  - kind: web
+    url: https://careers.maaden.com/gb/en/search-results
+- id: mcit
+  name_ar: وزارة الاتصالات وتقنية المعلومات
+  aliases:
+  - وزارة الاتصالات
+  - MCIT
+  stars_manual: 4
+  cyber: 2
+  hires_after: 1
+  fulltime_history: unknown
+  channels:
+  - kind: web
+    url: https://www.mcit.gov.sa/ar
+- id: mim
+  name_ar: وزارة الصناعة والثروة المعدنية
+  aliases:
+  - وزارة الصناعة
+  stars_manual: 4
+  cyber: 1
+  hires_after: 1
+  fulltime_history: unknown
+  channels:
+  - kind: web
+    url: https://www.mim.gov.sa/ar/empower-training/cooperative-training
+  - kind: web
+    url: https://www.mim.gov.sa/ar
+  - kind: web
+    url: https://www.mim.gov.sa/ar/media-center/news
+- id: mobily
+  name_ar: موبايلي
+  aliases:
+  - Mobily
+  stars_manual: 4
+  cyber: 2
+  hires_after: 1
+  fulltime_history: unknown
+  channels: []
+- id: moj
+  name_ar: وزارة العدل
+  stars_manual: 4
+  cyber: 1
+  hires_after: 1
+  fulltime_history: unknown
+  channels: []
+- id: ncai
+  name_ar: المركز الوطني للذكاء الاصطناعي
+  stars_manual: 4
+  cyber: 3
+  hires_after: 1
+  fulltime_history: unknown
+  channels:
+  - kind: web
+    url: https://sdaia.gov.sa/ncai/
+  - kind: web
+    url: https://sdaia.gov.sa/ar/Sectors/Ncai/Pages/default.aspx
+- id: ncdc
+  name_ar: المركز الوطني للتصديق الرقمي
+  stars_manual: 4
+  cyber: 3
+  hires_after: 1
+  fulltime_history: unknown
+  channels:
+  - kind: web
+    url: https://ncdc.gov.sa/
+- id: pwc_sa
+  name_ar: بي دبليو سي السعودية
+  aliases:
+  - بي دبليو سي
+  - PwC
+  - برايس ووترهاوس
+  stars_manual: 4
+  cyber: 2
+  hires_after: 1
+  fulltime_history: unknown
+  channels:
+  - kind: web
+    url: https://www.pwc.com/m1/en/careers.html
+  - kind: web
+    url: https://www.pwc.com/m1/en/careers/graduates.html
+  - kind: web
+    url: https://www.pwc.com/m1/en/careers/student-jobs.html
+  - kind: web
+    url: https://www.pwc.com/m1/en/careers/experienced-jobs.html
+- id: riyadbank
+  name_ar: بنك الرياض
+  aliases:
+  - Riyad Bank
+  stars_manual: 4
+  cyber: 1
+  hires_after: 1
+  fulltime_history: unknown
+  channels:
+  - kind: web
+    url: https://careers.riyadbank.com/
+  - kind: web
+    url: https://careers.riyadbank.com/ar/
+  - kind: web
+    url: https://www.riyadbank.com/ar/personal-banking
+- id: saib
+  name_ar: البنك السعودي للاستثمار
+  aliases:
+  - SAIB
+  stars_manual: 4
+  cyber: 1
+  hires_after: 1
+  fulltime_history: unknown
+  channels:
+  - kind: web
+    url: https://careers.saib.com.sa/ar/page/coop-program/
+  - kind: web
+    url: https://www.saib.com.sa/ar
+  - kind: web
+    url: https://careers.saib.com.sa/ar/page/it-program/
+  - kind: web
+    url: https://careers.saib.com.sa/ar/page/bag-program/
+  - kind: web
+    url: https://careers.saib.com.sa/en/page/coop-program/
+- id: sar
+  name_ar: الخطوط الحديدية السعودية
+  aliases:
+  - قطارات سار
+  - شركة سار
+  - الخطوط الحديدية
+  stars_manual: 4
+  cyber: 1
+  hires_after: 1
+  fulltime_history: unknown
+  channels:
+  - kind: web
+    url: https://www.sar.com.sa/
+- id: simah
+  name_ar: سمة
+  aliases:
+  - الشركة السعودية للمعلومات الائتمانية
+  - شركة سمة
+  - SIMAH
+  stars_manual: 4
+  cyber: 1
+  hires_after: 1
+  fulltime_history: unknown
+  channels: []
+- id: snb
+  name_ar: البنك الأهلي السعودي
+  aliases:
+  - الأهلي السعودي
+  - البنك الأهلي
+  - SNB
+  stars_manual: 4
+  cyber: 1
+  hires_after: 1
+  fulltime_history: unknown
+  channels: []
+- id: tadawul
+  name_ar: تداول السعودية
+  aliases:
+  - مجموعة تداول
+  - Tadawul
+  - السوق المالية السعودية
+  stars_manual: 4
+  cyber: 2
+  hires_after: 1
+  fulltime_history: unknown
+  channels:
+  - kind: web
+    url: https://www.tadawulgroup.sa/wps/portal/tadawulgroup/joinus
+- id: takamol
+  name_ar: تكامل القابضة
+  aliases:
+  - شركة تكامل
+  - Takamol
+  stars_manual: 4
+  cyber: 2
+  hires_after: 1
+  fulltime_history: unknown
+  channels:
+  - kind: web
+    url: https://takamolholding.com/ar/join-us
+- id: taqnia
+  name_ar: تقنية
+  aliases:
+  - الشركة السعودية للتنمية والاستثمار التقني
+  - شركة تقنية
+  - TAQNIA
+  stars_manual: 4
+  cyber: 2
+  hires_after: 1
+  fulltime_history: unknown
+  channels: []
+- id: tetco
+  name_ar: تيتكو
+  aliases:
+  - تطوير لتقنيات التعليم
+  stars_manual: 4
+  cyber: 1
+  hires_after: 1
+  fulltime_history: unknown
+  channels:
+  - kind: web
+    url: https://tetco.sa/ar/careers
+  - kind: web
+    url: https://tetco.sa/
+  - kind: web
+    url: https://tetco.sa/ar/latest-news
+  - kind: web
+    url: https://tetco.sa/ar/digital-education-and-training
+- id: thiqah
+  name_ar: ثقة للخدمات التجارية
+  aliases:
+  - شركة ثقة
+  - Thiqah
+  stars_manual: 4
+  cyber: 1
+  hires_after: 1
+  fulltime_history: unknown
+  channels:
+  - kind: web
+    url: https://www.thiqah.sa/careers/
+- id: zatca
+  name_ar: هيئة الزكاة والضريبة والجمارك
+  aliases:
+  - هيئة الزكاة
+  - ZATCA
+  stars_manual: 4
+  cyber: 1
+  hires_after: 1
+  fulltime_history: unknown
+  channels:
+  - kind: web
+    url: https://careers.zatca.gov.sa/content/Coop-and-Training-Programs-Arabic/?locale=ar_SA
+  - kind: web
+    url: https://zatca.gov.sa/ar
+  - kind: web
+    url: https://zatca.gov.sa/ar/MediaCenter/Pages/default.aspx
+  - kind: web
+    url: https://zatca.gov.sa/ar/MediaCenter/Elan/Pages/default.aspx
+  - kind: web
+    url: https://zatca.gov.sa/ar/MediaCenter/News/Pages/default.aspx
+  - kind: web
+    url: https://careers.zatca.gov.sa/search/?createNewAlert=false&q=&locationsearch=
+- id: aec
+  name_ar: الشركات المتقدمة للإلكترونيات
+  aliases:
+  - الإلكترونيات المتقدمة
+  - AEC
+  stars_manual: 3
+  cyber: 1
+  hires_after: 1
+  fulltime_history: unknown
+  channels:
+  - kind: web
+    url: https://www.aecl.com/ar/
+  - kind: web
+    url: https://www.aecl.com/ar/news/
+  - kind: web
+    url: https://www.aecl.com/en/news/
+- id: devoteam_sa
+  name_ar: ديفوتيم السعودية
+  aliases:
+  - ديفوتيم
+  - Devoteam
+  stars_manual: 3
+  cyber: 1
+  hires_after: 1
+  fulltime_history: unknown
+  channels:
+  - kind: web
+    url: https://www.devoteam.com/me/join-us/
+- id: ejada
+  name_ar: إجادة للنظم
+  aliases:
+  - Ejada
+  stars_manual: 3
+  cyber: 1
+  hires_after: 1
+  fulltime_history: unknown
+  channels:
+  - kind: web
+    url: https://careers.ejada.com/
+  - kind: web
+    url: https://careers.ejada.com/ar/
+- id: fakeeh
+  name_ar: مستشفى الدكتور سليمان فقيه
+  aliases:
+  - سليمان فقيه
+  - Fakeeh
+  stars_manual: 3
+  cyber: 1
+  hires_after: 1
+  fulltime_history: unknown
+  channels:
+  - kind: web
+    url: https://www.fakeeh.care/
+  - kind: web
+    url: https://www.fakeeh.care/news-and-media
+  - kind: web
+    url: https://www.fakeeh.care/news-and-update
+- id: masterworks
+  name_ar: ماستر ووركس
+  aliases:
+  - Masterworks
+  stars_manual: 3
+  cyber: 1
+  hires_after: 1
+  fulltime_history: unknown
+  channels:
+  - kind: web
+    url: https://master-works.sa/en/Careers
+  - kind: web
+    url: https://master-works.sa/ar/Careers
+  - kind: web
+    url: https://master-works.sa/en/Insights
+  - kind: web
+    url: https://master-works.sa/ar/Insights
+- id: mckinsey_sa
+  name_ar: ماكنزي وشركاه
+  aliases:
+  - ماكنزي
+  - McKinsey
+  stars_manual: 3
+  cyber: 1
+  hires_after: 1
+  fulltime_history: unknown
+  channels: []
+- id: ndf
+  name_ar: صندوق التنمية الوطني
+  stars_manual: 4
+  cyber: 1
+  hires_after: 1
+  fulltime_history: unknown
+  channels:
+  - kind: web
+    url: https://ndf.gov.sa/
+  - kind: web
+    url: https://ndf.gov.sa/media-center
+  - kind: web
+    url: https://ndf.gov.sa/media-center/articles
+  - kind: web
+    url: https://ndf.gov.sa/media-center/press-news
+  - kind: web
+    url: https://ndf.gov.sa/media-center/newsletters
+  - kind: web
+    url: https://ndf.gov.sa/media-center/annual-reports
+- id: nournet
+  name_ar: نورنت
+  aliases:
+  - Nournet
+  stars_manual: 3
+  cyber: 1
+  hires_after: 1
+  fulltime_history: unknown
+  channels:
+  - kind: web
+    url: https://nour.net.sa/ar/
+  - kind: web
+    url: https://nour.net.sa/news/
+  - kind: web
+    url: https://nour.net.sa/ar/news/
+- id: sidf
+  name_ar: صندوق التنمية الصناعية
+  aliases:
+  - SIDF
+  stars_manual: 4
+  cyber: 1
+  hires_after: 1
+  fulltime_history: unknown
+  channels:
+  - kind: web
+    url: https://www.sidf.gov.sa/ar/Pages/Home.aspx
+- id: taif_amanah
+  name_ar: أمانة محافظة الطائف
+  aliases:
+  - أمانة الطائف
+  stars_manual: 3
+  cyber: 1
+  hires_after: 1
+  fulltime_history: unknown
+  channels: []
+- id: taif_uni_it
+  name_ar: عمادة تقنية المعلومات، جامعة الطائف
+  aliases:
+  - جامعة الطائف
+  stars_manual: 3
+  cyber: 1
+  hires_after: 1
+  fulltime_history: unknown
+  channels:
+  - kind: web
+    url: https://www.tu.edu.sa/
+  - kind: web
+    url: https://www.tu.edu.sa/Ar/%D8%A7%D9%84%D8%A5%D8%AF%D8%A7%D8%B1%D8%A7%D8%AA/366/%D8%A5%D8%AF%D8%A7%D8%B1%D8%A9-%D8%A7%D9%84%D8%AA%D8%AF%D8%B1%D9%8A%D8%A8-%D8%A7%D9%84%D8%B7%D9%84%D8%A7%D8%A8%D9%8A-
+  - kind: web
+    url: https://www.tu.edu.sa/Ar/%D8%A7%D9%84%D8%A5%D8%AF%D8%A7%D8%B1%D8%A7%D8%AA/119/%D8%A5%D8%AF%D8%A7%D8%B1%D8%A9-%D8%A7%D9%84%D8%A5%D8%A8%D8%AA%D8%B9%D8%A7%D8%AB-%D9%88%D8%A7%D9%84%D8%AA%D8%AF%D8%B1%D9%8A%D8%A8
+  - kind: web
+    url: https://www.tu.edu.sa/En/%D8%A7%D9%84%D8%A5%D8%AF%D8%A7%D8%B1%D8%A7%D8%AA/119/%D8%A5%D8%AF%D8%A7%D8%B1%D8%A9-%D8%A7%D9%84%D8%A5%D8%A8%D8%AA%D8%B9%D8%A7%D8%AB-%D9%88%D8%A7%D9%84%D8%AA%D8%AF%D8%B1%D9%8A%D8%A8
+  - kind: web
+    url: https://www.tu.edu.sa/Ar/%D8%A5%D8%AF%D8%A7%D8%B1%D8%A9-%D8%A7%D9%84%D8%A5%D8%A8%D8%AA%D8%B9%D8%A7%D8%AB-%D9%88%D8%A7%D9%84%D8%AA%D8%AF%D8%B1%D9%8A%D8%A8/119/Pages/20905/%D8%B9%D9%86-%D8%A7%D9%84%D8%A5%D8%AF%D8%A7%D8%B1%D8%A9
+  - kind: web
+    url: https://www.tu.edu.sa/Ar/%D8%A5%D8%AF%D8%A7%D8%B1%D8%A9-%D8%A7%D9%84%D8%A5%D8%A8%D8%AA%D8%B9%D8%A7%D8%AB-%D9%88%D8%A7%D9%84%D8%AA%D8%AF%D8%B1%D9%8A%D8%A8/119/Pages/22011/%D8%A7%D9%84%D9%87%D9%8A%D9%83%D9%84-%D8%A7%D9%84%D8%AA%D9%86%D8%B8%D9%8A%D9%85%D9%8A
+- id: wadi_makkah
+  name_ar: وادي مكة للتقنية
+  stars_manual: 3
+  cyber: 1
+  hires_after: 1
+  fulltime_history: unknown
+  channels:
+  - kind: web
+    url: https://wadimakkah.sa/
+  - kind: web
+    url: https://wadimakkah.sa/en/home
+  - kind: web
+    url: https://wadimakkah.sa/en/media-center/
+- id: adeem
+  name_ar: أديم المالية
+  stars_manual: 2
+  cyber: 1
+  hires_after: 1
+  fulltime_history: unknown
+  channels:
+  - kind: web
+    url: http://adeemcapital.com/
+- id: adf
+  name_ar: صندوق التنمية الزراعية
+  stars_manual: 2
+  cyber: 1
+  hires_after: 1
+  fulltime_history: unknown
+  channels:
+  - kind: web
+    url: https://adf.gov.sa/ar/Pages/default.aspx
+  - kind: web
+    url: https://adf.gov.sa/ar/Pages/training.aspx
+  - kind: web
+    url: https://adf.gov.sa/ar/Pages/employment.aspx
+  - kind: web
+    url: https://adf.gov.sa/ar/Pages/training-request.aspx
+  - kind: web
+    url: https://adf.gov.sa/ar/media-center/news/Pages/default.aspx
+  - kind: web
+    url: https://adf.gov.sa/ar/media-center/events/Pages/default.aspx
+- id: awqaf
+  name_ar: الهيئة العامة للأوقاف
+  aliases:
+  - هيئة الأوقاف
+  stars_manual: 2
+  cyber: 1
+  hires_after: 1
+  fulltime_history: unknown
+  channels:
+  - kind: web
+    url: https://www.awqaf.gov.sa/ar
+  - kind: web
+    url: https://awqaf.gov.sa/ar/hiring
+  - kind: web
+    url: https://careers.awqaf.gov.sa/viewalljobs/
+  - kind: web
+    url: https://awqaf.gov.sa/ar/media-center/achievements-awards
+- id: bahri
+  name_ar: البحري
+  aliases:
+  - الشركة الوطنية السعودية للنقل البحري
+  - شركة البحري
+  - Bahri
+  stars_manual: 2
+  cyber: 1
+  hires_after: 1
+  fulltime_history: unknown
+  channels:
+  - kind: web
+    url: https://www.bahri.sa/en/careers/
+- id: derayah
+  name_ar: دراية المالية
+  aliases:
+  - Derayah
+  stars_manual: 2
+  cyber: 1
+  hires_after: 1
+  fulltime_history: unknown
+  channels: []
+- id: ecza
+  name_ar: هيئة المدن الاقتصادية والمناطق الخاصة
+  aliases:
+  - هيئة المدن الاقتصادية
+  stars_manual: 2
+  cyber: 1
+  hires_after: 1
+  fulltime_history: unknown
+  channels:
+  - kind: web
+    url: https://www.ecza.gov.sa/ar
+- id: etec
+  name_ar: هيئة تقويم التعليم والتدريب
+  stars_manual: 2
+  cyber: 1
+  hires_after: 1
+  fulltime_history: unknown
+  channels:
+  - kind: web
+    url: https://neti.etec.gov.sa/
+- id: falcom
+  name_ar: فالكم المالية
+  stars_manual: 2
+  cyber: 1
+  hires_after: 1
+  fulltime_history: unknown
+  channels: []
+- id: gac
+  name_ar: الهيئة العامة للمنافسة
+  aliases:
+  - هيئة المنافسة
+  - GAC
+  stars_manual: 4
+  cyber: 1
+  hires_after: 1
+  fulltime_history: unknown
+  channels: []
+- id: gaca
+  name_ar: الهيئة العامة للطيران المدني
+  aliases:
+  - هيئة الطيران المدني
+  - GACA
+  stars_manual: 2
+  cyber: 1
+  hires_after: 1
+  fulltime_history: unknown
+  channels:
+  - kind: web
+    url: https://gaca.gov.sa/news
+  - kind: web
+    url: https://gaca.gov.sa/ar/News
+- id: gcam
+  name_ar: الهيئة العامة للإعلام المرئي والمسموع
+  aliases:
+  - هيئة الإعلام المرئي والمسموع
+  - الهيئة العامة لتنظيم الإعلام
+  - هيئة تنظيم الإعلام
+  stars_manual: 2
+  cyber: 1
+  hires_after: 1
+  fulltime_history: unknown
+  channels: []
+- id: gea
+  name_ar: الهيئة العامة للترفيه
+  aliases:
+  - هيئة الترفيه
+  stars_manual: 2
+  cyber: 1
+  hires_after: 1
+  fulltime_history: unknown
+  channels: []
+- id: housing
+  name_ar: وزارة الإسكان
+  aliases:
+  - وزارة البلديات والإسكان
+  - وزارة البلديات
+  stars_manual: 2
+  cyber: 1
+  hires_after: 1
+  fulltime_history: unknown
+  channels:
+  - kind: web
+    url: https://momah.gov.sa/ar
+  - kind: web
+    url: https://momah.gov.sa/ar/news
+  - kind: web
+    url: https://momah.gov.sa/ar/node/14717
+  - kind: web
+    url: https://momah.gov.sa/ar/announcements
+- id: hrc
+  name_ar: هيئة حقوق الإنسان السعودية
+  aliases:
+  - هيئة حقوق الإنسان
+  stars_manual: 2
+  cyber: 1
+  hires_after: 1
+  fulltime_history: unknown
+  channels:
+  - kind: web
+    url: https://www.hrc.gov.sa/website/careers
+  - kind: web
+    url: https://www.hrc.gov.sa/website/news?lang=ar
+  - kind: web
+    url: https://www.hrc.gov.sa/website/careers?lang=ar
+  - kind: web
+    url: https://e-services.hrc.gov.sa/ar/service/details/12
+  - kind: web
+    url: https://www.hrc.gov.sa/website/cooperations?lang=ar
+  - kind: web
+    url: https://www.hrc.gov.sa/website/all_branches_news?lang=ar
+- id: hrsd
+  name_ar: وزارة الموارد البشرية والتنمية الاجتماعية
+  aliases:
+  - وزارة الموارد البشرية
+  stars_manual: 2
+  cyber: 1
+  hires_after: 1
+  fulltime_history: unknown
+  channels:
+  - kind: web
+    url: https://hrsd.gov.sa/
+  - kind: web
+    url: https://www.hrsd.gov.sa/media-center
+  - kind: web
+    url: https://www.hrsd.gov.sa/media-center/news
+  - kind: web
+    url: https://www.hrsd.gov.sa/media-center/events
+  - kind: web
+    url: https://www.hrsd.gov.sa/ministry/about-ministry/jobs
+  - kind: web
+    url: https://www.hrsd.gov.sa/care-about-you/skillsandtrain
+- id: jadwa
+  name_ar: جدوى للاستثمار
+  aliases:
+  - Jadwa
+  stars_manual: 2
+  cyber: 1
+  hires_after: 1
+  fulltime_history: unknown
+  channels:
+  - kind: web
+    url: https://www.jadwa.com/ar/internship
+  - kind: web
+    url: https://www.jadwa.com/en
+  - kind: web
+    url: https://www.jadwa.com/en/careers
+  - kind: web
+    url: https://www.jadwa.com/en/internship
+  - kind: web
+    url: https://www.jadwa.com/en/announcements
+  - kind: web
+    url: https://www.jadwa.com/en/form/summer-internship-program
+- id: kapsarc
+  name_ar: مركز الملك عبدالله للدراسات والبحوث البترولية
+  aliases:
+  - كابسارك
+  - KAPSARC
+  stars_manual: 2
+  cyber: 1
+  hires_after: 1
+  fulltime_history: unknown
+  channels:
+  - kind: web
+    url: https://www.kapsarc.org/
+  - kind: web
+    url: https://www.kapsarc.org/newsroom/news/
+  - kind: web
+    url: https://www.kapsarc.org/newsroom/events/
+  - kind: web
+    url: https://www.kapsarc.org/work-with-us/job-opportunities/
+- id: kasb
+  name_ar: كسب المالية
+  stars_manual: 2
+  cyber: 1
+  hires_after: 1
+  fulltime_history: unknown
+  channels: []
+- id: lcgpa
+  name_ar: هيئة المحتوى المحلي والمشتريات الحكومية
+  aliases:
+  - هيئة المحتوى المحلي
+  stars_manual: 2
+  cyber: 1
+  hires_after: 1
+  fulltime_history: unknown
+  channels: []
+- id: mawhiba
+  name_ar: مؤسسة الملك عبدالعزيز ورجاله للموهبة والإبداع
+  aliases:
+  - مؤسسة موهبة
+  - Mawhiba
+  stars_manual: 2
+  cyber: 1
+  hires_after: 1
+  fulltime_history: unknown
+  channels:
+  - kind: web
+    url: https://mawhiba.org/
+- id: mc
+  name_ar: وزارة التجارة
+  stars_manual: 2
+  cyber: 1
+  hires_after: 1
+  fulltime_history: unknown
+  channels:
+  - kind: web
+    url: https://mc.gov.sa/ar/mediacenter/News/Pages/default.aspx
+- id: mecca_health
+  name_ar: تجمع مكة المكرمة الصحي
+  aliases:
+  - تجمع مكة الصحي
+  stars_manual: 3
+  cyber: 1
+  hires_after: 1
+  fulltime_history: unknown
+  channels: []
+- id: media
+  name_ar: وزارة الإعلام
+  stars_manual: 2
+  cyber: 1
+  hires_after: 1
+  fulltime_history: unknown
+  channels:
+  - kind: web
+    url: https://media.gov.sa/
+- id: mep
+  name_ar: وزارة الاقتصاد والتخطيط
+  aliases:
+  - وزارة الاقتصاد
+  stars_manual: 2
+  cyber: 1
+  hires_after: 1
+  fulltime_history: unknown
+  channels: []
+- id: mewa
+  name_ar: وزارة البيئة والمياه والزراعة
+  aliases:
+  - وزارة البيئة
+  stars_manual: 2
+  cyber: 1
+  hires_after: 1
+  fulltime_history: unknown
+  channels:
+  - kind: web
+    url: https://www.mewa.gov.sa/ar/Pages/default.aspx
+  - kind: web
+    url: https://www.mewa.gov.sa/ar/MediaCenter/News/Pages/Home.aspx
+  - kind: web
+    url: https://www.mewa.gov.sa/ar/MediaCenter/Ads/Pages/default.aspx
+  - kind: web
+    url: https://www.mewa.gov.sa/ar/MediaCenter/Events/Pages/MonthEvents.aspx
+  - kind: web
+    url: https://www.mewa.gov.sa/ar/MediaCenter/PressReleases/Pages/home.aspx
+  - kind: web
+    url: https://www.mewa.gov.sa/ar/MediaCenter/MultimediaLibrary/Pages/default.aspx
+- id: misa
+  name_ar: وزارة الاستثمار
+  stars_manual: 2
+  cyber: 1
+  hires_after: 1
+  fulltime_history: unknown
+  channels:
+  - kind: web
+    url: https://misa.gov.sa/ar/
+  - kind: web
+    url: https://misa.gov.sa/ar/media-center/
+  - kind: web
+    url: https://jobs.misa.gov.sa/viewalljobs/
+  - kind: web
+    url: https://jobs.misa.gov.sa/ar/?locale=ar_SA
+- id: moc
+  name_ar: وزارة الثقافة
+  stars_manual: 2
+  cyber: 1
+  hires_after: 1
+  fulltime_history: unknown
+  channels:
+  - kind: web
+    url: https://www.moc.gov.sa/ar
+- id: modon
+  name_ar: الهيئة السعودية للمدن الصناعية ومناطق التقنية
+  aliases:
+  - هيئة المدن الصناعية
+  - MODON
+  stars_manual: 2
+  cyber: 1
+  hires_after: 1
+  fulltime_history: unknown
+  channels:
+  - kind: web
+    url: https://careers.modon.gov.sa/
+- id: moe
+  name_ar: وزارة التعليم
+  stars_manual: 2
+  cyber: 1
+  hires_after: 1
+  fulltime_history: unknown
+  channels:
+  - kind: web
+    url: https://www.moe.gov.sa/ar/aboutus/nationaltransformation/Pages/employmentstrategy.aspx
+- id: moenergy
+  name_ar: وزارة الطاقة
+  stars_manual: 2
+  cyber: 1
+  hires_after: 1
+  fulltime_history: unknown
+  channels:
+  - kind: web
+    url: http://www.moenergy.gov.sa/
+  - kind: web
+    url: https://www.moenergy.gov.sa/ar/media-center
+  - kind: web
+    url: https://www.moenergy.gov.sa/ar/media-center/news
+- id: mof
+  name_ar: وزارة المالية
+  stars_manual: 2
+  cyber: 1
+  hires_after: 1
+  fulltime_history: unknown
+  channels:
+  - kind: web
+    url: https://www.mof.gov.sa/ar/
+  - kind: web
+    url: https://www.mof.gov.sa/ar/employment
+  - kind: web
+    url: https://www.mof.gov.sa/ar/news
+- id: mofa
+  name_ar: وزارة الخارجية
+  stars_manual: 2
+  cyber: 1
+  hires_after: 1
+  fulltime_history: unknown
+  channels:
+  - kind: web
+    url: https://www.mofa.gov.sa/
+  - kind: web
+    url: https://www.mofa.gov.sa/ar/ministry/news/Pages/default.aspx
+- id: moh
+  name_ar: وزارة الصحة
+  stars_manual: 2
+  cyber: 1
+  hires_after: 1
+  fulltime_history: unknown
+  channels:
+  - kind: web
+    url: https://www.moh.gov.sa/Pages/Default.aspx
+  - kind: web
+    url: https://www.moh.gov.sa/ministry/mediacenter/ads/pages/default.aspx
+  - kind: web
+    url: https://www.moh.gov.sa/ministry/mediacenter/rss/pages/default.aspx
+  - kind: web
+    url: https://www.moh.gov.sa/ministry/mediacenter/news/pages/default.aspx
+  - kind: web
+    url: https://www.moh.gov.sa/ministry/mediacenter/publications/pages/default.aspx
+  - kind: web
+    url: https://www.moh.gov.sa/ministry/mediacenter/ministryactivities/pages/default.aspx
+- id: monshaat
+  name_ar: الهيئة العامة للمنشآت الصغيرة والمتوسطة
+  aliases:
+  - هيئة المنشآت الصغيرة والمتوسطة
+  - Monshaat
+  stars_manual: 2
+  cyber: 1
+  hires_after: 1
+  fulltime_history: unknown
+  channels:
+  - kind: web
+    url: https://www.monshaat.gov.sa/
+  - kind: web
+    url: https://www.monshaat.gov.sa/ar/newsletter
+- id: mot
+  name_ar: وزارة النقل والخدمات اللوجستية
+  stars_manual: 2
+  cyber: 1
+  hires_after: 1
+  fulltime_history: unknown
+  channels:
+  - kind: web
+    url: https://mot.gov.sa/ar/news
+  - kind: web
+    url: https://mot.gov.sa/ar/employment1
+- id: nazaha
+  name_ar: نزاهة
+  aliases:
+  - هيئة الرقابة ومكافحة الفساد
+  stars_manual: 4
+  cyber: 1
+  hires_after: 1
+  fulltime_history: unknown
+  channels:
+  - kind: web
+    url: https://www.nazaha.gov.sa/
+  - kind: web
+    url: https://www.nazaha.gov.sa/Jobs
+  - kind: web
+    url: https://www.nazaha.gov.sa/News
+- id: ncar
+  name_ar: المركز الوطني للوثائق والمحفوظات
+  stars_manual: 2
+  cyber: 1
+  hires_after: 1
+  fulltime_history: unknown
+  channels: []
+- id: ncc
+  name_ar: المركز الوطني للتنافسية
+  stars_manual: 2
+  cyber: 1
+  hires_after: 1
+  fulltime_history: unknown
+  channels: []
+- id: pension
+  name_ar: المؤسسة العامة للتقاعد
+  aliases:
+  - التأمينات الاجتماعية
+  - المؤسسة العامة للتأمينات الاجتماعية
+  - GOSI
+  stars_manual: 2
+  cyber: 1
+  hires_after: 1
+  fulltime_history: unknown
+  channels: []
+- id: rcjy
+  name_ar: الهيئة الملكية للجبيل وينبع
+  stars_manual: 2
+  cyber: 1
+  hires_after: 1
+  fulltime_history: unknown
+  channels:
+  - kind: web
+    url: https://www.rcjy.gov.sa/
+  - kind: web
+    url: https://careers.rcjy.gov.sa/
+  - kind: web
+    url: https://www.rcjy.gov.sa/news
+  - kind: web
+    url: https://www.rcjy.gov.sa/media-center
+- id: rcrc
+  name_ar: الهيئة الملكية لمدينة الرياض
+  stars_manual: 2
+  cyber: 1
+  hires_after: 1
+  fulltime_history: unknown
+  channels:
+  - kind: web
+    url: https://www.rcrc.gov.sa/
+- id: rcu
+  name_ar: الهيئة الملكية لمحافظة العلا
+  stars_manual: 2
+  cyber: 1
+  hires_after: 1
+  fulltime_history: unknown
+  channels:
+  - kind: web
+    url: https://www.rcu.gov.sa/
+  - kind: web
+    url: https://www.rcu.gov.sa/contact/careers
+  - kind: web
+    url: https://www.rcu.gov.sa/en/contact/careers
+  - kind: web
+    url: https://www.rcu.gov.sa/media-resources/news-press
+- id: redf
+  name_ar: صندوق التنمية العقارية
+  stars_manual: 2
+  cyber: 1
+  hires_after: 1
+  fulltime_history: unknown
+  channels: []
+- id: rega
+  name_ar: الهيئة العامة للعقار
+  stars_manual: 2
+  cyber: 1
+  hires_after: 1
+  fulltime_history: unknown
+  channels:
+  - kind: web
+    url: https://www.rega.gov.sa/
+  - kind: web
+    url: https://rega.gov.sa/media-center/%D8%A7%D9%84%D9%87%D9%88%D9%8A%D8%A9-%D8%A7%D9%84%D8%A8%D8%B5%D8%B1%D9%8A%D8%A9/
+  - kind: web
+    url: https://rega.gov.sa/media-center/%D8%A7%D9%84%D8%A3%D8%AE%D8%A8%D8%A7%D8%B1-%D9%88%D8%A7%D9%84%D8%A5%D8%B9%D9%84%D8%A7%D9%86%D8%A7%D8%AA/
+- id: saip
+  name_ar: الهيئة السعودية للملكية الفكرية
+  stars_manual: 2
+  cyber: 1
+  hires_after: 1
+  fulltime_history: unknown
+  channels:
+  - kind: web
+    url: https://www.saip.gov.sa
+  - kind: web
+    url: https://www.saip.gov.sa/ar/contact-us/careers
+  - kind: web
+    url: https://www.saip.gov.sa/ar/media-center/branding
+  - kind: web
+    url: https://www.saip.gov.sa/ar/media-center/movables-platform
+  - kind: web
+    url: https://www.saip.gov.sa/ar/media-center/media-library/media-center
+- id: sanabil
+  name_ar: سنابل للاستثمار
+  stars_manual: 2
+  cyber: 1
+  hires_after: 1
+  fulltime_history: unknown
+  channels: []
+- id: saso
+  name_ar: الهيئة السعودية للمواصفات والمقاييس والجودة
+  aliases:
+  - هيئة المواصفات
+  stars_manual: 2
+  cyber: 1
+  hires_after: 1
+  fulltime_history: unknown
+  channels:
+  - kind: web
+    url: https://www.saso.gov.sa/ar/QualitySign/info/Pages/default.aspx
+  - kind: web
+    url: https://www.saso.gov.sa/ar/pages/default.aspx
+  - kind: web
+    url: https://www.saso.gov.sa/ar/mediacenter/news/Pages/default.aspx
+- id: saudi_exports
+  name_ar: هيئة تنمية الصادرات السعودية
+  aliases:
+  - هيئة تنمية الصادرات
+  stars_manual: 2
+  cyber: 1
+  hires_after: 1
+  fulltime_history: unknown
+  channels:
+  - kind: web
+    url: https://www.saudiexports.gov.sa/ar
+- id: scfhs
+  name_ar: الهيئة السعودية للتخصصات الصحية
+  stars_manual: 2
+  cyber: 1
+  hires_after: 1
+  fulltime_history: unknown
+  channels:
+  - kind: web
+    url: https://careers.scfhs.org.sa/ar/page/build-you-future/
+  - kind: web
+    url: https://careers.scfhs.org.sa/ar/page/on-the-job-training/
+- id: seec
+  name_ar: المركز السعودي لكفاءة الطاقة
+  stars_manual: 2
+  cyber: 1
+  hires_after: 1
+  fulltime_history: unknown
+  channels: []
+- id: sfd
+  name_ar: الصندوق السعودي للتنمية
+  stars_manual: 2
+  cyber: 1
+  hires_after: 1
+  fulltime_history: unknown
+  channels:
+  - kind: web
+    url: https://www.sfd.gov.sa/
+  - kind: web
+    url: https://www.sfd.gov.sa/ar/news
+  - kind: web
+    url: https://www.sfd.gov.sa/ar/50years-news
+  - kind: web
+    url: https://www.sfd.gov.sa/ar/monthly-newsletter-view
+- id: sfda
+  name_ar: الهيئة العامة للغذاء والدواء
+  aliases:
+  - هيئة الغذاء والدواء
+  - SFDA
+  stars_manual: 4
+  cyber: 1
+  hires_after: 1
+  fulltime_history: unknown
+  channels:
+  - kind: web
+    url: https://www.sfda.gov.sa/ar
+  - kind: web
+    url: https://www.sfda.gov.sa/ar/career-vision-and-mission
+  - kind: web
+    url: https://www.sfda.gov.sa/en/career-vision-and-mission
+- id: srca
+  name_ar: الهلال الأحمر السعودي
+  aliases:
+  - الهلال الأحمر
+  - هيئة الهلال الأحمر
+  stars_manual: 2
+  cyber: 1
+  hires_after: 1
+  fulltime_history: unknown
+  channels: []
+- id: ssc
+  name_ar: الهيئة السعودية للفضاء
+  aliases:
+  - وكالة الفضاء السعودية
+  stars_manual: 2
+  cyber: 1
+  hires_after: 1
+  fulltime_history: unknown
+  channels: []
+- id: sta
+  name_ar: الهيئة السعودية للسياحة
+  stars_manual: 2
+  cyber: 1
+  hires_after: 1
+  fulltime_history: unknown
+  channels: []
+- id: swcc
+  name_ar: المؤسسة العامة لتحلية المياه المالحة
+  aliases:
+  - الهيئة السعودية للمياه
+  - تحلية المياه
+  stars_manual: 2
+  cyber: 1
+  hires_after: 1
+  fulltime_history: unknown
+  channels:
+  - kind: web
+    url: https://www.swa.gov.sa/
+- id: tawuniya
+  name_ar: التعاونية للتأمين
+  aliases:
+  - Tawuniya
+  stars_manual: 2
+  cyber: 1
+  hires_after: 1
+  fulltime_history: unknown
+  channels: []
+- id: tvtc
+  name_ar: المؤسسة العامة للتدريب التقني والمهني
+  aliases:
+  - التدريب التقني والمهني
+  stars_manual: 2
+  cyber: 1
+  hires_after: 1
+  fulltime_history: unknown
+  channels:
+  - kind: web
+    url: https://tvtc.gov.sa/
+- id: unilever_sa
+  name_ar: يونيليفر
+  stars_manual: 2
+  cyber: 1
+  hires_after: 1
+  fulltime_history: unknown
+  channels: []
+- id: wasatah
+  name_ar: الوساطة المالية
+  aliases:
+  - وساطة كابيتال
+  stars_manual: 2
+  cyber: 1
+  hires_after: 1
+  fulltime_history: unknown
+  channels:
+  - kind: web
+    url: https://wasatah.com.sa/media-center/
+  - kind: web
+    url: https://wasatah.com.sa/careers/
+  - kind: web
+    url: http://www.wasatah.com.sa/index.php/ar/
+  - kind: web
+    url: https://wasatah.com.sa/ar/%d9%81%d8%b1%d8%b5-%d8%a7%d9%84%d8%b9%d9%85%d9%84/
+- id: sirar
+  name_ar: سرار من stc
+  aliases:
+  - سرار
+  stars_manual: 5
+  cyber: 1
+  hires_after: 1
+  fulltime_history: unknown
+  channels:
+  - kind: web
+    url: https://www.sirar.com.sa/
+  - kind: web
+    url: https://www.sirar.com.sa/about-us/careers/
+- id: tahakom
+  name_ar: تحكم
+  aliases:
+  - Tahakom
+  - شركة تحكم
+  - تحكم التقنية
+  stars_manual: 5
+  cyber: 1
+  hires_after: 1
+  fulltime_history: unknown
+  channels:
+  - kind: web
+    url: https://careers.tahakom.com/?locale=ar_SA
+- id: kacst
+  name_ar: مدينة الملك عبدالعزيز للعلوم والتقنية
+  aliases:
+  - كاكست
+  - KACST
+  stars_manual: 4
+  cyber: 1
+  hires_after: 1
+  fulltime_history: unknown
+  channels: []
+- id: nic_moi
+  name_ar: المركز الوطني للمعلومات
+  stars_manual: 4
+  cyber: 1
+  hires_after: 1
+  fulltime_history: unknown
+  channels:
+  - kind: web
+    url: https://www.moi.gov.sa/Pages/home?lang=ar&culture=ar-SA&ui-culture=ar-SA
+- id: sami
+  name_ar: الشركة السعودية للصناعات العسكرية
+  aliases:
+  - SAMI
+  stars_manual: 4
+  cyber: 1
+  hires_after: 1
+  fulltime_history: unknown
+  channels:
+  - kind: web
+    url: https://www.sami.com.sa/
+  - kind: web
+    url: https://www.sami.com.sa/careers/
+- id: zain_ksa
+  name_ar: زين السعودية
+  aliases:
+  - شركة زين
+  stars_manual: 3
+  cyber: 1
+  hires_after: 1
+  fulltime_history: unknown
+  channels:
+  - kind: web
+    url: https://sa.zain.com/ar/careers/join-zain
+- id: sec
+  name_ar: الشركة السعودية للكهرباء
+  aliases:
+  - السعودية للكهرباء
+  - SEC
+  stars_manual: 3
+  cyber: 1
+  hires_after: 1
+  fulltime_history: unknown
+  channels: []
+- id: sab
+  name_ar: البنك السعودي الأول
+  aliases:
+  - SAB
+  - ساب
+  stars_manual: 3
+  cyber: 1
+  hires_after: 1
+  fulltime_history: unknown
+  channels:
+  - kind: web
+    url: https://careers.sab.com/ar/
+- id: spl
+  name_ar: البريد السعودي
+  stars_manual: 2
+  cyber: 1
+  hires_after: 1
+  fulltime_history: unknown
+  channels:
+  - kind: web
+    url: https://splonline.com.sa/ar/careers/
+- id: ncvc
+  name_ar: المركز الوطني لتنمية الغطاء النباتي
+  stars_manual: 2
+  cyber: 1
+  hires_after: 1
+  fulltime_history: unknown
+  channels:
+  - kind: web
+    url: https://ncvc.gov.sa/en/Pages/COOP-Training.aspx
+- id: flyadeal
+  name_ar: طيران أديل
+  aliases:
+  - flyadeal
+  - فلاي أديل
+  stars_manual: 2
+  cyber: 1
+  hires_after: 1
+  fulltime_history: unknown
+  channels: []
+- id: kafd
+  name_ar: مركز الملك عبدالله المالي
+  aliases:
+  - KAFD
+  stars_manual: 2
+  cyber: 1
+  hires_after: 1
+  fulltime_history: unknown
+  channels:
+  - kind: web
+    url: https://careers.kafd.sa/
+
+# مصافي أرامكو المشتركة (أمثلة ذهبية في الوثيقة، لم تكن في قائمة راصد ٢)
+- id: sasref
+  name_ar: مصفاة أرامكو السعودية شل (ساسرف)
+  aliases:
+  - ساسرف
+  - SASREF
+  stars_manual: 4
+  cyber: 1
+  hires_after: 2
+  fulltime_history: 'yes'
+  fulltime_evidence: لا يجوز للطالب دراسة أي مادة أثناء مشاركته في برنامج التعاون
+  channels:
+  - kind: web
+    url: https://www.sasref.com.sa/careers.html
+  - kind: web
+    url: https://www.sasref.com.sa/
+- id: samref
+  name_ar: مصفاة أرامكو السعودية موبيل (سامرف)
+  aliases:
+  - سامرف
+  - SAMREF
+  stars_manual: 4
+  cyber: 1
+  hires_after: 2
+  fulltime_history: unknown
+  channels:
+  - kind: web
+    url: https://www.samref.com.sa/coop-program
+  - kind: web
+    url: https://www.samref.com.sa/work-samref
+  - kind: web
+    url: https://www.samref.com.sa/
+- id: yasref
+  name_ar: مصفاة أرامكو السعودية سينوبك (ياسرف)
+  aliases:
+  - ياسرف
+  - YASREF
+  stars_manual: 4
+  cyber: 1
+  hires_after: 2
+  fulltime_history: unknown
+  channels:
+  - kind: web
+    url: https://www.yasref.com/careers
+  - kind: web
+    url: https://www.yasref.com/
+- id: satorp
+  name_ar: أرامكو توتال للتكرير (ساتورب)
+  aliases:
+  - ساتورب
+  - SATORP
+  stars_manual: 4
+  cyber: 1
+  hires_after: 2
+  fulltime_history: unknown
+  channels:
+  - kind: web
+    url: https://www.satorp.com/careers
+  - kind: web
+    url: https://www.satorp.com/
+- id: luberef
+  name_ar: لوبريف
+  aliases:
+  - Luberef
+  stars_manual: 4
+  cyber: 1
+  hires_after: 2
+  fulltime_history: unknown
+  channels:
+  - kind: web
+    url: https://www.luberef.com/ar/careers
+  - kind: web
+    url: https://www.luberef.com/
+- id: ncgr
+  name_ar: المركز الوطني لنظم الموارد الحكومية
+  aliases:
+  - NCGR
+  stars_manual: 4
+  cyber: 1
+  hires_after: 1
+  fulltime_history: unknown
+  channels:
+  - kind: web
+    url: https://ncgr.gov.sa/ar/news
+- id: solutions_stc
+  name_ar: حلول من stc
+  aliases:
+  - solutions by stc
+  - شركة حلول
+  stars_manual: 4
+  cyber: 2
+  hires_after: 1
+  fulltime_history: unknown
+  channels:
+  - kind: web
+    url: https://solutions.com.sa/ar/careers-ar/
+- id: safcsp
+  name_ar: الاتحاد السعودي للأمن السيبراني والبرمجة والدرونز
+  aliases:
+  - SAFCSP
+  - سيف سب
+  stars_manual: 4
+  cyber: 3
+  hires_after: 0
+  fulltime_history: unknown
+  channels:
+  - kind: web
+    url: https://safcsp.org.sa/
+- id: neom
+  name_ar: نيوم
+  aliases:
+  - NEOM
+  - شركة نيوم
+  stars_manual: 3
+  cyber: 0
+  hires_after: 1
+  fulltime_history: unknown
+  channels:
+  - kind: web
+    url: https://www.neom.com/en-us/be-part-of-neom/work-at-neom
+- id: roshn
+  name_ar: روشن
+  aliases:
+  - ROSHN
+  - مجموعة روشن
+  stars_manual: 3
+  cyber: 0
+  hires_after: 1
+  fulltime_history: unknown
+  channels:
+  - kind: web
+    url: https://www.roshn.sa/careers
+- id: kaust
+  name_ar: جامعة الملك عبدالله للعلوم والتقنية
+  aliases:
+  - كاوست
+  - KAUST
+  stars_manual: 3
+  cyber: 1
+  hires_after: 0
+  fulltime_history: unknown
+  channels:
+  - kind: web
+    url: https://admissions.kaust.edu.sa/study/internships
+- id: acwa
+  name_ar: أكوا باور
+  aliases:
+  - ACWA Power
+  - اكوا باور
+  stars_manual: 3
+  cyber: 0
+  hires_after: 1
+  fulltime_history: unknown
+  channels:
+  - kind: web
+    url: https://careers.acwapower.com/
+- id: nwc
+  name_ar: شركة المياه الوطنية
+  aliases:
+  - المياه الوطنية
+  - NWC
+  stars_manual: 3
+  cyber: 0
+  hires_after: 1
+  fulltime_history: unknown
+  channels:
+  - kind: web
+    url: https://www.nwc.com.sa/AR/OurCompany/Careers/Pages/default.aspx
+- id: marafiq
+  name_ar: مرافق
+  aliases:
+  - شركة مرافق
+  - Marafiq
+  stars_manual: 2
+  cyber: 0
+  hires_after: 1
+  fulltime_history: unknown
+  channels:
+  - kind: web
+    url: https://www.marafiq.com.sa/en/partnering-with-us/careers/investing-in-human-resources/
+- id: redsea
+  name_ar: البحر الأحمر الدولية
+  aliases:
+  - Red Sea Global
+  - البحر الأحمر العالمية
+  stars_manual: 3
+  cyber: 0
+  hires_after: 1
+  fulltime_history: unknown
+  channels: []
+- id: qiddiya
+  name_ar: القدية
+  aliases:
+  - Qiddiya
+  - شركة القدية للاستثمار
+  stars_manual: 3
+  cyber: 0
+  hires_after: 1
+  fulltime_history: unknown
+  channels: []
+- id: riyadhair
+  name_ar: طيران الرياض
+  aliases:
+  - Riyadh Air
+  stars_manual: 3
+  cyber: 0
+  hires_after: 1
+  fulltime_history: unknown
+  channels: []
+- id: saudia
+  name_ar: الخطوط الجوية السعودية
+  aliases:
+  - السعودية للطيران
+  - Saudia
+  - الخطوط السعودية
+  stars_manual: 3
+  cyber: 0
+  hires_after: 1
+  fulltime_history: unknown
+  channels: []
+- id: mawani
+  name_ar: الهيئة العامة للموانئ
+  aliases:
+  - موانئ
+  - Mawani
+  stars_manual: 2
+  cyber: 0
+  hires_after: 1
+  fulltime_history: unknown
+  channels: []
