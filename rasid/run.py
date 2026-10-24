@@ -199,9 +199,9 @@ def _handle(c: Ctx, entity_id: str, url: str, text: str, item_id: str,
     if stale and not isinstance(r, Pending):  # منشور قديم: «التسجيل مفتوح» فيه خبر مضى
         r.fields.pop("accepting_now", None)
     if not isinstance(r, Pending):
-        if _SOCIAL.search(str(getattr(r.fields.get("apply_url"), "value", ""))):
+        if why := _bad_apply(str(getattr(r.fields.get("apply_url"), "value", ""))):
             del r.fields["apply_url"]
-            r.notes.append("أُسقط رابط التقديم: موقع تواصل لا بوابة تقديم")
+            r.notes.append(f"أُسقط رابط التقديم: {why}")
         if r.kind in RELEVANT and "apply_url" not in r.fields and (link := _apply_link(text, url)):
             r.fields["apply_url"] = link
     recheck_of = queued.recheck_of if queued else None
@@ -409,6 +409,17 @@ _APPLY = re.compile(r"للتقديم|رابط التقديم|قدّ?م الآن|
 _SOCIAL = re.compile(r"whatsapp|wa\.me|t\.me/|telegram|twitter\.com|//(?:www\.)?x\.com|facebook|instagram|snapchat|tiktok"
                      r"|youtube|linkedin\.com/share", re.IGNORECASE)
 _LINK_LINE = re.compile(r"^(.+?): (https?://\S+)$", re.MULTILINE)
+# زر التقديم في بوابات سكسس فاكترز يعمل داخل جلسة الموقع فقط؛ فتحه مباشرة يحوّل للصفحة الرئيسية
+_SESSION_ONLY = re.compile(r"/talentcommunity/apply/", re.IGNORECASE)
+
+
+def _bad_apply(link: str) -> str | None:
+    """سبب رفض رابط تقديم، وإلا None. بدونه يعرض الموقع صفحة الإعلان نفسها (المصدر) وفيها زر التقديم."""
+    if _SOCIAL.search(link):
+        return "موقع تواصل لا بوابة تقديم"
+    if _SESSION_ONLY.search(link):
+        return "رابط لا يفتح إلا من داخل الموقع"
+    return None
 
 
 def _stale(day: str | None, today: date) -> bool:
@@ -418,7 +429,7 @@ def _stale(day: str | None, today: date) -> bool:
 
 def _good_apply(label: str, link: str, page_url: str) -> bool:
     """رابط عنوانه تقديم، لموقع غير موقع الصفحة نفسها وغير مواقع التواصل (مواقع التجميع تضع «للتقديم» لقنواتها)."""
-    return bool(_APPLY.search(label)) and site_of(link) != site_of(page_url) and not _SOCIAL.search(link)
+    return bool(_APPLY.search(label)) and site_of(link) != site_of(page_url) and not _bad_apply(link)
 
 
 def _apply_link(text: str, url: str) -> Field | None:
@@ -585,8 +596,8 @@ def run_once(now: datetime, entities: list[Entity], st: State, deps: Deps,
     checkpoint: حفظ دوري أثناء الجولة حتى لا يضيع شيء لو قُتلت."""
     aggregators = aggregators or []
     st.meta.setdefault("new_since_digest", [])
-    for p in st.programs.items.values():  # رابط تواصل حُفظ رابطاً للتقديم (قبل الفحص السابع) لا يبقى
-        if _SOCIAL.search(str((p.fields.get("apply_url") or {}).get("value", ""))):
+    for p in st.programs.items.values():  # رابط مرفوض حُفظ رابطاً للتقديم قبل رفضه (الفحصان السابع والرابع عشر) لا يبقى
+        if _bad_apply(str((p.fields.get("apply_url") or {}).get("value", ""))):
             del p.fields["apply_url"]
     c = Ctx(st, deps, now, entities, RunReport(), deadline or (lambda: False), agg_sites=agg_sites(aggregators))
     resolve = _resolver(entities)

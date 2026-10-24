@@ -103,6 +103,7 @@ _ERROR_PAGE = re.compile(
     r"|page (?:was moved|no longer exists|you requested)|the requested url was rejected|access denied"
     r"|تم رفض الوصول|انتهت صلاحية|لم نستطع إيجاد الصفحة|لم نتمكن من العثور على|no longer available|لم تعد متاحة|404 not found|error 404"
     r"|something went wrong|support id is|request unsuccessful|attention required|just a moment"
+    r"|an error occurred while processing your request|this job cannot be viewed|has either been deleted"
     r"|checking your browser|think you were a bot|are you a robot|verify you are (?:a )?human|unusual traffic",
     re.IGNORECASE)
 _NEEDS_JS = re.compile(r"enable javascript|javascript (?:is )?required|requires javascript|without javascript"
