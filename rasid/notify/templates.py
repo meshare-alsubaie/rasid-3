@@ -148,7 +148,7 @@ def launch_message(programs: list[Program], names: dict[str, str], today: date) 
         line = f"• {names.get(p.entity_id, p.entity_id)}: {KIND_AR.get(p.kind, 'فرصة')}"
         live.append((0 if cd else 1, line + (f"\n  {cd}" if cd else "\n  صفحة البرنامج متاحة")))
     head = ("🚀 أهلاً، راصد بدأ يشتغل للقروب.\n"
-            "يراقب أكثر من ١٣٠ جهة كل ساعة، ويرسل هنا كل جديد مع رابط التقديم ودليله.\n")
+            "يراقب أكثر من ١٣٠ جهة على مدار اليوم، ويرسل هنا كل جديد مع رابط التقديم ودليله.\n")
     if not live:
         return head + "\nما فيه شي مفتوح أو قادم الحين. أول ما يُعلن شي توصلكم رسالة."
     body = "\n".join(x for _, x in sorted(live))
