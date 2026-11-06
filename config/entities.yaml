@@ -296,6 +296,8 @@
   - kind: web
     url: https://career.dga.gov.sa/ar/page/coop-program/
   - kind: web
+    url: https://career.dga.gov.sa/ar/saudi-arabia/jobs/%D8%AA%D8%AF%D8%B1%D9%8A%D8%A8-%D8%AA%D8%B9%D8%A7%D9%88%D9%86%D9%8A-coop-1100087063/
+  - kind: web
     url: https://career.dga.gov.sa/
   - kind: web
     url: https://career.dga.gov.sa/ar/
@@ -1722,6 +1724,8 @@
   name_ar: لوبريف
   aliases:
   - Luberef
+  - أرامكو السعودية لزيوت الأساس
+  - Saudi Aramco Base Oil Company
   stars_manual: 4
   cyber: 1
   hires_after: 2
@@ -1731,6 +1735,46 @@
     url: https://www.luberef.com/ar/careers
   - kind: web
     url: https://www.luberef.com/
+- id: petro_rabigh
+  name_ar: بترورابغ
+  aliases:
+  - بترو رابغ
+  - Petro Rabigh
+  - Petrorabigh
+  - شركة رابغ للتكرير والبتروكيماويات
+  stars_manual: 4
+  cyber: 1
+  hires_after: 1
+  fulltime_history: unknown
+  channels:
+  - kind: web
+    url: https://careers.petrorabigh.com/pages/university-college-co-op-program
+- id: visa_sa
+  name_ar: فيزا السعودية
+  aliases:
+  - فيزا
+  - Visa
+  - Visa Saudi Arabia
+  stars_manual: 4
+  cyber: 1
+  hires_after: 1
+  fulltime_history: unknown
+  channels:
+  - kind: web
+    url: https://visa.wd5.myworkdayjobs.com/wday/cxs/visa/visa_early_careers/job/SA---Riyadh-Saudi-Arabia/COOP-Trainee--For-current-students---second-semester-COOP--starting-in-January-2027-_REF086773W
+- id: bain_sa
+  name_ar: باين آند كومباني
+  aliases:
+  - باين
+  - Bain
+  - Bain & Company
+  stars_manual: 4
+  cyber: 0
+  hires_after: 1
+  fulltime_history: unknown
+  channels:
+  - kind: web
+    url: https://www.bain.com/careers/work-with-us/internships-programs/coop/
 - id: ncgr
   name_ar: المركز الوطني لنظم الموارد الحكومية
   aliases:

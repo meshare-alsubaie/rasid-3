@@ -106,3 +106,19 @@ def test_no_one_off_news_article_is_watched():
     from rasid.entities import load_entities
     article = re.compile(r"/20\d\d/\d{1,2}/|/News/Details\?", re.IGNORECASE)
     assert [c.url for e in load_entities(Path("config/entities.yaml")) for c in e.channels if article.search(c.url)] == []
+
+
+def test_new_entities_2026_11_06():
+    """جهات أضافها المؤسس بعد التقديم عليها، وتدريب لوبريف لا يُنسب لأرامكو بسبب اسمها الكامل."""
+    from rasid.match import find_named, subsidiary_of
+    es = load_entities(Path("config/entities.yaml"))
+    ids = {e.id: e for e in es}
+    assert {"petro_rabigh", "visa_sa", "bain_sa"} <= set(ids)
+    assert all(ids[i].channels for i in ("petro_rabigh", "visa_sa", "bain_sa"))
+    named = "شركة أرامكو السعودية لزيوت الأساس (لوبريف Luberef)"
+    e = find_named(named, es)
+    assert e.id == "luberef" and not subsidiary_of(named, e)
+    assert find_named("أرامكو السعودية", es).id == "aramco"
+    assert find_named("Petro Rabigh", es).id == "petro_rabigh"
+    assert find_named("635 Visa Saudi Arabia LLC", es).id == "visa_sa"
+    assert find_named("Bain & Company", es).id == "bain_sa"
